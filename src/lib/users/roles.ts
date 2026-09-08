@@ -22,8 +22,38 @@ export const ROLE_CODES: RoleCode[] = [
 
 const PM_MANAGEABLE_ROLES: string[] = [ROLE_CONSULTANT, ROLE_EMPLOYEE];
 
+const TIMESHEET_AUTHOR_ROLES: string[] = [
+  ROLE_CONSULTANT,
+  ROLE_EMPLOYEE,
+  ROLE_PM,
+];
+
 export function canManageUsers(actorRoleCode: string): boolean {
   return actorRoleCode === ROLE_ADMIN || actorRoleCode === ROLE_PM;
+}
+
+export function canSubmitTimesheets(actorRoleCode: string): boolean {
+  return TIMESHEET_AUTHOR_ROLES.includes(actorRoleCode);
+}
+
+export function canReviewTimesheets(actorRoleCode: string): boolean {
+  return actorRoleCode === ROLE_ADMIN || actorRoleCode === ROLE_PM;
+}
+
+export function canViewAllTimesheets(actorRoleCode: string): boolean {
+  return actorRoleCode === ROLE_ADMIN;
+}
+
+export function canManageCatalog(actorRoleCode: string): boolean {
+  return actorRoleCode === ROLE_ADMIN || actorRoleCode === ROLE_PM;
+}
+
+export function canHaveProject(targetRoleCode: string): boolean {
+  return targetRoleCode === ROLE_CONSULTANT || targetRoleCode === ROLE_EMPLOYEE;
+}
+
+export function requiresProject(targetRoleCode: string): boolean {
+  return targetRoleCode === ROLE_CONSULTANT;
 }
 
 export function canManageRole(

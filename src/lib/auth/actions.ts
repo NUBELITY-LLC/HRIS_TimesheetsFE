@@ -57,12 +57,11 @@ function toFormState(
   t: Dictionary,
 ): LoginFormState {
   const { code, message, details } = result.error;
-  const { remainingAttempts, lockedUntil } = readAttemptDetails(details);
+  const { lockedUntil } = readAttemptDetails(details);
 
   return {
     message: loginErrorCopy(code, t) ?? message ?? t.login.errors.fallback,
     code,
-    remainingAttempts: remainingAttempts ?? null,
     lockedUntil: lockedUntil ?? null,
     fieldErrors: code === "BAD_REQUEST" ? mapFieldErrors(details, t) : {},
     username,

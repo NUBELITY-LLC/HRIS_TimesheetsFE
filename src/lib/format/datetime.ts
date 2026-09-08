@@ -7,6 +7,10 @@ const INTL_LOCALES: Record<Locale, string> = {
   en: "en-US",
 };
 
+export function intlLocale(locale: Locale): string {
+  return INTL_LOCALES[locale];
+}
+
 const compactFormatters = new Map<Locale, Intl.DateTimeFormat>();
 const fullFormatters = new Map<Locale, Intl.DateTimeFormat>();
 

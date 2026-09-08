@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
 import { UserForm } from "@/components/users/user-form";
+import { fetchAllProjects } from "@/lib/catalog/queries";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
 import { canManageUsers, manageableRoles, roleName } from "@/lib/users/roles";
@@ -35,6 +36,7 @@ export default async function NewUserPage() {
   }
 
   const roles = manageableRoles(actor.role.code, t);
+  const projects = await fetchAllProjects();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -49,12 +51,6 @@ export default async function NewUserPage() {
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink">
           {t.users.create.title}
         </h1>
-        <p className="mt-2 max-w-xl text-sm text-ink-muted">
-          {t.users.create.subtitle(
-            roleName(actor.role.code, t),
-            roles.map((role) => role.name).join(", "),
-          )}
-        </p>
       </header>
 
       <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
@@ -62,7 +58,7 @@ export default async function NewUserPage() {
           {t.users.form.section}
         </h2>
         <div className="p-5">
-          <UserForm mode="create" roles={roles} />
+          <UserForm mode="create" roles={roles} projects={projects} />
         </div>
       </section>
 

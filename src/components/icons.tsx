@@ -216,3 +216,59 @@ export function SpinnerIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function CalendarIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+      <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" />
+    </Icon>
+  );
+}
+
+export function ChevronLeftIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M14.5 5.5 8 12l6.5 6.5" />
+    </Icon>
+  );
+}
+
+export function ChevronRightIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M9.5 5.5 16 12l-6.5 6.5" />
+    </Icon>
+  );
+}
+
+export function TrashIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4.5 6.5h15M9.5 6.5V4.75A1.25 1.25 0 0 1 10.75 3.5h2.5a1.25 1.25 0 0 1 1.25 1.25V6.5" />
+      <path d="M6.5 6.5 7.4 19a1.75 1.75 0 0 0 1.75 1.6h5.7A1.75 1.75 0 0 0 16.6 19l.9-12.5" />
+      <path d="M10.5 10.5v6M13.5 10.5v6" />
+    </Icon>
+  );
+}
+
+export function BuildingIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 20.5V5.5A2 2 0 0 1 6 3.5h6a2 2 0 0 1 2 2v15" />
+      <path d="M14 9.5h4a2 2 0 0 1 2 2v9" />
+      <path d="M2.5 20.5h19" />
+      <path d="M7.5 7.5h3M7.5 11.5h3M7.5 15.5h3M17 13.5v0M17 17v0" />
+    </Icon>
+  );
+}
+
+export function BriefcaseIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="7.5" width="18" height="12" rx="2.5" />
+      <path d="M9 7.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5" />
+      <path d="M3 12.5h18" />
+    </Icon>
+  );
+}

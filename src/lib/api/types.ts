@@ -35,6 +35,23 @@ export type UserView = {
   role: Role;
 };
 
+export type UserProjectView = {
+  assignmentId: number;
+  payRate: number;
+  currency: string;
+  startDate: string;
+  endDate: string | null;
+  isActive: boolean;
+  project: {
+    id: number;
+    projectName: string;
+    code: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    client: { id: number; name: string; isActive: boolean } | null;
+  } | null;
+};
+
 export type Pagination = {
   page: number;
   pageSize: number;
@@ -50,9 +67,7 @@ export type ApiErrorPayload = {
 };
 
 export type AttemptDetails = {
-  remainingAttempts?: number;
   lockedUntil?: string;
-  retryAfterSeconds?: number;
 };
 
 export type ValidationIssue = {
@@ -67,14 +82,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function readAttemptDetails(details: unknown): AttemptDetails {
   if (!isRecord(details)) return {};
 
-  const { remainingAttempts, lockedUntil, retryAfterSeconds } = details;
+  const { lockedUntil } = details;
 
   return {
-    remainingAttempts:
-      typeof remainingAttempts === "number" ? remainingAttempts : undefined,
     lockedUntil: typeof lockedUntil === "string" ? lockedUntil : undefined,
-    retryAfterSeconds:
-      typeof retryAfterSeconds === "number" ? retryAfterSeconds : undefined,
   };
 }
 

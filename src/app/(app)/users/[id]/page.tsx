@@ -4,10 +4,13 @@ import { notFound } from "next/navigation";
 
 import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
 import { UserForm } from "@/components/users/user-form";
+import { UserProjects } from "@/components/users/user-projects";
+import { fetchAllProjects } from "@/lib/catalog/queries";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
-import { fetchUser } from "@/lib/users/queries";
+import { fetchUser, fetchUserProjects } from "@/lib/users/queries";
 import {
+  canHaveProject,
   canManageRole,
   canManageUsers,
   manageableRoles,
@@ -73,6 +76,10 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
 
   const isSelf = user.id === actor.id;
   const roles = manageableRoles(actor.role.code, t);
+  const showProjects = canHaveProject(user.role.code);
+  const [assignments, projects] = showProjects
+    ? await Promise.all([fetchUserProjects(user.id), fetchAllProjects()])
+    : [[], []];
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -102,6 +109,7 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
             mode="edit"
             userId={user.id}
             roles={roles}
+            projects={projects}
             canChangeRole={!isSelf}
             canChangeStatus={!isSelf}
             defaultValues={{
@@ -111,10 +119,31 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
               roleCode: user.role.code,
               jobTitle: user.jobTitle ?? "",
               isActive: user.isActive,
+              projectId: "",
+              projectPayRate: "",
+              projectStartDate: "",
+              projectEndDate: "",
             }}
           />
         </div>
       </section>
+
+      {showProjects ? (
+        <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+          <div className="border-b border-line bg-surface-muted px-5 py-3.5">
+            <h2 className="text-sm font-semibold text-ink">
+              {t.users.form.projectsSection}
+            </h2>
+          </div>
+          <div className="p-5">
+            <UserProjects
+              userId={user.id}
+              assignments={assignments}
+              projects={projects}
+            />
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

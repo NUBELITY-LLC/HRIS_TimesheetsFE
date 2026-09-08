@@ -33,7 +33,6 @@ export function LanguageForm() {
             </option>
           ))}
         </select>
-        <p className="text-xs text-ink-muted">{t.settings.languageHint}</p>
       </div>
 
       <div className="flex items-center gap-3">

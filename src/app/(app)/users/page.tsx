@@ -16,7 +16,7 @@ import {
   type UserSortField,
   type UserStatus,
 } from "@/lib/users/queries";
-import { canManageRole, canManageUsers, roleName, ROLE_ADMIN } from "@/lib/users/roles";
+import { canManageRole, canManageUsers, roleName } from "@/lib/users/roles";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { formatDateTime } from "@/lib/format/datetime";
 
@@ -94,11 +94,6 @@ export default async function UsersPage({ searchParams }: PageProps<"/users">) {
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
             {t.users.title}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm text-ink-muted">
-            {actor.role.code === ROLE_ADMIN
-              ? t.users.subtitleAll
-              : t.users.subtitleLimited}
-          </p>
         </div>
         <Link
           href="/users/new"

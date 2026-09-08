@@ -5,6 +5,10 @@ import { usePathname } from "next/navigation";
 
 import { BrandLogo } from "@/components/brand-logo";
 import {
+  BriefcaseIcon,
+  BuildingIcon,
+  UserIcon,
+  CheckIcon,
   ClockIcon,
   DashboardIcon,
   HistoryIcon,
@@ -14,27 +18,75 @@ import {
 } from "@/components/icons";
 import { useDictionary } from "@/i18n/provider";
 import { logoutAction } from "@/lib/auth/actions";
-import { canManageUsers } from "@/lib/users/roles";
+import {
+  canManageCatalog,
+  canManageUsers,
+  canReviewTimesheets,
+  canSubmitTimesheets,
+} from "@/lib/users/roles";
 import type { AuthenticatedUser } from "@/lib/api/types";
 
 type NavItem = {
-  key: "dashboard" | "timesheets" | "history" | "users" | "account";
+  key:
+    | "dashboard"
+    | "timesheets"
+    | "reviews"
+    | "history"
+    | "companies"
+    | "clients"
+    | "projects"
+    | "users"
+    | "account";
   href: string;
   icon: typeof DashboardIcon;
   available: boolean;
-  userAdminOnly?: boolean;
+  visibleFor?: (roleCode: string) => boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
   { key: "dashboard", href: "/dashboard", icon: DashboardIcon, available: true },
-  { key: "timesheets", href: "/timesheets", icon: ClockIcon, available: false },
+  {
+    key: "timesheets",
+    href: "/timesheets",
+    icon: ClockIcon,
+    available: true,
+    visibleFor: canSubmitTimesheets,
+  },
+  {
+    key: "reviews",
+    href: "/reviews",
+    icon: CheckIcon,
+    available: true,
+    visibleFor: canReviewTimesheets,
+  },
   { key: "history", href: "/history", icon: HistoryIcon, available: false },
+  {
+    key: "companies",
+    href: "/companies",
+    icon: BuildingIcon,
+    available: true,
+    visibleFor: canManageCatalog,
+  },
+  {
+    key: "clients",
+    href: "/clients",
+    icon: UserIcon,
+    available: true,
+    visibleFor: canManageCatalog,
+  },
+  {
+    key: "projects",
+    href: "/projects",
+    icon: BriefcaseIcon,
+    available: true,
+    visibleFor: canManageCatalog,
+  },
   {
     key: "users",
     href: "/users",
     icon: UsersIcon,
     available: true,
-    userAdminOnly: true,
+    visibleFor: canManageUsers,
   },
   { key: "account", href: "/settings", icon: SettingsIcon, available: true },
 ];
@@ -53,7 +105,7 @@ export function Sidebar({ user }: { user: AuthenticatedUser }) {
   const t = useDictionary();
 
   const navItems = NAV_ITEMS.filter(
-    (item) => !item.userAdminOnly || canManageUsers(user.role.code),
+    (item) => !item.visibleFor || item.visibleFor(user.role.code),
   );
 
   return (
