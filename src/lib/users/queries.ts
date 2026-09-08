@@ -1,7 +1,7 @@
 import "server-only";
 
 import { apiRequest } from "@/lib/api/client";
-import type { Pagination, UserView } from "@/lib/api/types";
+import type { Pagination, UserProjectView, UserView } from "@/lib/api/types";
 import { getSessionToken } from "@/lib/auth/session";
 
 export const USER_STATUSES = ["active", "inactive", "all"] as const;
@@ -95,4 +95,14 @@ export async function fetchUser(id: number): Promise<UserFetchResult> {
     return { ok: false, reason: "forbidden", message: result.error.message };
   }
   return { ok: false, reason: "not-found" };
+}
+
+export async function fetchUserProjects(id: number): Promise<UserProjectView[]> {
+  const token = await getSessionToken();
+  const result = await apiRequest<{ projects: UserProjectView[] }>(
+    `/users/${id}/projects`,
+    { token },
+  );
+
+  return result.ok ? result.data.projects : [];
 }

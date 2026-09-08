@@ -73,12 +73,6 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
           <div className="space-y-1">
             <p className="font-medium">{state.message}</p>
 
-            {state.remainingAttempts !== null && state.remainingAttempts > 0 ? (
-              <p className="text-danger-600">
-                {t.login.attemptsRemaining(state.remainingAttempts)}
-              </p>
-            ) : null}
-
             {lockoutHint ? <p className="text-warn-700/90">{lockoutHint}</p> : null}
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useId } from "react";
+import { useActionState, useId, useState } from "react";
 
 import { PasswordField } from "@/components/ui/password-field";
 import { AlertIcon, CheckIcon, SpinnerIcon } from "@/components/icons";
@@ -11,7 +11,8 @@ import {
   type UserFormState,
   type UserFormValues,
 } from "@/lib/users/form-state";
-import type { RoleOption } from "@/lib/users/roles";
+import { canHaveProject, requiresProject, type RoleOption } from "@/lib/users/roles";
+import type { ProjectView } from "@/lib/catalog/types";
 import { useDictionary } from "@/i18n/provider";
 
 const INPUT_BASE =
@@ -55,15 +56,189 @@ function Field({
 type UserFormProps = {
   mode: "create" | "edit";
   roles: RoleOption[];
+  projects: ProjectView[];
   defaultValues?: UserFormValues;
   userId?: number;
   canChangeRole?: boolean;
   canChangeStatus?: boolean;
 };
 
+type RoleFieldsProps = {
+  ids: { roleCode: string; jobTitle: string };
+  values: UserFormValues;
+  fieldErrors: UserFormState["fieldErrors"];
+  roles: RoleOption[];
+  projects: ProjectView[];
+  canChangeRole: boolean;
+  isPending: boolean;
+  isCreate: boolean;
+};
+
+function RoleFields({
+  ids,
+  values,
+  fieldErrors,
+  roles,
+  projects,
+  canChangeRole,
+  isPending,
+  isCreate,
+}: RoleFieldsProps) {
+  const t = useDictionary();
+  const [roleCode, setRoleCode] = useState(values.roleCode);
+  const projectIds = {
+    projectId: useId(),
+    projectPayRate: useId(),
+    projectStartDate: useId(),
+    projectEndDate: useId(),
+  };
+
+  const showProjects = isCreate && canHaveProject(roleCode);
+  const projectRequired = requiresProject(roleCode);
+
+  return (
+    <>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field
+          id={ids.roleCode}
+          label={t.users.form.role}
+          error={fieldErrors.roleCode}
+          hint={canChangeRole ? undefined : t.users.form.roleLockedHint}
+        >
+          <select
+            id={ids.roleCode}
+            name="roleCode"
+            value={roleCode}
+            onChange={(event) => setRoleCode(event.target.value)}
+            disabled={isPending || !canChangeRole}
+            aria-invalid={Boolean(fieldErrors.roleCode)}
+            className={inputClass(Boolean(fieldErrors.roleCode))}
+          >
+            <option value="">{t.users.form.rolePlaceholder}</option>
+            {roles.map((role) => (
+              <option key={role.code} value={role.code}>
+                {role.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field
+          id={ids.jobTitle}
+          label={t.users.form.jobTitle}
+          error={fieldErrors.jobTitle}
+          hint={t.users.form.jobTitleHint}
+        >
+          <input
+            id={ids.jobTitle}
+            name="jobTitle"
+            type="text"
+            autoComplete="off"
+            maxLength={100}
+            defaultValue={values.jobTitle}
+            disabled={isPending}
+            aria-invalid={Boolean(fieldErrors.jobTitle)}
+            placeholder={t.users.form.jobTitlePlaceholder}
+            className={inputClass(Boolean(fieldErrors.jobTitle))}
+          />
+        </Field>
+      </div>
+
+      {showProjects ? (
+        <fieldset className="space-y-5 rounded-lg border border-line p-4">
+          <legend className="px-1 text-sm font-semibold text-ink">
+            {t.users.form.projectSection}
+          </legend>
+
+          <Field
+            id={projectIds.projectId}
+            label={t.users.form.project}
+            error={fieldErrors.projectId}
+          >
+            <select
+              id={projectIds.projectId}
+              name="projectId"
+              defaultValue={values.projectId}
+              disabled={isPending}
+              aria-invalid={Boolean(fieldErrors.projectId)}
+              className={inputClass(Boolean(fieldErrors.projectId))}
+            >
+              <option value="">
+                {projectRequired
+                  ? t.users.form.projectPlaceholder
+                  : t.users.form.projectNone}
+              </option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.projectName}
+                  {project.client ? ` · ${project.client.name}` : ""}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <div className="grid gap-5 sm:grid-cols-3">
+            <Field
+              id={projectIds.projectPayRate}
+              label={t.users.form.payRate}
+              error={fieldErrors.projectPayRate}
+            >
+              <input
+                id={projectIds.projectPayRate}
+                name="projectPayRate"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                maxLength={13}
+                defaultValue={values.projectPayRate}
+                disabled={isPending}
+                aria-invalid={Boolean(fieldErrors.projectPayRate)}
+                className={inputClass(Boolean(fieldErrors.projectPayRate))}
+              />
+            </Field>
+
+            <Field
+              id={projectIds.projectStartDate}
+              label={t.users.form.projectStart}
+              error={fieldErrors.projectStartDate}
+            >
+              <input
+                id={projectIds.projectStartDate}
+                name="projectStartDate"
+                type="date"
+                defaultValue={values.projectStartDate}
+                disabled={isPending}
+                aria-invalid={Boolean(fieldErrors.projectStartDate)}
+                className={inputClass(Boolean(fieldErrors.projectStartDate))}
+              />
+            </Field>
+
+            <Field
+              id={projectIds.projectEndDate}
+              label={t.users.form.projectEnd}
+              error={fieldErrors.projectEndDate}
+            >
+              <input
+                id={projectIds.projectEndDate}
+                name="projectEndDate"
+                type="date"
+                defaultValue={values.projectEndDate}
+                disabled={isPending}
+                aria-invalid={Boolean(fieldErrors.projectEndDate)}
+                className={inputClass(Boolean(fieldErrors.projectEndDate))}
+              />
+            </Field>
+          </div>
+        </fieldset>
+      ) : null}
+    </>
+  );
+}
+
 export function UserForm({
   mode,
   roles,
+  projects,
   defaultValues,
   userId,
   canChangeRole = true,
@@ -211,50 +386,16 @@ export function UserForm({
           showChecklist
         />
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            id={ids.roleCode}
-            label={t.users.form.role}
-            error={fieldErrors.roleCode}
-            hint={canChangeRole ? undefined : t.users.form.roleLockedHint}
-          >
-            <select
-              id={ids.roleCode}
-              name="roleCode"
-              defaultValue={values.roleCode}
-              disabled={isPending || !canChangeRole}
-              aria-invalid={Boolean(fieldErrors.roleCode)}
-              className={inputClass(Boolean(fieldErrors.roleCode))}
-            >
-              <option value="">{t.users.form.rolePlaceholder}</option>
-              {roles.map((role) => (
-                <option key={role.code} value={role.code}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field
-            id={ids.jobTitle}
-            label={t.users.form.jobTitle}
-            error={fieldErrors.jobTitle}
-            hint={t.users.form.jobTitleHint}
-          >
-            <input
-              id={ids.jobTitle}
-              name="jobTitle"
-              type="text"
-              autoComplete="off"
-              maxLength={100}
-              defaultValue={values.jobTitle}
-              disabled={isPending}
-              aria-invalid={Boolean(fieldErrors.jobTitle)}
-              placeholder={t.users.form.jobTitlePlaceholder}
-              className={inputClass(Boolean(fieldErrors.jobTitle))}
-            />
-          </Field>
-        </div>
+        <RoleFields
+          ids={{ roleCode: ids.roleCode, jobTitle: ids.jobTitle }}
+          values={values}
+          fieldErrors={fieldErrors}
+          roles={roles}
+          projects={projects}
+          canChangeRole={canChangeRole}
+          isPending={isPending}
+          isCreate={isCreate}
+        />
 
         <label
           htmlFor={ids.isActive}
@@ -274,11 +415,11 @@ export function UserForm({
             <span className="block font-medium text-ink">
               {t.users.form.activeTitle}
             </span>
-            <span className="block text-ink-muted">
-              {canChangeStatus
-                ? t.users.form.activeHint
-                : t.users.form.activeLockedHint}
-            </span>
+            {canChangeStatus ? null : (
+              <span className="block text-ink-muted">
+                {t.users.form.activeLockedHint}
+              </span>
+            )}
           </span>
         </label>
       </div>
