@@ -14,6 +14,16 @@ export const INITIAL_TIMESHEET_FORM_STATE: TimesheetFormState = {
   submissionCode: null,
 };
 
+export type DraftActionState = {
+  status: "idle" | "success" | "error";
+  message: string | null;
+};
+
+export const INITIAL_DRAFT_ACTION_STATE: DraftActionState = {
+  status: "idle",
+  message: null,
+};
+
 export type DraftDayPayload = {
   date: string;
   activities: { minutes: number; activity: string }[];

@@ -13,7 +13,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import {
   canHaveProject,
   canManageUsers,
-  manageableRoleCodes,
+  grantableRoleCodes,
   requiresProject,
   roleName,
 } from "./roles";
@@ -103,7 +103,7 @@ function allowedRolesHint(
       (code): code is string => typeof code === "string",
     );
   } else {
-    codes = manageableRoleCodes(actorRoleCode);
+    codes = grantableRoleCodes(actorRoleCode);
   }
 
   if (codes.length === 0) return "";
@@ -528,6 +528,8 @@ export async function assignUserProjectAction(
   }
 
   revalidatePath(`/users/${userId}`);
+  revalidatePath(`/users/${userId}/projects`);
+  revalidatePath("/projects");
   revalidatePath("/timesheets");
 
   return {
@@ -578,6 +580,8 @@ export async function removeUserProjectAction(
   }
 
   revalidatePath(`/users/${userId}`);
+  revalidatePath(`/users/${userId}/projects`);
+  revalidatePath("/projects");
   revalidatePath("/timesheets");
 
   return { status: "success", message: t.users.errors.projectRemoved };
@@ -675,6 +679,8 @@ export async function updateUserAssignmentAction(
   }
 
   revalidatePath(`/users/${userId}`);
+  revalidatePath(`/users/${userId}/projects`);
+  revalidatePath("/projects");
   revalidatePath("/timesheets");
 
   return {

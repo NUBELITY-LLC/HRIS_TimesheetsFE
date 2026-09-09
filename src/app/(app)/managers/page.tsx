@@ -42,7 +42,7 @@ function parseFilters(
 
 export default async function ClientsPage({
   searchParams,
-}: PageProps<"/clients">) {
+}: PageProps<"/managers">) {
   const actor = await requireUser();
   const t = await getDictionary();
 
@@ -66,7 +66,7 @@ export default async function ClientsPage({
           </h1>
         </div>
         <Link
-          href="/clients/new"
+          href="/managers/new"
           className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
         >
           <PlusIcon className="size-4" />
@@ -75,7 +75,7 @@ export default async function ClientsPage({
       </header>
 
       <form
-        action="/clients"
+        action="/managers"
         method="get"
         className="flex flex-wrap items-end gap-3 rounded-xl border border-line bg-surface p-4"
       >
@@ -210,7 +210,7 @@ export default async function ClientsPage({
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <Link
-                        href={`/clients/${client.id}`}
+                        href={`/managers/${client.id}`}
                         className="inline-flex rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted"
                       >
                         {t.catalog.clients.edit}

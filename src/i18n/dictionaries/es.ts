@@ -22,7 +22,7 @@ export const es = {
     timesheets: "Mis horas",
     reviews: "Revisión de horas",
     companies: "Empresas",
-    clients: "Clientes",
+    clients: "Gerentes",
     projects: "Proyectos",
     history: "Historial",
     users: "Usuarios",
@@ -113,7 +113,7 @@ export const es = {
     monthTarget: (target: string) => `Objetivo: ${target}`,
     monthNoTarget: "Sin objetivo definido",
     pendingTitle: "Aprobaciones pendientes",
-    pendingHint: "En espera del cliente y del supervisor",
+    pendingHint: "En espera del gerente y del supervisor",
     pendingValue: (count: number) =>
       count === 1 ? "1 envío" : `${count} envíos`,
     approvedTitle: "Registros aprobados",
@@ -124,7 +124,7 @@ export const es = {
     viewAll: "Ver todos",
     columns: {
       range: "Semana",
-      project: "Cliente / Proyecto",
+      project: "Gerente / Proyecto",
       hours: "Total de horas",
       progress: "Progreso de aprobación",
       status: "Estado",
@@ -144,7 +144,7 @@ export const es = {
     emptyBody: "Registra las horas de tu semana y aparecerán aquí.",
     emptyCta: "Ir a mis horas",
     stages: {
-      CUSTOMER: "Cliente",
+      CUSTOMER: "Gerente",
       SUPERVISOR: "Supervisor",
       CTO: "CTO",
       FINANCE: "Finanzas",
@@ -154,15 +154,20 @@ export const es = {
     breadcrumb: "Mis horas",
     breadcrumbCurrent: "Nuevo envío",
     title: "Enviar horas de la semana",
-    clientLabel: "Cliente",
-    clientPlaceholder: "Selecciona un cliente",
+    clientLabel: "Gerente",
+    companyLabel: "Empresa",
+    companyAll: "Todas las empresas",
     projectLabel: "Proyecto",
     projectPlaceholder: "Selecciona un proyecto",
-    projectNeedsClient: "Elige primero un cliente.",
     noAssignmentsTitle: "Todavía no tienes proyectos asignados.",
     noAssignmentsBody:
       "Pide a tu manager que te asigne a un proyecto para capturar horas.",
     loadErrorTitle: "No se pudieron cargar tus asignaciones.",
+    projectEndNotice: (date: string) =>
+      `Este proyecto termina el ${date}. Los días posteriores no admiten captura.`,
+    projectClosedNotice: (date: string) =>
+      `Este proyecto cerró el ${date}. Los días posteriores no admiten captura.`,
+    dayAfterProjectEnd: "Posterior al fin del proyecto",
     weekLabel: "Semana",
     weekHint: "La semana va de lunes a domingo.",
     previousWeek: "Semana anterior",
@@ -188,6 +193,21 @@ export const es = {
     noAccessBody: (role: string) =>
       `El registro de horas es para consultores, empleados y managers. Tu cuenta es de tipo ${role}.`,
     saveDraft: "Guardar borrador",
+    drafts: {
+      title: "Borradores",
+      count: (count: number) =>
+        count === 1 ? "1 semana en borrador" : `${count} semanas en borrador`,
+      empty: "No tienes borradores.",
+      open: "Abrir",
+      discard: "Descartar",
+      discarding: "Descartando…",
+      discarded: "Borrador descartado.",
+      confirm: (week: string) => `¿Descartar el borrador de la semana ${week}?`,
+      current: "Semana abierta",
+    },
+    unsaved: "Sin guardar",
+    unsavedConfirm:
+      "Tienes cambios sin guardar en esta semana. ¿Salir de todos modos?",
     submit: "Enviar horas",
     draftSaved: "Borrador guardado.",
     saving: "Guardando…",
@@ -197,7 +217,7 @@ export const es = {
     weekStatus: "Estado de la semana",
     lockedTitle: "Esta semana ya está en el flujo de aprobación.",
     errors: {
-      clientRequired: "Selecciona un cliente.",
+      clientRequired: "Selecciona un gerente.",
       projectRequired: "Selecciona un proyecto.",
       hoursRequired: "Selecciona las horas de la tarea.",
       activityRequired: "Describe la actividad de la tarea.",
@@ -212,6 +232,12 @@ export const es = {
       TIMESHEET_EMPTY: "Registra al menos una actividad antes de enviar.",
       NO_APPROVAL_WORKFLOW:
         "El proyecto no tiene un flujo de aprobación configurado; contacta a tu manager.",
+      INCOMPLETE_APPROVAL_WORKFLOW:
+        "El proyecto no tiene suficientes aprobadores configurados; contacta a tu manager.",
+      projectClosedOn: (date: string) =>
+        `El proyecto cerró el ${date}: no se pueden capturar días posteriores.`,
+      projectEndsOn: (date: string) =>
+        `El proyecto termina el ${date}: no se pueden capturar días posteriores.`,
       WEEK_NOT_STARTED: "Todavía no puedes enviar una semana futura.",
       NETWORK_ERROR:
         "No pudimos contactar al servidor. Inténtalo de nuevo en un momento.",
@@ -231,14 +257,14 @@ export const es = {
     stageLine: (index: number, name: string) => `Etapa ${index}: ${name} (activa)`,
     noActiveStage: "Sin etapa activa",
     stages: {
-      CUSTOMER: "Revisión del cliente",
+      CUSTOMER: "Revisión del gerente",
       SUPERVISOR: "Revisión del supervisor",
       CTO: "Revisión del CTO",
       FINANCE: "Revisión de finanzas",
     },
     summaryTitle: "Resumen del registro",
     person: "Persona",
-    project: "Cliente / Proyecto",
+    project: "Gerente / Proyecto",
     totalHours: "Total de horas",
     dailyTitle: "Detalle diario",
     columns: {
@@ -271,23 +297,26 @@ export const es = {
     PAID: "Pagado",
   },
   approvals: {
-    client: "Cliente",
+    client: "Gerente",
     step: (seq: number) => `Paso ${seq}`,
   },
   catalog: {
     noAccessTitle: "No tienes acceso a este módulo",
     noAccessBody: (role: string) =>
-      `La gestión de clientes y proyectos está reservada a administradores y managers. Tu cuenta es de tipo ${role}.`,
+      `La gestión de gerentes y proyectos está reservada a administradores y managers. Tu cuenta es de tipo ${role}.`,
     filters: {
       search: "Buscar",
       status: "Estado",
-      client: "Cliente",
-      allClients: "Todos los clientes",
+      client: "Gerente",
+      allClients: "Todos los gerentes",
       allCompanies: "Todas las empresas",
       company: "Empresa",
       statusActive: "Activos",
       statusInactive: "Inactivos",
       statusAll: "Todos",
+      projectStatus: "Estado",
+      projectStatusActive: "Activos",
+      projectStatusClosed: "Cerrados",
     },
     form: {
       section: "Datos del registro",
@@ -301,15 +330,20 @@ export const es = {
       companyPlaceholder: "Selecciona una empresa",
       save: "Guardar cambios",
       saving: "Guardando…",
-      clientName: "Nombre del cliente",
+      managerUser: "Usuario del sistema",
+      managerUserPlaceholder: "Gerente externo (sin cuenta)",
+      managerUserEmpty:
+        "No hay usuarios de manager o finanzas activos; captura los datos del gerente externo.",
+      clientName: "Nombre del gerente",
       clientNamePlaceholder: "Nombre comercial",
       contactEmail: "Correo de contacto",
-      contactEmailPlaceholder: "contacto@cliente.com",
+      contactEmailPlaceholder: "contacto@gerente.com",
       contactEmailHint: "Opcional.",
-      activeTitle: "Cliente activo",
+      activeTitle: "Gerente activo",
       companyActiveTitle: "Empresa activa",
-      clientLabel: "Cliente",
-      clientPlaceholder: "Selecciona un cliente",
+      clientLabel: "Gerente",
+      clientPlaceholder: "Selecciona un gerente",
+      clientCompanyEmpty: "Esa empresa no tiene gerentes registrados.",
       projectName: "Nombre del proyecto",
       projectNamePlaceholder: "Nombre del proyecto",
       code: "Código",
@@ -318,7 +352,9 @@ export const es = {
       manager: "Manager",
       managerPlaceholder: "Yo",
       startDate: "Inicio",
-      endDate: "Fin",
+      endDate: "Fin planeado (opcional)",
+      endDateHint: "Vacío = proyecto indefinido.",
+      endDateLocked: "El fin efectivo se cambia reabriendo el proyecto.",
       create: "Crear",
       creating: "Creando…",
       reviewFields: "Revisa los campos marcados.",
@@ -347,28 +383,28 @@ export const es = {
       noCompaniesTitle: "Primero crea una empresa.",
     },
     clients: {
-      eyebrow: "Clientes",
-      title: "Catálogo de clientes",
-      newClient: "Nuevo cliente",
-      searchPlaceholder: "Nombre del cliente",
+      eyebrow: "Gerentes",
+      title: "Catálogo de gerentes",
+      newClient: "Nuevo gerente",
+      searchPlaceholder: "Nombre del gerente",
       columns: {
-        name: "Cliente",
+        name: "Gerente",
         company: "Empresa",
         email: "Correo de contacto",
         status: "Estado",
       },
       active: "Activo",
       inactive: "Inactivo",
-      emptyTitle: "No hay clientes que coincidan.",
-      emptyBody: "Crea el primer cliente para empezar.",
-      loadErrorTitle: "No se pudo cargar el catálogo de clientes.",
-      createTitle: "Crear cliente",
-      editTitle: "Editar cliente",
-      back: "Volver a clientes",
+      emptyTitle: "No hay gerentes que coincidan.",
+      emptyBody: "Crea el primer gerente para empezar.",
+      loadErrorTitle: "No se pudo cargar el catálogo de gerentes.",
+      createTitle: "Crear gerente",
+      editTitle: "Editar gerente",
+      back: "Volver a gerentes",
       edit: "Editar",
       createdTitle: (name: string) => `${name} se creó.`,
       updatedTitle: (name: string) => `${name} se actualizó.`,
-      notFoundTitle: "Ese cliente no existe.",
+      notFoundTitle: "Ese gerente no existe.",
       notFoundBody: "Puede que se haya eliminado del catálogo.",
     },
     projects: {
@@ -378,7 +414,7 @@ export const es = {
       searchPlaceholder: "Nombre o código",
       columns: {
         name: "Proyecto",
-        client: "Cliente",
+        client: "Gerente",
         manager: "Manager",
         dates: "Vigencia",
       },
@@ -393,9 +429,123 @@ export const es = {
       updatedTitle: (name: string) => `${name} se actualizó.`,
       notFoundTitle: "Ese proyecto no existe.",
       notFoundBody: "Puede que se haya eliminado del catálogo.",
-      noClientsTitle: "Primero crea un cliente.",
+      noClientsTitle: "Primero crea un gerente.",
       noManager: "Sin manager",
+      since: (date: string) => `Desde el ${date}`,
       openDates: "Sin fechas",
+      createdBanner: (name: string) =>
+        `${name} se creó. Configura su flujo de aprobación para que el equipo pueda enviar horas.`,
+    },
+    team: {
+      eyebrow: "Equipo",
+      title: "Equipo del proyecto",
+      manage: "Administrar equipo",
+      back: "Volver al proyecto",
+      count: (count: number) =>
+        count === 1 ? "1 persona asignada" : `${count} personas asignadas`,
+      empty: "Este proyecto todavía no tiene personas asignadas.",
+      person: "Persona",
+      personPlaceholder: "Selecciona a la persona…",
+      noPeopleAvailable: "Ya asignaste a todas las personas disponibles.",
+      addPerson: "Asignar persona",
+      adding: "Asignando…",
+      removePerson: "Quitar",
+      assigned: "Persona asignada.",
+      saved: "Asignación actualizada.",
+      removed: "Asignación retirada.",
+    },
+    lifecycle: {
+      section: "Ciclo de vida",
+      openEnded: "Indefinido",
+      endsOn: (date: string) => `Finaliza el ${date}`,
+      closedOn: (date: string) => `Cerrado el ${date}`,
+      statusActive: "Activo",
+      statusClosed: "Cerrado",
+      activeHint:
+        "El proyecto sigue abierto. Ciérralo cuando termine de verdad; el fin planeado solo limita la captura de horas.",
+      closedHint: (date: string) =>
+        `No admite asignaciones, cambios de fin ni edición del flujo de aprobación. Fin efectivo: ${date}.`,
+      close: "Cerrar proyecto",
+      closing: "Cerrando…",
+      closeTitle: "Cerrar el proyecto",
+      closeBody:
+        "El cierre desactiva las asignaciones abiertas y fija el fin del proyecto. Lo ya enviado sigue su flujo de aprobación y lo aprobado no se toca.",
+      closeAssignments: (count: number) =>
+        count === 1
+          ? "Se cerrará 1 asignación activa."
+          : `Se cerrarán ${count} asignaciones activas.`,
+      closeNoAssignments: "El proyecto no tiene asignaciones activas.",
+      closeStrandedWarning:
+        "Los borradores de semanas posteriores a esa fecha ya no podrán enviarse.",
+      effectiveDate: "Fecha de cierre",
+      effectiveDateHint: "Es el último día que se puede capturar.",
+      confirmClose: "Sí, cerrar",
+      cancel: "Cancelar",
+      closed: "Proyecto cerrado.",
+      closedAssignments: (count: number) =>
+        count === 1
+          ? "Se cerró 1 asignación."
+          : `Se cerraron ${count} asignaciones.`,
+      strandedTimesheets: (count: number) =>
+        count === 1
+          ? "1 timesheet en borrador quedó sin poder enviarse."
+          : `${count} timesheets en borrador quedaron sin poder enviarse.`,
+      noStranded: "Ningún borrador quedó sin poder enviarse.",
+      reopen: "Reabrir proyecto",
+      reopening: "Reabriendo…",
+      reopenTitle: "Reabrir el proyecto",
+      reopenBody:
+        "El proyecto vuelve a quedar indefinido, sin fecha de fin, y admite trabajo nuevo.",
+      reopenAssignmentsWarning:
+        "Las asignaciones cerradas no reviven: hay que volver a crearlas.",
+      confirmReopen: "Sí, reabrir",
+      reopened: "Proyecto reabierto.",
+    },
+    approvals: {
+      section: "Flujo de aprobación",
+      intro:
+        "Los aprobadores revisan en el orden que definas aquí. El primero de la lista aprueba primero.",
+      counter: (count: number, max: number, min: number) =>
+        `${count} de ${max} aprobadores · mínimo ${min}`,
+      complete: "Flujo completo",
+      incomplete: "Flujo incompleto",
+      incompleteHint: (min: number) =>
+        `Este proyecto necesita al menos ${min} aprobadores; mientras tanto nadie puede enviar sus horas.`,
+      stepLabel: (seq: number) => `Paso ${seq}`,
+      typeLabel: "Tipo de aprobador",
+      types: {
+        CLIENT_EMAIL: "Gerente (por correo)",
+        USER: "Persona",
+        ROLE: "Cualquiera con un rol",
+      },
+      approverLabel: "Aprobador",
+      approverPlaceholder: "Selecciona a la persona",
+      clientLabel: "Gerente que aprueba",
+      clientPlaceholder: "Selecciona un gerente",
+      clientWithoutEmail: "sin correo de contacto",
+      clientEmail: (email: string) => `Se notificará a ${email}.`,
+      projectClientLane: "Gerente del proyecto · aprobador obligatorio",
+      projectClientMissingEmail:
+        "El gerente del proyecto no tiene correo de contacto, así que el flujo no se puede guardar.",
+      manageClients: "Administrar gerentes",
+      addClientHint:
+        "Para sumar otro aprobador externo, primero regístralo como gerente de la misma empresa.",
+      roleLabel: "Rol",
+      rolePlaceholder: "Selecciona un rol",
+      displayNameLabel: "Nombre a mostrar",
+      displayNamePlaceholder: "Opcional",
+      addStep: "Agregar aprobador",
+      maxReached: (max: number) => `Llegaste al máximo de ${max} aprobadores.`,
+      removeStep: "Quitar aprobador",
+      moveUp: "Subir",
+      moveDown: "Bajar",
+      save: "Guardar flujo",
+      saving: "Guardando…",
+      saved: "Flujo de aprobación actualizado.",
+      reviewSteps: "Revisa los aprobadores marcados.",
+      noApprovers: "Este proyecto todavía no tiene aprobadores.",
+      noCandidates:
+        "No hay administradores ni managers activos para nominar como aprobadores.",
     },
     errors: {
       FORBIDDEN: "Tu rol no puede administrar el catálogo.",
@@ -410,10 +560,44 @@ export const es = {
       rfcLength:
         "El RFC debe tener 12 caracteres (persona moral) o 13 (persona física).",
       companyRequired: "Selecciona una empresa.",
-      clientNameRequired: "Escribe el nombre del cliente.",
-      clientRequired: "Selecciona un cliente.",
+      personRequired: "Selecciona a la persona.",
+      assignmentStart: "Indica la fecha de inicio de la asignación.",
+      payRateRequired: "Indica la tarifa por hora de la asignación.",
+      payRateInvalid: "La tarifa admite números con hasta 2 decimales.",
+      clientNameRequired: "Escribe el nombre del gerente.",
+      managerUserInvalid:
+        "Ese usuario no está activo o ya no tiene un rol de manager o finanzas.",
+      clientRequired: "Selecciona un gerente.",
       projectNameRequired: "Escribe el nombre del proyecto.",
       dateOrder: "La fecha de fin no puede ser anterior a la de inicio.",
+      approversMin: (min: number) =>
+        `El flujo requiere al menos ${min} aprobadores.`,
+      approversMax: (max: number) =>
+        `El flujo admite como máximo ${max} aprobadores.`,
+      approverTypeRequired: "Elige el tipo de aprobador.",
+      approverRequired: "Selecciona a la persona que aprueba.",
+      approverRoleRequired: "Selecciona el rol que aprueba.",
+      approverEmailInvalid: "El correo del aprobador no es válido.",
+      approverClientRequired: "Selecciona el gerente que aprueba.",
+      projectClientLaneRequired:
+        "El gerente del proyecto debe ser uno de los aprobadores.",
+      CLIENT_COMPANY_MISMATCH:
+        "Solo pueden aprobar gerentes de la misma empresa que el gerente del proyecto.",
+      CLIENT_WITHOUT_EMAIL:
+        "Ese gerente no tiene correo de contacto; agrégalo en su ficha.",
+      CLIENT_INACTIVE: "Ese gerente está inactivo.",
+      approverDuplicated: "Este aprobador ya ocupa otro paso del flujo.",
+      PROJECT_CLOSED:
+        "El proyecto está cerrado: reábrelo para poder modificarlo.",
+      projectHasOpenTimesheets: (count: number) =>
+        count === 1
+          ? "Hay 1 timesheet en aprobación de una semana posterior a esa fecha. Resuélvelo antes de cerrar."
+          : `Hay ${count} timesheets en aprobación de semanas posteriores a esa fecha. Resuélvelos antes de cerrar.`,
+      projectAlreadyClosed:
+        "El proyecto ya estaba cerrado. Recarga para ver su estado actual.",
+      projectNotClosed:
+        "El proyecto no está cerrado. Recarga para ver su estado actual.",
+      effectiveDateRequired: "Indica la fecha de cierre.",
     },
   },
   settings: {
@@ -487,6 +671,8 @@ export const es = {
       `La gestión de usuarios está reservada a administradores y managers. Tu cuenta es de tipo ${role}.`,
     noAccessUserTitle: "No tienes acceso a este usuario",
     noAccessUserGeneric: "Tu rol no puede gestionar cuentas con ese rol.",
+    cannotHaveProjects: (role: string) =>
+      `Las cuentas de tipo ${role} no llevan proyectos asignados.`,
     create: {
       title: "Crear un usuario",
       noAccessBody: (role: string) =>
@@ -530,6 +716,10 @@ export const es = {
       projectStart: "Inicio de la asignación",
       projectEnd: "Fin de la asignación",
       projectsSection: "Proyectos asignados",
+      manageProjects: "Administrar proyectos",
+      projectsCount: (count: number) =>
+        count === 1 ? "1 proyecto asignado" : `${count} proyectos asignados`,
+      backToProfile: "Volver a la ficha",
       assignProject: "Asignar proyecto",
       assigning: "Asignando…",
       removeProject: "Quitar",
@@ -578,15 +768,21 @@ export const es = {
   roles: {
     CONSULTANT: {
       name: "Consultor",
-      description: "Registra horas semanales en proyectos de cliente.",
+      description: "Registra horas semanales en proyectos de gerentes.",
     },
     EMPLOYEE: {
       name: "Empleado",
-      description: "Registra horas semanales de trabajo interno y/o proyectos de cliente.",
+      description:
+        "Registra horas semanales de trabajo interno y/o proyectos de gerentes.",
     },
-    PM: {
+    MANAGER: {
       name: "Manager",
       description: "Aprueba horas y gestiona consultores y empleados.",
+    },
+    FINANCE: {
+      name: "Finanzas",
+      description:
+        "Solo aprueba las horas de los carriles que tiene asignados; no gestiona usuarios ni catálogos.",
     },
     ADMIN: {
       name: "Administrador",

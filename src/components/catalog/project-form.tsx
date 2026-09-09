@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useId } from "react";
+import { useActionState, useId, useState } from "react";
 
 import { AlertIcon, CheckIcon, SpinnerIcon } from "@/components/icons";
 import { useDictionary } from "@/i18n/provider";
@@ -11,7 +11,11 @@ import {
   INITIAL_PROJECT_FORM_STATE,
   type ProjectFormValues,
 } from "@/lib/catalog/form-state";
-import type { ClientView, PersonView } from "@/lib/catalog/types";
+import type {
+  ClientView,
+  CompanyView,
+  PersonView,
+} from "@/lib/catalog/types";
 
 const INPUT_BASE =
   "w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none";
@@ -26,15 +30,19 @@ function inputClass(hasError: boolean): string {
 
 export function ProjectForm({
   mode,
+  companies,
   clients,
   managers,
   projectId,
+  lockEndDate = false,
   defaultValues = EMPTY_PROJECT_FORM_VALUES,
 }: {
   mode: "create" | "edit";
+  companies: CompanyView[];
   clients: ClientView[];
   managers: PersonView[];
   projectId?: number;
+  lockEndDate?: boolean;
   defaultValues?: ProjectFormValues;
 }) {
   const t = useDictionary();
@@ -43,9 +51,9 @@ export function ProjectForm({
     values: defaultValues,
   });
   const isCreate = mode === "create";
-  const formKey = isCreate ? (state.savedName ?? "new") : "edit";
 
   const ids = {
+    companyId: useId(),
     clientId: useId(),
     projectName: useId(),
     code: useId(),
@@ -54,6 +62,26 @@ export function ProjectForm({
     endDate: useId(),
   };
   const { fieldErrors, values } = state;
+  const [companyId, setCompanyId] = useState(values.companyId);
+  const [clientId, setClientId] = useState(values.clientId);
+
+  const clientOptions = clients.filter(
+    (client) =>
+      !companyId ||
+      String(client.company?.id ?? "") === companyId ||
+      String(client.id) === clientId,
+  );
+
+  function selectCompany(nextCompanyId: string) {
+    setCompanyId(nextCompanyId);
+
+    const keepsClient = clients.some(
+      (client) =>
+        String(client.id) === clientId &&
+        (!nextCompanyId || String(client.company?.id ?? "") === nextCompanyId),
+    );
+    if (!keepsClient) setClientId("");
+  }
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
@@ -68,9 +96,7 @@ export function ProjectForm({
           <CheckIcon className="mt-0.5 size-4 shrink-0" />
           <div className="space-y-1">
             <p className="font-medium">
-              {isCreate
-                ? t.catalog.projects.createdTitle(state.savedName)
-                : t.catalog.projects.updatedTitle(state.savedName)}
+              {t.catalog.projects.updatedTitle(state.savedName)}
             </p>
             <Link
               href="/projects"
@@ -93,30 +119,60 @@ export function ProjectForm({
         </div>
       ) : null}
 
-      <div key={formKey} className="space-y-5">
-        <div className="space-y-1.5">
-          <label
-            htmlFor={ids.clientId}
-            className="block text-sm font-medium text-ink-soft"
-          >
-            {t.catalog.form.clientLabel}
-          </label>
-          <select
-            id={ids.clientId}
-            name="clientId"
-            defaultValue={values.clientId}
-            className={inputClass(Boolean(fieldErrors.clientId))}
-          >
-            <option value="">{t.catalog.form.clientPlaceholder}</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.clientName}
-              </option>
-            ))}
-          </select>
-          {fieldErrors.clientId ? (
-            <p className="text-xs text-danger-600">{fieldErrors.clientId}</p>
-          ) : null}
+      <div className="space-y-5">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label
+              htmlFor={ids.companyId}
+              className="block text-sm font-medium text-ink-soft"
+            >
+              {t.catalog.form.companyLabel}
+            </label>
+            <select
+              id={ids.companyId}
+              name="companyId"
+              value={companyId}
+              onChange={(event) => selectCompany(event.target.value)}
+              className={inputClass(false)}
+            >
+              <option value="">{t.catalog.filters.allCompanies}</option>
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.tradeName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor={ids.clientId}
+              className="block text-sm font-medium text-ink-soft"
+            >
+              {t.catalog.form.clientLabel}
+            </label>
+            <select
+              id={ids.clientId}
+              name="clientId"
+              value={clientId}
+              onChange={(event) => setClientId(event.target.value)}
+              className={inputClass(Boolean(fieldErrors.clientId))}
+            >
+              <option value="">{t.catalog.form.clientPlaceholder}</option>
+              {clientOptions.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.clientName}
+                </option>
+              ))}
+            </select>
+            {fieldErrors.clientId ? (
+              <p className="text-xs text-danger-600">{fieldErrors.clientId}</p>
+            ) : clientOptions.length === 0 ? (
+              <p className="text-xs text-ink-muted">
+                {t.catalog.form.clientCompanyEmpty}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <div className="space-y-1.5">
@@ -218,14 +274,24 @@ export function ProjectForm({
             </label>
             <input
               id={ids.endDate}
-              name="endDate"
+              name={lockEndDate ? undefined : "endDate"}
               type="date"
               defaultValue={values.endDate}
+              disabled={lockEndDate}
               className={inputClass(Boolean(fieldErrors.endDate))}
             />
+            {lockEndDate ? (
+              <input type="hidden" name="lockedEndDate" value={values.endDate} />
+            ) : null}
             {fieldErrors.endDate ? (
               <p className="text-xs text-danger-600">{fieldErrors.endDate}</p>
-            ) : null}
+            ) : (
+              <p className="text-xs text-ink-muted">
+                {lockEndDate
+                  ? t.catalog.form.endDateLocked
+                  : t.catalog.form.endDateHint}
+              </p>
+            )}
           </div>
         </div>
       </div>

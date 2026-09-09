@@ -6,7 +6,11 @@ import { CatalogNoAccess } from "@/components/catalog/catalog-no-access";
 import { ProjectForm } from "@/components/catalog/project-form";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
-import { fetchActiveClients, fetchProjectManagers } from "@/lib/catalog/queries";
+import {
+  fetchActiveClients,
+  fetchActiveCompanies,
+  fetchProjectManagers,
+} from "@/lib/catalog/queries";
 import { canManageCatalog } from "@/lib/users/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -22,8 +26,9 @@ export default async function NewProjectPage() {
     return <CatalogNoAccess roleCode={actor.role.code} />;
   }
 
-  const [clients, managers] = await Promise.all([
+  const [clients, companies, managers] = await Promise.all([
     fetchActiveClients(),
+    fetchActiveCompanies(),
     fetchProjectManagers(),
   ]);
 
@@ -48,7 +53,7 @@ export default async function NewProjectPage() {
             {t.catalog.projects.noClientsTitle}
           </p>
           <Link
-            href="/clients/new"
+            href="/managers/new"
             className="mt-4 inline-flex rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
           >
             {t.catalog.clients.newClient}
@@ -60,7 +65,12 @@ export default async function NewProjectPage() {
             {t.catalog.form.section}
           </h2>
           <div className="p-5">
-            <ProjectForm mode="create" clients={clients} managers={managers} />
+            <ProjectForm
+              mode="create"
+              companies={companies}
+              clients={clients}
+              managers={managers}
+            />
           </div>
         </section>
       )}

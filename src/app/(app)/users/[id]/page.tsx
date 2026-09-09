@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
+import { ArrowLeftIcon, BriefcaseIcon } from "@/components/icons";
+import { NoAccess } from "@/components/users/no-access";
 import { UserForm } from "@/components/users/user-form";
-import { UserProjects } from "@/components/users/user-projects";
-import { fetchAllProjects } from "@/lib/catalog/queries";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
 import { fetchUser, fetchUserProjects } from "@/lib/users/queries";
 import {
+  canGrantRole,
   canHaveProject,
   canManageRole,
   canManageUsers,
@@ -20,31 +20,6 @@ import {
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
   return { title: t.users.edit.title };
-}
-
-async function NoAccess({ message }: { message: string }) {
-  const t = await getDictionary();
-
-  return (
-    <div className="mx-auto max-w-2xl">
-      <div className="flex gap-3 rounded-xl border border-line bg-surface p-5">
-        <AlertIcon className="mt-0.5 size-5 shrink-0 text-ink-muted" />
-        <div>
-          <h1 className="text-sm font-semibold text-ink">
-            {t.users.noAccessUserTitle}
-          </h1>
-          <p className="mt-1 text-sm text-ink-muted">{message}</p>
-          <Link
-            href="/users"
-            className="mt-3 flex w-fit items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
-          >
-            <ArrowLeftIcon className="size-4" />
-            {t.common.backToUsers}
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default async function EditUserPage({ params }: PageProps<"/users/[id]">) {
@@ -77,9 +52,8 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
   const isSelf = user.id === actor.id;
   const roles = manageableRoles(actor.role.code, t);
   const showProjects = canHaveProject(user.role.code);
-  const [assignments, projects] = showProjects
-    ? await Promise.all([fetchUserProjects(user.id), fetchAllProjects()])
-    : [[], []];
+  const assignments = showProjects ? await fetchUserProjects(user.id) : [];
+  const activeAssignments = assignments.filter((item) => item.isActive).length;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -109,8 +83,7 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
             mode="edit"
             userId={user.id}
             roles={roles}
-            projects={projects}
-            canChangeRole={!isSelf}
+            canChangeRole={!isSelf && canGrantRole(actor.role.code, user.role.code)}
             canChangeStatus={!isSelf}
             defaultValues={{
               fullName: user.fullName,
@@ -129,20 +102,25 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
       </section>
 
       {showProjects ? (
-        <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
-          <div className="border-b border-line bg-surface-muted px-5 py-3.5">
-            <h2 className="text-sm font-semibold text-ink">
-              {t.users.form.projectsSection}
-            </h2>
+        <Link
+          href={`/users/${user.id}/projects`}
+          className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-5 shadow-sm transition-colors hover:bg-surface-muted"
+        >
+          <div className="flex items-center gap-3">
+            <BriefcaseIcon className="size-5 shrink-0 text-ink-muted" />
+            <div>
+              <p className="text-sm font-semibold text-ink">
+                {t.users.form.projectsSection}
+              </p>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                {t.users.form.projectsCount(activeAssignments)}
+              </p>
+            </div>
           </div>
-          <div className="p-5">
-            <UserProjects
-              userId={user.id}
-              assignments={assignments}
-              projects={projects}
-            />
-          </div>
-        </section>
+          <span className="text-sm font-medium text-brand-600">
+            {t.users.form.manageProjects}
+          </span>
+        </Link>
       ) : null}
     </div>
   );

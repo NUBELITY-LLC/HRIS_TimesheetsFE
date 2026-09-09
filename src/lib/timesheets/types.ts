@@ -1,3 +1,5 @@
+import type { ProjectStatus } from "@/lib/catalog/types";
+
 export type TimesheetOption = {
   id: string;
   name: string;
@@ -47,7 +49,14 @@ export type Assignment = {
   startDate: string;
   endDate: string | null;
   client: { id: number; name: string };
-  project: { id: number; name: string; code: string | null };
+  company: { id: number; name: string } | null;
+  project: {
+    id: number;
+    name: string;
+    code: string | null;
+    endDate: string | null;
+    status: ProjectStatus;
+  };
 };
 
 export type TimesheetActivity = {

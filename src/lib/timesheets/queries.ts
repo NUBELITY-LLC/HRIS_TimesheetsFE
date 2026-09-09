@@ -90,6 +90,21 @@ export async function fetchRecentSubmissions(
   return result.ok ? result.data : [];
 }
 
+export async function fetchDrafts(pageSize = 10): Promise<Timesheet[]> {
+  const token = await getSessionToken();
+  const params = new URLSearchParams({
+    page: "1",
+    pageSize: String(pageSize),
+    status: "DRAFT",
+  });
+  const result = await apiRequest<Timesheet[]>(
+    `/timesheets/mine?${params.toString()}`,
+    { token },
+  );
+
+  return result.ok ? result.data : [];
+}
+
 export async function fetchTeamSummary(): Promise<TeamSummary> {
   return EMPTY_TEAM_SUMMARY;
 }

@@ -8,8 +8,16 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { apiRequest, type ApiResult } from "@/lib/api/client";
 import { readValidationIssues } from "@/lib/api/types";
 import { getSessionToken, requireUser } from "@/lib/auth/session";
-import { canManageCatalog } from "@/lib/users/roles";
 import {
+  APPROVER_ROLE_CODES,
+  canBeManagerClient,
+  canManageCatalog,
+} from "@/lib/users/roles";
+import { fetchUser } from "@/lib/users/queries";
+import type { ApproverType } from "@/lib/timesheets/types";
+import {
+  toApprovalStepDraft,
+  type ApprovalStepsFormState,
   type ClientFormField,
   type ClientFormState,
   type ClientFormValues,
@@ -19,12 +27,27 @@ import {
   type ProjectFormField,
   type ProjectFormState,
   type ProjectFormValues,
+  type ProjectLifecycleFormState,
+  type AssignmentFormField,
+  type AssignmentFormState,
+  type AssignmentRowState,
+  INITIAL_ASSIGNMENT_FORM_STATE,
 } from "./form-state";
-import type { ClientView, CompanyView, ProjectView } from "./types";
+import {
+  APPROVERS_MAX,
+  APPROVERS_MIN,
+  type ApprovalWorkflowView,
+  type ClientView,
+  type CloseProjectResult,
+  type CompanyView,
+  type ProjectAssignmentView,
+  type ProjectView,
+} from "./types";
 
 const COMPANY_FIELDS: CompanyFormField[] = ["legalName", "tradeName", "rfc"];
 const CLIENT_FIELDS: ClientFormField[] = [
   "companyId",
+  "userId",
   "clientName",
   "contactEmail",
 ];
@@ -183,7 +206,7 @@ export async function saveCompanyAction(
   }
 
   revalidatePath("/companies");
-  revalidatePath("/clients");
+  revalidatePath("/managers");
   if (id) revalidatePath(`/companies/${id}`);
 
   const company = result.data.company;
@@ -211,6 +234,7 @@ export async function saveClientAction(
 
   const values: ClientFormValues = {
     companyId: text(formData, "companyId"),
+    userId: text(formData, "userId"),
     clientName: text(formData, "clientName"),
     contactEmail: text(formData, "contactEmail"),
     isActive: formData.get("isActive") !== null,
@@ -227,12 +251,17 @@ export async function saveClientAction(
   }
 
   const companyId = Number(values.companyId);
+  const userId = Number(values.userId);
+  const linkedToUser = Boolean(values.userId);
   const fieldErrors: Partial<Record<ClientFormField, string>> = {};
 
   if (!Number.isInteger(companyId) || companyId <= 0) {
     fieldErrors.companyId = t.catalog.errors.companyRequired;
   }
-  if (!values.clientName) {
+  if (linkedToUser && (!Number.isInteger(userId) || userId <= 0)) {
+    fieldErrors.userId = t.catalog.errors.managerUserInvalid;
+  }
+  if (!linkedToUser && !values.clientName) {
     fieldErrors.clientName = t.catalog.errors.clientNameRequired;
   }
 
@@ -244,6 +273,27 @@ export async function saveClientAction(
       values,
       savedName: null,
     };
+  }
+
+  if (linkedToUser) {
+    const managerUser = await fetchUser(userId);
+
+    if (
+      !managerUser.ok ||
+      !managerUser.user.isActive ||
+      !canBeManagerClient(managerUser.user.role.code)
+    ) {
+      return {
+        status: "error",
+        message: t.catalog.form.reviewFields,
+        fieldErrors: { userId: t.catalog.errors.managerUserInvalid },
+        values,
+        savedName: null,
+      };
+    }
+
+    values.clientName = managerUser.user.fullName;
+    values.contactEmail = managerUser.user.email;
   }
 
   const id = entityId(formData);
@@ -272,9 +322,9 @@ export async function saveClientAction(
     return toErrorState(result, CLIENT_FIELDS, values, t);
   }
 
-  revalidatePath("/clients");
+  revalidatePath("/managers");
   revalidatePath("/projects");
-  if (id) revalidatePath(`/clients/${id}`);
+  if (id) revalidatePath(`/managers/${id}`);
 
   const client = result.data.client;
 
@@ -284,6 +334,7 @@ export async function saveClientAction(
     fieldErrors: {},
     values: {
       companyId: client.company ? String(client.company.id) : "",
+      userId: linkedToUser ? String(userId) : "",
       clientName: client.clientName,
       contactEmail: client.contactEmail ?? "",
       isActive: client.isActive,
@@ -299,13 +350,17 @@ export async function saveProjectAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
+  const endDateLocked = formData.get("lockedEndDate") !== null;
   const values: ProjectFormValues = {
+    companyId: text(formData, "companyId"),
     clientId: text(formData, "clientId"),
     projectName: text(formData, "projectName"),
     code: text(formData, "code"),
     managerId: text(formData, "managerId"),
     startDate: text(formData, "startDate"),
-    endDate: text(formData, "endDate"),
+    endDate: endDateLocked
+      ? text(formData, "lockedEndDate")
+      : text(formData, "endDate"),
   };
 
   if (!canManageCatalog(actor.role.code)) {
@@ -350,7 +405,7 @@ export async function saveProjectAction(
     projectName: values.projectName,
     code: values.code || null,
     startDate: values.startDate || null,
-    endDate: values.endDate || null,
+    ...(endDateLocked ? {} : { endDate: values.endDate || null }),
     ...(hasManager ? { managerId } : {}),
   };
 
@@ -376,11 +431,14 @@ export async function saveProjectAction(
 
   const project = result.data.project;
 
+  if (!id) redirect(`/projects/${project.id}?created=1`);
+
   return {
     status: "success",
     message: null,
     fieldErrors: {},
     values: {
+      companyId: values.companyId,
       clientId: project.client ? String(project.client.id) : "",
       projectName: project.projectName,
       code: project.code ?? "",
@@ -390,4 +448,612 @@ export async function saveProjectAction(
     },
     savedName: project.projectName,
   };
+}
+
+type ApprovalStepPayload =
+  | { approverType: "USER"; userId: number; approverName?: string }
+  | { approverType: "ROLE"; roleCode: string; approverName?: string }
+  | { approverType: "CLIENT_EMAIL"; clientId: number };
+
+const APPROVER_TYPES: ApproverType[] = ["CLIENT_EMAIL", "USER", "ROLE"];
+
+function approverType(value: string): ApproverType | null {
+  return APPROVER_TYPES.find((type) => type === value) ?? null;
+}
+
+function detailPath(details: unknown): string | null {
+  if (
+    typeof details === "object" &&
+    details !== null &&
+    "path" in details &&
+    typeof (details as { path: unknown }).path === "string"
+  ) {
+    return (details as { path: string }).path;
+  }
+
+  return null;
+}
+
+function stepIndexFrom(path: string): number | null {
+  const [prefix, position] = path.split(".");
+  if (prefix !== "steps") return null;
+
+  const index = Number(position);
+  return Number.isInteger(index) && index >= 0 ? index : null;
+}
+
+function stepErrorsFrom(
+  details: unknown,
+  message: string,
+): Record<number, string> {
+  const errors: Record<number, string> = {};
+
+  for (const issue of readValidationIssues(details)) {
+    const index = stepIndexFrom(issue.path);
+    if (index !== null && !errors[index]) errors[index] = issue.message;
+  }
+
+  const path = detailPath(details);
+  const flagged = path ? stepIndexFrom(path) : null;
+  if (flagged !== null && !errors[flagged]) errors[flagged] = message;
+
+  return errors;
+}
+
+function approvalStepsError(
+  message: string,
+  stepErrors: Record<number, string> = {},
+): ApprovalStepsFormState {
+  return {
+    status: "error",
+    message,
+    stepErrors,
+    steps: null,
+    savedAt: 0,
+  };
+}
+
+function approverKey(step: ApprovalStepPayload): string {
+  if (step.approverType === "USER") return `USER:${step.userId}`;
+  if (step.approverType === "ROLE") return `ROLE:${step.roleCode}`;
+
+  return `CLIENT:${step.clientId}`;
+}
+
+export async function saveApprovalStepsAction(
+  _prevState: ApprovalStepsFormState,
+  formData: FormData,
+): Promise<ApprovalStepsFormState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (!canManageCatalog(actor.role.code)) {
+    return approvalStepsError(t.catalog.errors.FORBIDDEN);
+  }
+
+  const projectId = Number(formData.get("projectId"));
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    return approvalStepsError(t.catalog.errors.fallback);
+  }
+
+  const declared = Number(formData.get("stepCount"));
+  const total = Number.isInteger(declared) && declared > 0 ? declared : 0;
+
+  if (total < APPROVERS_MIN) {
+    return approvalStepsError(t.catalog.errors.approversMin(APPROVERS_MIN));
+  }
+  if (total > APPROVERS_MAX) {
+    return approvalStepsError(t.catalog.errors.approversMax(APPROVERS_MAX));
+  }
+
+  const steps: ApprovalStepPayload[] = [];
+  const stepErrors: Record<number, string> = {};
+  const seen = new Map<string, number>();
+
+  for (let index = 0; index < total; index += 1) {
+    const type = approverType(text(formData, `stepType-${index}`));
+    const name = text(formData, `stepName-${index}`);
+    let step: ApprovalStepPayload | null = null;
+
+    if (type === "USER") {
+      const userId = Number(text(formData, `stepUserId-${index}`));
+      if (!Number.isInteger(userId) || userId <= 0) {
+        stepErrors[index] = t.catalog.errors.approverRequired;
+      } else {
+        step = { approverType: "USER", userId };
+      }
+    } else if (type === "ROLE") {
+      const roleCode = text(formData, `stepRoleCode-${index}`).toUpperCase();
+      if (!(APPROVER_ROLE_CODES as string[]).includes(roleCode)) {
+        stepErrors[index] = t.catalog.errors.approverRoleRequired;
+      } else {
+        step = { approverType: "ROLE", roleCode };
+      }
+    } else if (type === "CLIENT_EMAIL") {
+      const clientId = Number(text(formData, `stepClientId-${index}`));
+      if (!Number.isInteger(clientId) || clientId <= 0) {
+        stepErrors[index] = t.catalog.errors.approverClientRequired;
+      } else {
+        step = { approverType: "CLIENT_EMAIL", clientId };
+      }
+    } else {
+      stepErrors[index] = t.catalog.errors.approverTypeRequired;
+    }
+
+    if (!step) continue;
+
+    const key = approverKey(step);
+    if (seen.has(key)) {
+      stepErrors[index] = t.catalog.errors.approverDuplicated;
+      continue;
+    }
+
+    seen.set(key, index);
+    steps.push(
+      name && step.approverType !== "CLIENT_EMAIL"
+        ? { ...step, approverName: name }
+        : step,
+    );
+  }
+
+  if (Object.keys(stepErrors).length) {
+    return approvalStepsError(t.catalog.approvals.reviewSteps, stepErrors);
+  }
+
+  const projectClientId = Number(formData.get("projectClientId"));
+
+  if (
+    Number.isInteger(projectClientId) &&
+    projectClientId > 0 &&
+    !seen.has(`CLIENT:${projectClientId}`)
+  ) {
+    return approvalStepsError(t.catalog.errors.projectClientLaneRequired);
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<ApprovalWorkflowView>(
+    `/projects/${projectId}/approval-steps`,
+    { method: "PUT", token, body: { steps } },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+
+    const message =
+      errorCopy(result.error.code, t) ??
+      result.error.message ??
+      t.catalog.errors.fallback;
+    const errors = stepErrorsFrom(result.error.details, message);
+
+    return approvalStepsError(
+      Object.keys(errors).length ? t.catalog.approvals.reviewSteps : message,
+      errors,
+    );
+  }
+
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
+
+  return {
+    status: "success",
+    message: t.catalog.approvals.saved,
+    stepErrors: {},
+    steps: result.data.approvalSteps.map((step, index) =>
+      toApprovalStepDraft(step, `saved-${index}`),
+    ),
+    savedAt: Date.now(),
+  };
+}
+
+function detailCode(details: unknown): string | null {
+  if (
+    typeof details === "object" &&
+    details !== null &&
+    "code" in details &&
+    typeof (details as { code: unknown }).code === "string"
+  ) {
+    return (details as { code: string }).code;
+  }
+
+  return null;
+}
+
+function detailCount(details: unknown, key: string): number {
+  if (typeof details !== "object" || details === null || !(key in details)) {
+    return 0;
+  }
+
+  const value = (details as Record<string, unknown>)[key];
+  return typeof value === "number" ? value : 0;
+}
+
+function lifecycleError(
+  message: string,
+  effectiveDateError: string | null = null,
+): ProjectLifecycleFormState {
+  return {
+    status: "error",
+    message,
+    effectiveDateError,
+    summary: null,
+  };
+}
+
+function closeErrorState(
+  result: Extract<ApiResult<unknown>, { ok: false }>,
+  t: Dictionary,
+): ProjectLifecycleFormState {
+  const { code, details } = result.error;
+
+  if (detailCode(details) === "PROJECT_HAS_OPEN_TIMESHEETS") {
+    return lifecycleError(
+      t.catalog.errors.projectHasOpenTimesheets(
+        detailCount(details, "openTimesheets"),
+      ),
+    );
+  }
+
+  if (detailField(details) === "effectiveDate") {
+    const message = result.error.message ?? t.catalog.errors.fallback;
+    return lifecycleError(t.catalog.form.reviewFields, message);
+  }
+
+  if (result.status === 409) {
+    return lifecycleError(t.catalog.errors.projectAlreadyClosed);
+  }
+
+  return lifecycleError(
+    errorCopy(code, t) ?? result.error.message ?? t.catalog.errors.fallback,
+  );
+}
+
+export async function closeProjectAction(
+  _prevState: ProjectLifecycleFormState,
+  formData: FormData,
+): Promise<ProjectLifecycleFormState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (!canManageCatalog(actor.role.code)) {
+    return lifecycleError(t.catalog.errors.FORBIDDEN);
+  }
+
+  const projectId = Number(formData.get("projectId"));
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    return lifecycleError(t.catalog.errors.fallback);
+  }
+
+  const effectiveDate = text(formData, "effectiveDate");
+  if (!effectiveDate) {
+    return lifecycleError(
+      t.catalog.form.reviewFields,
+      t.catalog.errors.effectiveDateRequired,
+    );
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<CloseProjectResult>(
+    `/projects/${projectId}/close`,
+    { method: "POST", token, body: { effectiveDate } },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+    return closeErrorState(result, t);
+  }
+
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
+
+  return {
+    status: "success",
+    message: t.catalog.lifecycle.closed,
+    effectiveDateError: null,
+    summary: {
+      closedAssignments: result.data.closedAssignments,
+      strandedTimesheets: result.data.strandedTimesheets,
+    },
+  };
+}
+
+export async function reopenProjectAction(
+  _prevState: ProjectLifecycleFormState,
+  formData: FormData,
+): Promise<ProjectLifecycleFormState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (!canManageCatalog(actor.role.code)) {
+    return lifecycleError(t.catalog.errors.FORBIDDEN);
+  }
+
+  const projectId = Number(formData.get("projectId"));
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    return lifecycleError(t.catalog.errors.fallback);
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ project: ProjectView }>(
+    `/projects/${projectId}/reopen`,
+    { method: "POST", token },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+    if (result.status === 409) {
+      return lifecycleError(t.catalog.errors.projectNotClosed);
+    }
+    return lifecycleError(
+      errorCopy(result.error.code, t) ??
+        result.error.message ??
+        t.catalog.errors.fallback,
+    );
+  }
+
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
+
+  return {
+    status: "success",
+    message: t.catalog.lifecycle.reopened,
+    effectiveDateError: null,
+    summary: null,
+  };
+}
+
+const MONEY = /^\d{1,10}([.,]\d{1,2})?$/;
+
+function parseRate(value: string): number | null {
+  if (!MONEY.test(value)) return null;
+  return Number(value.replace(",", "."));
+}
+
+function assignmentFieldErrors(
+  details: unknown,
+): Partial<Record<AssignmentFormField, string>> {
+  const errors: Partial<Record<AssignmentFormField, string>> = {};
+
+  for (const issue of readValidationIssues(details)) {
+    if (issue.path === "consultantId") errors.consultantId = issue.message;
+    if (issue.path === "payRate") errors.payRate = issue.message;
+    if (issue.path === "startDate") errors.startDate = issue.message;
+    if (issue.path === "endDate") errors.endDate = issue.message;
+  }
+
+  return errors;
+}
+
+function revalidateAssignments(projectId: number, consultantId?: number): void {
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}/team`);
+  revalidatePath("/timesheets");
+  if (consultantId) {
+    revalidatePath(`/users/${consultantId}`);
+    revalidatePath(`/users/${consultantId}/projects`);
+  }
+}
+
+export async function assignProjectMemberAction(
+  _prevState: AssignmentFormState,
+  formData: FormData,
+): Promise<AssignmentFormState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (!canManageCatalog(actor.role.code)) {
+    return {
+      ...INITIAL_ASSIGNMENT_FORM_STATE,
+      status: "error",
+      message: t.catalog.errors.FORBIDDEN,
+    };
+  }
+
+  const projectId = Number(formData.get("projectId"));
+  const consultantId = Number(formData.get("consultantId"));
+  const startDate = text(formData, "startDate");
+  const endDate = text(formData, "endDate");
+  const rawRate = text(formData, "payRate");
+  const rate = rawRate ? parseRate(rawRate) : null;
+
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    return {
+      ...INITIAL_ASSIGNMENT_FORM_STATE,
+      status: "error",
+      message: t.catalog.errors.fallback,
+    };
+  }
+
+  const fieldErrors: Partial<Record<AssignmentFormField, string>> = {};
+
+  if (!Number.isInteger(consultantId) || consultantId <= 0) {
+    fieldErrors.consultantId = t.catalog.errors.personRequired;
+  }
+  if (!startDate) fieldErrors.startDate = t.catalog.errors.assignmentStart;
+  if (!rawRate) fieldErrors.payRate = t.catalog.errors.payRateRequired;
+  else if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
+  if (startDate && endDate && endDate < startDate) {
+    fieldErrors.endDate = t.catalog.errors.dateOrder;
+  }
+
+  if (Object.keys(fieldErrors).length) {
+    return {
+      status: "error",
+      message: t.catalog.form.reviewFields,
+      fieldErrors,
+    };
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ assignment: ProjectAssignmentView }>(
+    `/projects/${projectId}/assignments`,
+    {
+      method: "POST",
+      token,
+      body: {
+        consultantId,
+        payRate: rate,
+        startDate,
+        ...(endDate ? { endDate } : {}),
+      },
+    },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+
+    return {
+      status: "error",
+      message:
+        errorCopy(result.error.code, t) ??
+        result.error.message ??
+        t.catalog.errors.fallback,
+      fieldErrors: assignmentFieldErrors(result.error.details),
+    };
+  }
+
+  revalidateAssignments(projectId, consultantId);
+
+  return {
+    ...INITIAL_ASSIGNMENT_FORM_STATE,
+    status: "success",
+    message: t.catalog.team.assigned,
+  };
+}
+
+export async function updateProjectAssignmentAction(
+  _prevState: AssignmentFormState,
+  formData: FormData,
+): Promise<AssignmentFormState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (!canManageCatalog(actor.role.code)) {
+    return {
+      ...INITIAL_ASSIGNMENT_FORM_STATE,
+      status: "error",
+      message: t.catalog.errors.FORBIDDEN,
+    };
+  }
+
+  const projectId = Number(formData.get("projectId"));
+  const assignmentId = Number(formData.get("assignmentId"));
+  const consultantId = Number(formData.get("consultantId"));
+
+  if (
+    !Number.isInteger(projectId) ||
+    projectId <= 0 ||
+    !Number.isInteger(assignmentId) ||
+    assignmentId <= 0
+  ) {
+    return {
+      ...INITIAL_ASSIGNMENT_FORM_STATE,
+      status: "error",
+      message: t.catalog.errors.fallback,
+    };
+  }
+
+  const reactivate = text(formData, "intent") === "reactivate";
+  const startDate = text(formData, "startDate");
+  const endDate = text(formData, "endDate");
+  const rawRate = text(formData, "payRate");
+  const rate = rawRate ? parseRate(rawRate) : null;
+
+  const fieldErrors: Partial<Record<AssignmentFormField, string>> = {};
+
+  if (!rawRate) fieldErrors.payRate = t.catalog.errors.payRateRequired;
+  else if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
+  if (!startDate) fieldErrors.startDate = t.catalog.errors.assignmentStart;
+  if (startDate && endDate && endDate < startDate) {
+    fieldErrors.endDate = t.catalog.errors.dateOrder;
+  }
+
+  if (Object.keys(fieldErrors).length) {
+    return {
+      status: "error",
+      message: t.catalog.form.reviewFields,
+      fieldErrors,
+    };
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ assignment: ProjectAssignmentView }>(
+    `/projects/${projectId}/assignments/${assignmentId}`,
+    {
+      method: "PATCH",
+      token,
+      body: {
+        payRate: rate,
+        startDate,
+        endDate: endDate || null,
+        ...(reactivate ? { isActive: true } : {}),
+      },
+    },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+
+    return {
+      status: "error",
+      message:
+        errorCopy(result.error.code, t) ??
+        result.error.message ??
+        t.catalog.errors.fallback,
+      fieldErrors: assignmentFieldErrors(result.error.details),
+    };
+  }
+
+  revalidateAssignments(projectId, consultantId);
+
+  return {
+    ...INITIAL_ASSIGNMENT_FORM_STATE,
+    status: "success",
+    message: t.catalog.team.saved,
+  };
+}
+
+export async function removeProjectAssignmentAction(
+  _prevState: AssignmentRowState,
+  formData: FormData,
+): Promise<AssignmentRowState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (!canManageCatalog(actor.role.code)) {
+    return { status: "error", message: t.catalog.errors.FORBIDDEN };
+  }
+
+  const projectId = Number(formData.get("projectId"));
+  const assignmentId = Number(formData.get("assignmentId"));
+  const consultantId = Number(formData.get("consultantId"));
+
+  if (
+    !Number.isInteger(projectId) ||
+    projectId <= 0 ||
+    !Number.isInteger(assignmentId) ||
+    assignmentId <= 0
+  ) {
+    return { status: "error", message: t.catalog.errors.fallback };
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ assignment: ProjectAssignmentView }>(
+    `/projects/${projectId}/assignments/${assignmentId}`,
+    { method: "DELETE", token },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+    return {
+      status: "error",
+      message:
+        errorCopy(result.error.code, t) ??
+        result.error.message ??
+        t.catalog.errors.fallback,
+    };
+  }
+
+  revalidateAssignments(projectId, consultantId);
+
+  return { status: "success", message: t.catalog.team.removed };
 }

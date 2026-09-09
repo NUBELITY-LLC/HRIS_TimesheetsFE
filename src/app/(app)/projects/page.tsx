@@ -10,10 +10,21 @@ import {
   fetchActiveClients,
   fetchProjects,
   type ProjectFilters,
+  type ProjectStatusFilter,
 } from "@/lib/catalog/queries";
+import { isProjectClosed, projectLifecycleLabel } from "@/lib/catalog/lifecycle";
 import { formatDayAndMonth, fromISODate } from "@/lib/timesheets/week";
 import { canManageCatalog } from "@/lib/users/roles";
 import type { Locale } from "@/i18n/config";
+
+const PROJECT_STATUS_FILTERS: ProjectStatusFilter[] = ["ACTIVE", "CLOSED", "all"];
+
+function parseStatus(value: string): ProjectStatusFilter {
+  return (
+    PROJECT_STATUS_FILTERS.find((status) => status === value) ??
+    DEFAULT_PROJECT_FILTERS.status
+  );
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
@@ -35,6 +46,7 @@ function parseFilters(
     page: Number.isInteger(page) && page > 0 ? page : 1,
     search: firstParam(params.search).slice(0, 100),
     clientId: Number.isInteger(clientId) && clientId > 0 ? String(clientId) : "",
+    status: parseStatus(firstParam(params.status)),
   };
 }
 
@@ -120,6 +132,22 @@ export default async function ProjectsPage({
           </select>
         </div>
 
+        <div className="space-y-1.5">
+          <label htmlFor="status" className="block text-xs font-medium text-ink-soft">
+            {t.catalog.filters.projectStatus}
+          </label>
+          <select
+            id="status"
+            name="status"
+            defaultValue={filters.status}
+            className="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+          >
+            <option value="ACTIVE">{t.catalog.filters.projectStatusActive}</option>
+            <option value="CLOSED">{t.catalog.filters.projectStatusClosed}</option>
+            <option value="all">{t.catalog.filters.statusAll}</option>
+          </select>
+        </div>
+
         <button
           type="submit"
           className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
@@ -172,8 +200,13 @@ export default async function ProjectsPage({
                 {result.projects.map((project) => (
                   <tr key={project.id}>
                     <td className="px-5 py-3.5">
-                      <span className="block font-medium text-ink">
+                      <span className="flex items-center gap-2 font-medium text-ink">
                         {project.projectName}
+                        {isProjectClosed(project) ? (
+                          <span className="rounded-full bg-surface-muted px-2 py-0.5 text-xs font-semibold text-ink-muted">
+                            {t.catalog.lifecycle.statusClosed}
+                          </span>
+                        ) : null}
                       </span>
                       {project.code ? (
                         <span className="block text-ink-muted">{project.code}</span>
@@ -186,9 +219,16 @@ export default async function ProjectsPage({
                       {project.manager?.fullName ?? t.catalog.projects.noManager}
                     </td>
                     <td className="px-5 py-3.5 whitespace-nowrap text-ink-muted">
-                      {project.startDate || project.endDate
-                        ? `${formatDate(project.startDate, locale, t.common.none)} – ${formatDate(project.endDate, locale, t.common.none)}`
-                        : t.catalog.projects.openDates}
+                      <span className="block">
+                        {projectLifecycleLabel(project, locale, t)}
+                      </span>
+                      {project.startDate ? (
+                        <span className="block text-xs">
+                          {t.catalog.projects.since(
+                            formatDate(project.startDate, locale, t.common.none),
+                          )}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <Link

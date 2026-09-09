@@ -242,6 +242,22 @@ export function ChevronRightIcon(props: IconProps) {
   );
 }
 
+export function ChevronUpIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5.5 14.5 12 8l6.5 6.5" />
+    </Icon>
+  );
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5.5 9.5 12 16l6.5-6.5" />
+    </Icon>
+  );
+}
+
 export function TrashIcon(props: IconProps) {
   return (
     <Icon {...props}>

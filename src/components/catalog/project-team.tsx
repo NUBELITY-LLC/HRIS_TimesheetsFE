@@ -12,16 +12,16 @@ import {
 } from "@/components/icons";
 import { useDictionary } from "@/i18n/provider";
 import {
-  assignUserProjectAction,
-  removeUserProjectAction,
-  updateUserAssignmentAction,
-} from "@/lib/users/actions";
+  assignProjectMemberAction,
+  removeProjectAssignmentAction,
+  updateProjectAssignmentAction,
+} from "@/lib/catalog/actions";
 import {
-  INITIAL_ROW_ACTION_STATE,
-  INITIAL_USER_PROJECT_FORM_STATE,
-} from "@/lib/users/form-state";
-import type { UserProjectView } from "@/lib/api/types";
-import type { ProjectView } from "@/lib/catalog/types";
+  INITIAL_ASSIGNMENT_FORM_STATE,
+  INITIAL_ASSIGNMENT_ROW_STATE,
+} from "@/lib/catalog/form-state";
+import type { PersonView, ProjectAssignmentView } from "@/lib/catalog/types";
+import { roleName } from "@/lib/users/roles";
 
 const INPUT_BASE =
   "rounded-lg border bg-white px-3 py-2 text-sm text-ink transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted disabled:text-ink-muted";
@@ -45,28 +45,33 @@ function sameRate(input: string, current: number): boolean {
     : normalized === String(current);
 }
 
-function RemoveAssignment({
-  userId,
+function RemoveMember({
+  projectId,
   assignmentId,
+  consultantId,
 }: {
-  userId: number;
+  projectId: number;
   assignmentId: number;
+  consultantId: number | null;
 }) {
   const t = useDictionary();
   const [state, formAction, isPending] = useActionState(
-    removeUserProjectAction,
-    INITIAL_ROW_ACTION_STATE,
+    removeProjectAssignmentAction,
+    INITIAL_ASSIGNMENT_ROW_STATE,
   );
 
   return (
     <form action={formAction} className="relative">
-      <input type="hidden" name="userId" value={userId} />
+      <input type="hidden" name="projectId" value={projectId} />
       <input type="hidden" name="assignmentId" value={assignmentId} />
+      {consultantId ? (
+        <input type="hidden" name="consultantId" value={consultantId} />
+      ) : null}
       <button
         type="submit"
         disabled={isPending}
-        title={t.users.form.removeProject}
-        aria-label={t.users.form.removeProject}
+        title={t.catalog.team.removePerson}
+        aria-label={t.catalog.team.removePerson}
         className="grid size-9 place-items-center rounded-md text-ink-muted transition-colors hover:bg-danger-50 hover:text-danger-600 disabled:opacity-50"
       >
         {isPending ? (
@@ -84,17 +89,17 @@ function RemoveAssignment({
   );
 }
 
-function AssignmentRow({
-  userId,
+function MemberRow({
+  projectId,
   assignment,
 }: {
-  userId: number;
-  assignment: UserProjectView;
+  projectId: number;
+  assignment: ProjectAssignmentView;
 }) {
   const t = useDictionary();
   const [state, formAction, isPending] = useActionState(
-    updateUserAssignmentAction,
-    INITIAL_USER_PROJECT_FORM_STATE,
+    updateProjectAssignmentAction,
+    INITIAL_ASSIGNMENT_FORM_STATE,
   );
 
   const ids = { payRate: useId(), startDate: useId(), endDate: useId() };
@@ -126,13 +131,13 @@ function AssignmentRow({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-ink">
-            {assignment.project?.projectName ?? t.common.unknown}
+            {assignment.consultant?.fullName ?? t.common.unknown}
           </p>
           <p className="text-xs text-ink-muted">
-            {assignment.project?.client?.name ?? t.common.none}
-            {assignment.isActive
-              ? ""
-              : ` · ${t.users.form.inactiveAssignment}`}
+            {assignment.consultant?.roleCode
+              ? roleName(assignment.consultant.roleCode, t)
+              : t.common.none}
+            {assignment.isActive ? "" : ` · ${t.users.form.inactiveAssignment}`}
           </p>
         </div>
 
@@ -143,12 +148,15 @@ function AssignmentRow({
             className="flex flex-wrap items-end gap-2"
             noValidate
           >
-            <input type="hidden" name="userId" value={userId} />
-            <input
-              type="hidden"
-              name="assignmentId"
-              value={assignment.assignmentId}
-            />
+            <input type="hidden" name="projectId" value={projectId} />
+            <input type="hidden" name="assignmentId" value={assignment.id} />
+            {assignment.consultant ? (
+              <input
+                type="hidden"
+                name="consultantId"
+                value={assignment.consultant.id}
+              />
+            ) : null}
 
             <div className="space-y-1">
               <label htmlFor={ids.payRate} className={LABEL_CLASS}>
@@ -234,16 +242,20 @@ function AssignmentRow({
           </form>
 
           {assignment.isActive ? (
-            <RemoveAssignment
-              userId={userId}
-              assignmentId={assignment.assignmentId}
+            <RemoveMember
+              projectId={projectId}
+              assignmentId={assignment.id}
+              consultantId={assignment.consultant?.id ?? null}
             />
           ) : null}
         </div>
       </div>
 
       {state.status === "error" && state.message ? (
-        <p role="alert" className="flex items-center gap-2 text-xs text-danger-700">
+        <p
+          role="alert"
+          className="flex items-center gap-2 text-xs text-danger-700"
+        >
           <AlertIcon className="size-3.5 shrink-0" />
           {state.message}
         </p>
@@ -267,23 +279,25 @@ function AssignmentRow({
   );
 }
 
-export function UserProjects({
-  userId,
+export function ProjectTeam({
+  projectId,
   assignments,
-  projects,
+  people,
+  locked = false,
 }: {
-  userId: number;
-  assignments: UserProjectView[];
-  projects: ProjectView[];
+  projectId: number;
+  assignments: ProjectAssignmentView[];
+  people: PersonView[];
+  locked?: boolean;
 }) {
   const t = useDictionary();
   const [state, formAction, isPending] = useActionState(
-    assignUserProjectAction,
-    INITIAL_USER_PROJECT_FORM_STATE,
+    assignProjectMemberAction,
+    INITIAL_ASSIGNMENT_FORM_STATE,
   );
 
   const ids = {
-    projectId: useId(),
+    consultantId: useId(),
     payRate: useId(),
     startDate: useId(),
     endDate: useId(),
@@ -292,152 +306,164 @@ export function UserProjects({
   const assigned = new Set(
     assignments
       .filter((item) => item.isActive)
-      .map((item) => item.project?.id)
+      .map((item) => item.consultant?.id)
       .filter((id): id is number => typeof id === "number"),
   );
-  const available = projects.filter((project) => !assigned.has(project.id));
+  const available = people.filter((person) => !assigned.has(person.id));
+  const disabled = isPending || locked || available.length === 0;
 
   return (
     <div className="space-y-5">
       {assignments.length === 0 ? (
-        <p className="text-sm text-ink-muted">{t.users.form.noProjects}</p>
+        <p className="text-sm text-ink-muted">{t.catalog.team.empty}</p>
       ) : (
         <div>
           {assignments.map((assignment) => (
-            <AssignmentRow
-              key={assignment.assignmentId}
-              userId={userId}
+            <MemberRow
+              key={assignment.id}
+              projectId={projectId}
               assignment={assignment}
             />
           ))}
         </div>
       )}
 
-      <form
-        action={formAction}
-        className="space-y-4 rounded-lg border border-line p-4"
-        noValidate
-      >
-        <input type="hidden" name="userId" value={userId} />
-
-        {state.status === "success" && state.message ? (
-          <p className="flex items-center gap-2 text-sm text-success-700">
-            <CheckIcon className="size-4 shrink-0" />
-            {state.message}
-          </p>
-        ) : null}
-
-        {state.status === "error" && state.message ? (
-          <p role="alert" className="flex items-center gap-2 text-sm text-danger-700">
-            <AlertIcon className="size-4 shrink-0" />
-            {state.message}
-          </p>
-        ) : null}
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5 sm:col-span-2">
-            <label
-              htmlFor={ids.projectId}
-              className="block text-xs font-medium text-ink-soft"
-            >
-              {t.users.form.project}
-            </label>
-            <select
-              id={ids.projectId}
-              name="projectId"
-              disabled={isPending || available.length === 0}
-              className={inputClass(Boolean(fieldErrors.projectId))}
-            >
-              <option value="">{t.users.form.projectPlaceholder}</option>
-              {available.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.projectName}
-                  {project.client ? ` · ${project.client.name}` : ""}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.projectId ? (
-              <p className="text-xs text-danger-600">{fieldErrors.projectId}</p>
-            ) : available.length === 0 ? (
-              <p className="text-xs text-ink-muted">
-                {t.users.form.noProjectsAvailable}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="space-y-1.5">
-            <label
-              htmlFor={ids.startDate}
-              className="block text-xs font-medium text-ink-soft"
-            >
-              {t.users.form.projectStart}
-            </label>
-            <input
-              id={ids.startDate}
-              name="startDate"
-              type="date"
-              disabled={isPending}
-              className={inputClass(Boolean(fieldErrors.startDate))}
-            />
-            {fieldErrors.startDate ? (
-              <p className="text-xs text-danger-600">{fieldErrors.startDate}</p>
-            ) : null}
-          </div>
-
-          <div className="space-y-1.5">
-            <label
-              htmlFor={ids.endDate}
-              className="block text-xs font-medium text-ink-soft"
-            >
-              {t.users.form.projectEnd}
-            </label>
-            <input
-              id={ids.endDate}
-              name="endDate"
-              type="date"
-              disabled={isPending}
-              className={inputClass(Boolean(fieldErrors.endDate))}
-            />
-            {fieldErrors.endDate ? (
-              <p className="text-xs text-danger-600">{fieldErrors.endDate}</p>
-            ) : null}
-          </div>
-
-          <div className="space-y-1.5">
-            <label
-              htmlFor={ids.payRate}
-              className="block text-xs font-medium text-ink-soft"
-            >
-              {t.users.form.assignmentRate}
-            </label>
-            <input
-              id={ids.payRate}
-              name="payRate"
-              type="text"
-              inputMode="decimal"
-              maxLength={13}
-              disabled={isPending}
-              className={inputClass(Boolean(fieldErrors.payRate))}
-            />
-            {fieldErrors.payRate ? (
-              <p className="text-xs text-danger-600">{fieldErrors.payRate}</p>
-            ) : null}
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isPending || available.length === 0}
-          className="flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:bg-surface-muted disabled:opacity-60"
+      {locked ? null : (
+        <form
+          action={formAction}
+          className="space-y-4 rounded-lg border border-line p-4"
+          noValidate
         >
-          {isPending ? (
-            <SpinnerIcon className="size-4 animate-spin" />
-          ) : (
-            <PlusIcon className="size-4" />
-          )}
-          {isPending ? t.users.form.assigning : t.users.form.assignProject}
-        </button>
-      </form>
+          <input type="hidden" name="projectId" value={projectId} />
+
+          {state.status === "success" && state.message ? (
+            <p className="flex items-center gap-2 text-sm text-success-700">
+              <CheckIcon className="size-4 shrink-0" />
+              {state.message}
+            </p>
+          ) : null}
+
+          {state.status === "error" && state.message ? (
+            <p
+              role="alert"
+              className="flex items-center gap-2 text-sm text-danger-700"
+            >
+              <AlertIcon className="size-4 shrink-0" />
+              {state.message}
+            </p>
+          ) : null}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <label
+                htmlFor={ids.consultantId}
+                className="block text-xs font-medium text-ink-soft"
+              >
+                {t.catalog.team.person}
+              </label>
+              <select
+                id={ids.consultantId}
+                name="consultantId"
+                disabled={disabled}
+                className={inputClass(Boolean(fieldErrors.consultantId))}
+              >
+                <option value="">{t.catalog.team.personPlaceholder}</option>
+                {available.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.fullName}
+                    {person.roleCode
+                      ? ` · ${roleName(person.roleCode, t)}`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+              {fieldErrors.consultantId ? (
+                <p className="text-xs text-danger-600">
+                  {fieldErrors.consultantId}
+                </p>
+              ) : available.length === 0 ? (
+                <p className="text-xs text-ink-muted">
+                  {t.catalog.team.noPeopleAvailable}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor={ids.startDate}
+                className="block text-xs font-medium text-ink-soft"
+              >
+                {t.users.form.projectStart}
+              </label>
+              <input
+                id={ids.startDate}
+                name="startDate"
+                type="date"
+                disabled={disabled}
+                className={inputClass(Boolean(fieldErrors.startDate))}
+              />
+              {fieldErrors.startDate ? (
+                <p className="text-xs text-danger-600">
+                  {fieldErrors.startDate}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor={ids.endDate}
+                className="block text-xs font-medium text-ink-soft"
+              >
+                {t.users.form.projectEnd}
+              </label>
+              <input
+                id={ids.endDate}
+                name="endDate"
+                type="date"
+                disabled={disabled}
+                className={inputClass(Boolean(fieldErrors.endDate))}
+              />
+              {fieldErrors.endDate ? (
+                <p className="text-xs text-danger-600">{fieldErrors.endDate}</p>
+              ) : null}
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor={ids.payRate}
+                className="block text-xs font-medium text-ink-soft"
+              >
+                {t.users.form.assignmentRate}
+              </label>
+              <input
+                id={ids.payRate}
+                name="payRate"
+                type="text"
+                inputMode="decimal"
+                maxLength={13}
+                disabled={disabled}
+                className={inputClass(Boolean(fieldErrors.payRate))}
+              />
+              {fieldErrors.payRate ? (
+                <p className="text-xs text-danger-600">{fieldErrors.payRate}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={disabled}
+            className="flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:bg-surface-muted disabled:opacity-60"
+          >
+            {isPending ? (
+              <SpinnerIcon className="size-4 animate-spin" />
+            ) : (
+              <PlusIcon className="size-4" />
+            )}
+            {isPending ? t.catalog.team.adding : t.catalog.team.addPerson}
+          </button>
+        </form>
+      )}
     </div>
   );
 }
