@@ -6,7 +6,10 @@ import { CatalogNoAccess } from "@/components/catalog/catalog-no-access";
 import { ClientForm } from "@/components/catalog/client-form";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
-import { fetchActiveCompanies } from "@/lib/catalog/queries";
+import {
+  fetchActiveCompanies,
+  fetchManagerUsers,
+} from "@/lib/catalog/queries";
 import { canManageCatalog } from "@/lib/users/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -22,13 +25,16 @@ export default async function NewClientPage() {
     return <CatalogNoAccess roleCode={actor.role.code} />;
   }
 
-  const companies = await fetchActiveCompanies();
+  const [companies, managers] = await Promise.all([
+    fetchActiveCompanies(),
+    fetchManagerUsers(),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <header>
         <Link
-          href="/clients"
+          href="/managers"
           className="flex w-fit items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
         >
           <ArrowLeftIcon className="size-4" />
@@ -57,7 +63,11 @@ export default async function NewClientPage() {
             {t.catalog.form.section}
           </h2>
           <div className="p-5">
-            <ClientForm mode="create" companies={companies} />
+            <ClientForm
+              mode="create"
+              companies={companies}
+              managers={managers}
+            />
           </div>
         </section>
       )}

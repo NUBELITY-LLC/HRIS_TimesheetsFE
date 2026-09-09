@@ -3,8 +3,23 @@ import "server-only";
 import { apiRequest } from "@/lib/api/client";
 import type { Pagination, UserView } from "@/lib/api/types";
 import { getSessionToken } from "@/lib/auth/session";
-import { ROLE_ADMIN, ROLE_PM } from "@/lib/users/roles";
-import type { ClientView, CompanyView, PersonView, ProjectView } from "./types";
+import {
+  APPROVER_ROLE_CODES,
+  MANAGER_CLIENT_ROLE_CODES,
+  PROJECT_ASSIGNABLE_ROLE_CODES,
+  PROJECT_MANAGER_ROLE_CODES,
+  type RoleCode,
+} from "@/lib/users/roles";
+import {
+  PROJECT_STATUS_ACTIVE,
+  type ApprovalWorkflowView,
+  type ClientView,
+  type CompanyView,
+  type PersonView,
+  type ProjectAssignmentView,
+  type ProjectStatus,
+  type ProjectView,
+} from "./types";
 
 export type CatalogStatus = "active" | "inactive" | "all";
 
@@ -38,11 +53,14 @@ export const DEFAULT_CLIENT_FILTERS: ClientFilters = {
   status: "active",
 };
 
+export type ProjectStatusFilter = ProjectStatus | "all";
+
 export type ProjectFilters = {
   page: number;
   pageSize: number;
   search: string;
   clientId: string;
+  status: ProjectStatusFilter;
 };
 
 export const DEFAULT_PROJECT_FILTERS: ProjectFilters = {
@@ -50,6 +68,7 @@ export const DEFAULT_PROJECT_FILTERS: ProjectFilters = {
   pageSize: 20,
   search: "",
   clientId: "",
+  status: "ACTIVE",
 };
 
 export type CompanyListResult =
@@ -159,6 +178,20 @@ export async function fetchActiveClients(): Promise<ClientView[]> {
   return result.ok ? result.clients : [];
 }
 
+export async function fetchApproverClients(
+  companyId: number,
+): Promise<ClientView[]> {
+  const result = await fetchClients({
+    page: 1,
+    pageSize: 100,
+    search: "",
+    companyId: String(companyId),
+    status: "active",
+  });
+
+  return result.ok ? result.clients : [];
+}
+
 export async function fetchClient(id: number): Promise<ClientView | null> {
   const token = await getSessionToken();
   const result = await apiRequest<{ client: ClientView }>(`/clients/${id}`, {
@@ -178,6 +211,7 @@ export async function fetchProjects(
   });
   if (filters.search) params.set("search", filters.search);
   if (filters.clientId) params.set("clientId", filters.clientId);
+  if (filters.status !== "all") params.set("status", filters.status);
 
   const result = await apiRequest<ProjectView[]>(
     `/projects?${params.toString()}`,
@@ -201,9 +235,22 @@ export async function fetchAllProjects(): Promise<ProjectView[]> {
     pageSize: 100,
     search: "",
     clientId: "",
+    status: PROJECT_STATUS_ACTIVE,
   });
 
   return result.ok ? result.projects : [];
+}
+
+export async function fetchProjectAssignments(
+  projectId: number,
+): Promise<ProjectAssignmentView[]> {
+  const token = await getSessionToken();
+  const result = await apiRequest<{ assignments: ProjectAssignmentView[] }>(
+    `/projects/${projectId}/assignments`,
+    { token },
+  );
+
+  return result.ok ? result.data.assignments : [];
 }
 
 export async function fetchProject(id: number): Promise<ProjectView | null> {
@@ -213,6 +260,18 @@ export async function fetchProject(id: number): Promise<ProjectView | null> {
   });
 
   return result.ok ? result.data.project : null;
+}
+
+export async function fetchApprovalWorkflow(
+  projectId: number,
+): Promise<ApprovalWorkflowView | null> {
+  const token = await getSessionToken();
+  const result = await apiRequest<ApprovalWorkflowView>(
+    `/projects/${projectId}/approval-steps`,
+    { token },
+  );
+
+  return result.ok ? result.data : null;
 }
 
 async function fetchUsersByRole(roleCode: string): Promise<UserView[]> {
@@ -233,17 +292,33 @@ async function fetchUsersByRole(roleCode: string): Promise<UserView[]> {
   return result.ok ? result.data : [];
 }
 
-export async function fetchProjectManagers(): Promise<PersonView[]> {
-  const [admins, managers] = await Promise.all([
-    fetchUsersByRole(ROLE_ADMIN),
-    fetchUsersByRole(ROLE_PM),
-  ]);
+async function fetchPeopleByRoles(roleCodes: RoleCode[]): Promise<PersonView[]> {
+  const groups = await Promise.all(roleCodes.map(fetchUsersByRole));
 
-  return [...managers, ...admins].map((user) => ({
-    id: user.id,
-    fullName: user.fullName,
-    email: user.email,
-    roleCode: user.role.code,
-    isActive: user.isActive,
-  }));
+  return groups
+    .flat()
+    .map((user) => ({
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      roleCode: user.role.code,
+      isActive: user.isActive,
+    }))
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
+}
+
+export async function fetchProjectManagers(): Promise<PersonView[]> {
+  return fetchPeopleByRoles(PROJECT_MANAGER_ROLE_CODES);
+}
+
+export async function fetchApprovalCandidates(): Promise<PersonView[]> {
+  return fetchPeopleByRoles(APPROVER_ROLE_CODES);
+}
+
+export async function fetchManagerUsers(): Promise<PersonView[]> {
+  return fetchPeopleByRoles(MANAGER_CLIENT_ROLE_CODES);
+}
+
+export async function fetchAssignableUsers(): Promise<PersonView[]> {
+  return fetchPeopleByRoles(PROJECT_ASSIGNABLE_ROLE_CODES);
 }

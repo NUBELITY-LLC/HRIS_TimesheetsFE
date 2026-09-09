@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 
 import { AlertIcon } from "@/components/icons";
+import { DraftsPanel } from "@/components/timesheets/drafts-panel";
 import { WeeklyTimesheetForm } from "@/components/timesheets/weekly-timesheet-form";
 import { WeekStatusPanel } from "@/components/timesheets/week-status-panel";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
-import { fetchAssignments, fetchWeek } from "@/lib/timesheets/queries";
+import {
+  fetchAssignments,
+  fetchDrafts,
+  fetchWeek,
+} from "@/lib/timesheets/queries";
 import { currentWeekStartISO, weekStartFromISO } from "@/lib/timesheets/week";
 import { canSubmitTimesheets, roleName } from "@/lib/users/roles";
 
@@ -70,15 +75,29 @@ export default async function TimesheetsPage({
   }
 
   const params = await searchParams;
+  const requestedCompanyId = firstParam(params.company);
+  const companyId = assignments.some(
+    (item) => String(item.company?.id ?? "") === requestedCompanyId,
+  )
+    ? requestedCompanyId
+    : "";
+
+  const scoped = companyId
+    ? assignments.filter((item) => String(item.company?.id ?? "") === companyId)
+    : assignments;
+
   const requestedId = Number(firstParam(params.assignmentId));
   const assignment =
-    assignments.find((item) => item.id === requestedId) ?? assignments[0];
+    scoped.find((item) => item.id === requestedId) ?? scoped[0];
 
   const currentWeekStart = currentWeekStartISO();
   const weekStart =
     weekStartFromISO(firstParam(params.weekStart)) ?? currentWeekStart;
 
-  const week = await fetchWeek(assignment.id, weekStart);
+  const [week, drafts] = await Promise.all([
+    fetchWeek(assignment.id, weekStart),
+    fetchDrafts(),
+  ]);
   const timesheet = week.ok ? week.timesheet : null;
 
   return (
@@ -106,12 +125,20 @@ export default async function TimesheetsPage({
         key={`${assignment.id}:${weekStart}`}
         assignments={assignments}
         assignmentId={assignment.id}
+        companyId={companyId}
         weekStart={weekStart}
         currentWeekStart={currentWeekStart}
         timesheet={timesheet}
         statusPanel={
           timesheet ? <WeekStatusPanel timesheet={timesheet} /> : null
         }
+      />
+
+      <DraftsPanel
+        drafts={drafts}
+        currentAssignmentId={assignment.id}
+        currentWeekStart={weekStart}
+        companyId={companyId}
       />
     </div>
   );

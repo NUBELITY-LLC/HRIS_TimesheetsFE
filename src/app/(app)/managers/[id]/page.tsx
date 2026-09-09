@@ -9,7 +9,11 @@ import {
 import { ClientForm } from "@/components/catalog/client-form";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
-import { fetchActiveCompanies, fetchClient } from "@/lib/catalog/queries";
+import {
+  fetchActiveCompanies,
+  fetchClient,
+  fetchManagerUsers,
+} from "@/lib/catalog/queries";
 import { canManageCatalog } from "@/lib/users/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function EditClientPage({
   params,
-}: PageProps<"/clients/[id]">) {
+}: PageProps<"/managers/[id]">) {
   const actor = await requireUser();
   const t = await getDictionary();
 
@@ -29,11 +33,12 @@ export default async function EditClientPage({
 
   const { id } = await params;
   const clientId = Number(id);
-  const [client, companies] = await Promise.all([
+  const [client, companies, managers] = await Promise.all([
     Number.isInteger(clientId) && clientId > 0
       ? fetchClient(clientId)
       : Promise.resolve(null),
     fetchActiveCompanies(),
+    fetchManagerUsers(),
   ]);
 
   if (!client) {
@@ -41,11 +46,15 @@ export default async function EditClientPage({
       <CatalogNotFound
         title={t.catalog.clients.notFoundTitle}
         body={t.catalog.clients.notFoundBody}
-        backHref="/clients"
+        backHref="/managers"
         backLabel={t.catalog.clients.back}
       />
     );
   }
+
+  const linkedManager = managers.find(
+    (person) => person.email === client.contactEmail,
+  );
 
   const options =
     client.company && !companies.some((item) => item.id === client.company?.id)
@@ -56,7 +65,7 @@ export default async function EditClientPage({
     <div className="mx-auto max-w-2xl space-y-6">
       <header>
         <Link
-          href="/clients"
+          href="/managers"
           className="flex w-fit items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
         >
           <ArrowLeftIcon className="size-4" />
@@ -76,8 +85,10 @@ export default async function EditClientPage({
             mode="edit"
             clientId={client.id}
             companies={options}
+            managers={managers}
             defaultValues={{
               companyId: client.company ? String(client.company.id) : "",
+              userId: linkedManager ? String(linkedManager.id) : "",
               clientName: client.clientName,
               contactEmail: client.contactEmail ?? "",
               isActive: client.isActive,

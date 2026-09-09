@@ -24,7 +24,7 @@ export const en: Dictionary = {
     timesheets: "My Timesheets",
     reviews: "Timesheet reviews",
     companies: "Companies",
-    clients: "Clients",
+    clients: "Managers",
     projects: "Projects",
     history: "History",
     users: "Users",
@@ -117,7 +117,7 @@ export const en: Dictionary = {
     monthTarget: (target: string) => `Target: ${target}`,
     monthNoTarget: "No target set",
     pendingTitle: "Pending approvals",
-    pendingHint: "Awaiting client and supervisor",
+    pendingHint: "Awaiting manager and supervisor",
     pendingValue: (count: number) =>
       count === 1 ? "1 submission" : `${count} submissions`,
     approvedTitle: "Approved timesheets",
@@ -128,7 +128,7 @@ export const en: Dictionary = {
     viewAll: "View all",
     columns: {
       range: "Week",
-      project: "Client / Project",
+      project: "Manager / Project",
       hours: "Total hours",
       progress: "Approval workflow progress",
       status: "Status",
@@ -148,7 +148,7 @@ export const en: Dictionary = {
     emptyBody: "Log your weekly hours and they will show up here.",
     emptyCta: "Go to my timesheets",
     stages: {
-      CUSTOMER: "Customer",
+      CUSTOMER: "Manager",
       SUPERVISOR: "Supervisor",
       CTO: "CTO",
       FINANCE: "Finance",
@@ -158,15 +158,20 @@ export const en: Dictionary = {
     breadcrumb: "My timesheets",
     breadcrumbCurrent: "New submission",
     title: "Submit weekly timesheet",
-    clientLabel: "Client",
-    clientPlaceholder: "Select a client",
+    clientLabel: "Manager",
+    companyLabel: "Company",
+    companyAll: "All companies",
     projectLabel: "Project",
     projectPlaceholder: "Select a project",
-    projectNeedsClient: "Pick a client first.",
     noAssignmentsTitle: "You have no project assignments yet.",
     noAssignmentsBody:
       "Ask your manager to assign you to a project so you can log hours.",
     loadErrorTitle: "Your assignments could not be loaded.",
+    projectEndNotice: (date: string) =>
+      `This project ends on ${date}. Later days cannot be logged.`,
+    projectClosedNotice: (date: string) =>
+      `This project closed on ${date}. Later days cannot be logged.`,
+    dayAfterProjectEnd: "After the project end",
     weekLabel: "Week",
     weekHint: "Weeks run from Monday to Sunday.",
     previousWeek: "Previous week",
@@ -192,6 +197,21 @@ export const en: Dictionary = {
     noAccessBody: (role: string) =>
       `Logging hours is for consultants, employees and managers. Your account is a ${role}.`,
     saveDraft: "Save draft",
+    drafts: {
+      title: "Drafts",
+      count: (count: number) =>
+        count === 1 ? "1 week in draft" : `${count} weeks in draft`,
+      empty: "You have no drafts.",
+      open: "Open",
+      discard: "Discard",
+      discarding: "Discarding…",
+      discarded: "Draft discarded.",
+      confirm: (week: string) => `Discard the draft for the week of ${week}?`,
+      current: "Open week",
+    },
+    unsaved: "Unsaved",
+    unsavedConfirm:
+      "You have unsaved changes in this week. Leave anyway?",
     submit: "Submit timesheet",
     draftSaved: "Draft saved.",
     saving: "Saving…",
@@ -201,7 +221,7 @@ export const en: Dictionary = {
     weekStatus: "Week status",
     lockedTitle: "This week is already in the approval workflow.",
     errors: {
-      clientRequired: "Select a client.",
+      clientRequired: "Select a manager.",
       projectRequired: "Select a project.",
       hoursRequired: "Select the hours for this task.",
       activityRequired: "Describe the activity for this task.",
@@ -217,6 +237,12 @@ export const en: Dictionary = {
       TIMESHEET_EMPTY: "Log at least one activity before submitting.",
       NO_APPROVAL_WORKFLOW:
         "This project has no approval workflow configured; contact your manager.",
+      INCOMPLETE_APPROVAL_WORKFLOW:
+        "This project does not have enough approvers configured; contact your manager.",
+      projectClosedOn: (date: string) =>
+        `This project closed on ${date}: later days cannot be logged.`,
+      projectEndsOn: (date: string) =>
+        `This project ends on ${date}: later days cannot be logged.`,
       WEEK_NOT_STARTED: "You cannot submit a future week yet.",
       NETWORK_ERROR:
         "We could not reach the server. Please try again in a moment.",
@@ -236,14 +262,14 @@ export const en: Dictionary = {
     stageLine: (index: number, name: string) => `Stage ${index}: ${name} (active)`,
     noActiveStage: "No active stage",
     stages: {
-      CUSTOMER: "Customer review",
+      CUSTOMER: "Manager review",
       SUPERVISOR: "Supervisor review",
       CTO: "CTO review",
       FINANCE: "Finance review",
     },
     summaryTitle: "Timesheet summary",
     person: "Person",
-    project: "Client / Project",
+    project: "Manager / Project",
     totalHours: "Total hours",
     dailyTitle: "Daily breakdown",
     columns: {
@@ -276,23 +302,26 @@ export const en: Dictionary = {
     PAID: "Paid",
   },
   approvals: {
-    client: "Customer",
+    client: "Manager",
     step: (seq: number) => `Step ${seq}`,
   },
   catalog: {
     noAccessTitle: "You don't have access to this module",
     noAccessBody: (role: string) =>
-      `Managing clients and projects is restricted to administrators and managers. Your account is a ${role}.`,
+      `Managing managers and projects is restricted to administrators and managers. Your account is a ${role}.`,
     filters: {
       search: "Search",
       status: "Status",
-      client: "Client",
-      allClients: "All clients",
+      client: "Manager",
+      allClients: "All managers",
       allCompanies: "All companies",
       company: "Company",
       statusActive: "Active",
       statusInactive: "Inactive",
       statusAll: "All",
+      projectStatus: "Status",
+      projectStatusActive: "Active",
+      projectStatusClosed: "Closed",
     },
     form: {
       section: "Record details",
@@ -306,15 +335,20 @@ export const en: Dictionary = {
       companyPlaceholder: "Select a company",
       save: "Save changes",
       saving: "Saving…",
-      clientName: "Client name",
+      managerUser: "System user",
+      managerUserPlaceholder: "External manager (no account)",
+      managerUserEmpty:
+        "There are no active manager or finance users; enter the external manager details.",
+      clientName: "Manager name",
       clientNamePlaceholder: "Trading name",
       contactEmail: "Contact email",
-      contactEmailPlaceholder: "contact@client.com",
+      contactEmailPlaceholder: "contact@manager.com",
       contactEmailHint: "Optional.",
-      activeTitle: "Active client",
+      activeTitle: "Active manager",
       companyActiveTitle: "Active company",
-      clientLabel: "Client",
-      clientPlaceholder: "Select a client",
+      clientLabel: "Manager",
+      clientPlaceholder: "Select a manager",
+      clientCompanyEmpty: "That company has no managers on record.",
       projectName: "Project name",
       projectNamePlaceholder: "Project name",
       code: "Code",
@@ -323,7 +357,9 @@ export const en: Dictionary = {
       manager: "Manager",
       managerPlaceholder: "Me",
       startDate: "Start",
-      endDate: "End",
+      endDate: "Planned end (optional)",
+      endDateHint: "Empty = open-ended project.",
+      endDateLocked: "The effective end changes by reopening the project.",
       create: "Create",
       creating: "Creating…",
       reviewFields: "Please review the highlighted fields.",
@@ -352,28 +388,28 @@ export const en: Dictionary = {
       noCompaniesTitle: "Create a company first.",
     },
     clients: {
-      eyebrow: "Clients",
-      title: "Client catalog",
-      newClient: "New client",
-      searchPlaceholder: "Client name",
+      eyebrow: "Managers",
+      title: "Manager catalog",
+      newClient: "New manager",
+      searchPlaceholder: "Manager name",
       columns: {
-        name: "Client",
+        name: "Manager",
         company: "Company",
         email: "Contact email",
         status: "Status",
       },
       active: "Active",
       inactive: "Inactive",
-      emptyTitle: "No clients match.",
-      emptyBody: "Create the first client to get started.",
-      loadErrorTitle: "The client catalog could not be loaded.",
-      createTitle: "Create client",
-      editTitle: "Edit client",
-      back: "Back to clients",
+      emptyTitle: "No managers match.",
+      emptyBody: "Create the first manager to get started.",
+      loadErrorTitle: "The manager catalog could not be loaded.",
+      createTitle: "Create manager",
+      editTitle: "Edit manager",
+      back: "Back to managers",
       edit: "Edit",
       createdTitle: (name: string) => `${name} was created.`,
       updatedTitle: (name: string) => `${name} was updated.`,
-      notFoundTitle: "That client does not exist.",
+      notFoundTitle: "That manager does not exist.",
       notFoundBody: "It may have been removed from the catalog.",
     },
     projects: {
@@ -383,7 +419,7 @@ export const en: Dictionary = {
       searchPlaceholder: "Name or code",
       columns: {
         name: "Project",
-        client: "Client",
+        client: "Manager",
         manager: "Manager",
         dates: "Dates",
       },
@@ -398,9 +434,120 @@ export const en: Dictionary = {
       updatedTitle: (name: string) => `${name} was updated.`,
       notFoundTitle: "That project does not exist.",
       notFoundBody: "It may have been removed from the catalog.",
-      noClientsTitle: "Create a client first.",
+      noClientsTitle: "Create a manager first.",
       noManager: "No manager",
+      since: (date: string) => `Since ${date}`,
       openDates: "No dates",
+      createdBanner: (name: string) =>
+        `${name} was created. Configure its approval workflow so the team can submit hours.`,
+    },
+    team: {
+      eyebrow: "Team",
+      title: "Project team",
+      manage: "Manage team",
+      back: "Back to the project",
+      count: (count: number) =>
+        count === 1 ? "1 person assigned" : `${count} people assigned`,
+      empty: "This project has nobody assigned yet.",
+      person: "Person",
+      personPlaceholder: "Select the person…",
+      noPeopleAvailable: "Everyone available is already assigned.",
+      addPerson: "Assign person",
+      adding: "Assigning…",
+      removePerson: "Remove",
+      assigned: "Person assigned.",
+      saved: "Assignment updated.",
+      removed: "Assignment removed.",
+    },
+    lifecycle: {
+      section: "Lifecycle",
+      openEnded: "Open-ended",
+      endsOn: (date: string) => `Ends on ${date}`,
+      closedOn: (date: string) => `Closed on ${date}`,
+      statusActive: "Active",
+      statusClosed: "Closed",
+      activeHint:
+        "The project is still open. Close it when it truly ends; the planned end only limits hour logging.",
+      closedHint: (date: string) =>
+        `No assignments, end-date changes or approval workflow edits. Effective end: ${date}.`,
+      close: "Close project",
+      closing: "Closing…",
+      closeTitle: "Close the project",
+      closeBody:
+        "Closing deactivates the open assignments and sets the project end. Submitted work keeps its approval flow and approved work is untouched.",
+      closeAssignments: (count: number) =>
+        count === 1
+          ? "1 active assignment will be closed."
+          : `${count} active assignments will be closed.`,
+      closeNoAssignments: "This project has no active assignments.",
+      closeStrandedWarning:
+        "Drafts for weeks after that date will no longer be submittable.",
+      effectiveDate: "Closing date",
+      effectiveDateHint: "It is the last day that can be logged.",
+      confirmClose: "Yes, close it",
+      cancel: "Cancel",
+      closed: "Project closed.",
+      closedAssignments: (count: number) =>
+        count === 1 ? "1 assignment was closed." : `${count} assignments were closed.`,
+      strandedTimesheets: (count: number) =>
+        count === 1
+          ? "1 draft timesheet can no longer be submitted."
+          : `${count} draft timesheets can no longer be submitted.`,
+      noStranded: "No draft was left unsubmittable.",
+      reopen: "Reopen project",
+      reopening: "Reopening…",
+      reopenTitle: "Reopen the project",
+      reopenBody:
+        "The project becomes open-ended again, with no end date, and accepts new work.",
+      reopenAssignmentsWarning:
+        "Closed assignments do not come back: they have to be created again.",
+      confirmReopen: "Yes, reopen it",
+      reopened: "Project reopened.",
+    },
+    approvals: {
+      section: "Approval workflow",
+      intro:
+        "Approvers review in the order you set here. The first one on the list approves first.",
+      counter: (count: number, max: number, min: number) =>
+        `${count} of ${max} approvers · minimum ${min}`,
+      complete: "Workflow complete",
+      incomplete: "Workflow incomplete",
+      incompleteHint: (min: number) =>
+        `This project needs at least ${min} approvers; until then nobody can submit hours.`,
+      stepLabel: (seq: number) => `Step ${seq}`,
+      typeLabel: "Approver type",
+      types: {
+        CLIENT_EMAIL: "Manager (by email)",
+        USER: "Person",
+        ROLE: "Anyone with a role",
+      },
+      approverLabel: "Approver",
+      approverPlaceholder: "Select the person",
+      clientLabel: "Approving manager",
+      clientPlaceholder: "Select a manager",
+      clientWithoutEmail: "no contact email",
+      clientEmail: (email: string) => `${email} will be notified.`,
+      projectClientLane: "Project manager · required approver",
+      projectClientMissingEmail:
+        "The project manager has no contact email, so the workflow cannot be saved.",
+      manageClients: "Manage managers",
+      addClientHint:
+        "To add another external approver, register it first as a manager of the same company.",
+      roleLabel: "Role",
+      rolePlaceholder: "Select a role",
+      displayNameLabel: "Display name",
+      displayNamePlaceholder: "Optional",
+      addStep: "Add approver",
+      maxReached: (max: number) => `You reached the maximum of ${max} approvers.`,
+      removeStep: "Remove approver",
+      moveUp: "Move up",
+      moveDown: "Move down",
+      save: "Save workflow",
+      saving: "Saving…",
+      saved: "Approval workflow updated.",
+      reviewSteps: "Review the flagged approvers.",
+      noApprovers: "This project has no approvers yet.",
+      noCandidates: "There are no active admins or managers to nominate.",
     },
     errors: {
       FORBIDDEN: "Your role cannot manage the catalog.",
@@ -414,10 +561,43 @@ export const en: Dictionary = {
       tradeNameRequired: "Enter the trade name.",
       rfcLength: "The RFC must be 12 characters (company) or 13 (individual).",
       companyRequired: "Select a company.",
-      clientNameRequired: "Enter the client name.",
-      clientRequired: "Select a client.",
+      personRequired: "Select the person.",
+      assignmentStart: "Enter the assignment start date.",
+      payRateRequired: "Enter the hourly rate for the assignment.",
+      payRateInvalid: "The rate accepts numbers with up to 2 decimals.",
+      clientNameRequired: "Enter the manager name.",
+      managerUserInvalid:
+        "That user is not active or no longer holds a manager or finance role.",
+      clientRequired: "Select a manager.",
       projectNameRequired: "Enter the project name.",
       dateOrder: "The end date cannot be earlier than the start date.",
+      approversMin: (min: number) =>
+        `The workflow requires at least ${min} approvers.`,
+      approversMax: (max: number) =>
+        `The workflow allows at most ${max} approvers.`,
+      approverTypeRequired: "Choose the approver type.",
+      approverRequired: "Select the person who approves.",
+      approverRoleRequired: "Select the role that approves.",
+      approverEmailInvalid: "The approver email is not valid.",
+      approverClientRequired: "Select the manager who approves.",
+      projectClientLaneRequired:
+        "The project manager must be one of the approvers.",
+      CLIENT_COMPANY_MISMATCH:
+        "Only managers from the same company as the project manager can approve.",
+      CLIENT_WITHOUT_EMAIL:
+        "That manager has no contact email; add one on its record.",
+      CLIENT_INACTIVE: "That manager is inactive.",
+      approverDuplicated: "This approver already holds another step.",
+      PROJECT_CLOSED: "This project is closed: reopen it to make changes.",
+      projectHasOpenTimesheets: (count: number) =>
+        count === 1
+          ? "There is 1 timesheet under approval for a week after that date. Resolve it before closing."
+          : `There are ${count} timesheets under approval for weeks after that date. Resolve them before closing.`,
+      projectAlreadyClosed:
+        "This project was already closed. Reload to see its current state.",
+      projectNotClosed:
+        "This project is not closed. Reload to see its current state.",
+      effectiveDateRequired: "Enter the closing date.",
     },
   },
   settings: {
@@ -491,6 +671,8 @@ export const en: Dictionary = {
       `Managing users is restricted to administrators and managers. Your account is a ${role}.`,
     noAccessUserTitle: "You don't have access to this user",
     noAccessUserGeneric: "Your role cannot manage accounts with that role.",
+    cannotHaveProjects: (role: string) =>
+      `${role} accounts do not take project assignments.`,
     create: {
       title: "Create a user",
       noAccessBody: (role: string) =>
@@ -533,6 +715,10 @@ export const en: Dictionary = {
       projectStart: "Assignment start",
       projectEnd: "Assignment end",
       projectsSection: "Assigned projects",
+      manageProjects: "Manage projects",
+      projectsCount: (count: number) =>
+        count === 1 ? "1 project assigned" : `${count} projects assigned`,
+      backToProfile: "Back to the profile",
       assignProject: "Assign project",
       assigning: "Assigning…",
       removeProject: "Remove",
@@ -581,15 +767,20 @@ export const en: Dictionary = {
   roles: {
     CONSULTANT: {
       name: "Consultant",
-      description: "Submits weekly timesheets for client projects.",
+      description: "Submits weekly timesheets for managers' projects.",
     },
     EMPLOYEE: {
       name: "Employee",
       description: "Submits weekly timesheets for internal work.",
     },
-    PM: {
+    MANAGER: {
       name: "Manager",
       description: "Approves timesheets and manages consultants and employees.",
+    },
+    FINANCE: {
+      name: "Finance",
+      description:
+        "Only approves timesheets on its assigned lanes; manages no users or catalogs.",
     },
     ADMIN: {
       name: "Administrator",

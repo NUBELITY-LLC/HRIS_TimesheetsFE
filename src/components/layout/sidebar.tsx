@@ -69,7 +69,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     key: "clients",
-    href: "/clients",
+    href: "/managers",
     icon: UserIcon,
     available: true,
     visibleFor: canManageCatalog,

@@ -56,7 +56,7 @@ function Field({
 type UserFormProps = {
   mode: "create" | "edit";
   roles: RoleOption[];
-  projects: ProjectView[];
+  projects?: ProjectView[];
   defaultValues?: UserFormValues;
   userId?: number;
   canChangeRole?: boolean;
@@ -238,7 +238,7 @@ function RoleFields({
 export function UserForm({
   mode,
   roles,
-  projects,
+  projects = [],
   defaultValues,
   userId,
   canChangeRole = true,

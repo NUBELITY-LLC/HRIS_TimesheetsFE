@@ -4,7 +4,7 @@ import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
 import { PersonalDashboard } from "@/components/dashboard/personal-dashboard";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
-import { canViewAllTimesheets, roleName } from "@/lib/users/roles";
+import { canViewTeamDashboard, roleName } from "@/lib/users/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   const user = await requireUser();
   const t = await getDictionary();
 
-  const isAdmin = canViewAllTimesheets(user.role.code);
+  const isReviewer = canViewTeamDashboard(user.role.code);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -26,7 +26,7 @@ export default async function DashboardPage() {
         </h1>
       </header>
 
-      {isAdmin ? <AdminDashboard /> : <PersonalDashboard />}
+      {isReviewer ? <AdminDashboard /> : <PersonalDashboard />}
     </div>
   );
 }

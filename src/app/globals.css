@@ -34,6 +34,18 @@
   --color-success-200: #a7f3d0;
   --color-success-700: #047857;
   --color-success-800: #065f46;
+
+  --animate-save-pulse: save-pulse 1.8s ease-in-out infinite;
+
+  @keyframes save-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgb(37 99 235 / 0.45);
+    }
+    50% {
+      box-shadow: 0 0 0 5px rgb(37 99 235 / 0);
+    }
+  }
 }
 
 html {

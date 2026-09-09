@@ -11,6 +11,7 @@ import { getSessionToken, requireUser } from "@/lib/auth/session";
 import { canSubmitTimesheets } from "@/lib/users/roles";
 import {
   INITIAL_TIMESHEET_FORM_STATE,
+  type DraftActionState,
   type DraftDayPayload,
   type TimesheetFormState,
 } from "./form-state";
@@ -61,15 +62,42 @@ function errorCopy(code: string, t: Dictionary): string | undefined {
     | undefined;
 }
 
+function detailString(details: unknown, key: string): string | null {
+  if (!isRecord(details)) return null;
+
+  const value = details[key];
+  return typeof value === "string" ? value : null;
+}
+
+function projectEndMessage(
+  details: unknown,
+  projectStatus: string,
+  t: Dictionary,
+): string | null {
+  if (detailString(details, "code") !== "PROJECT_CLOSED") return null;
+
+  const endDate = detailString(details, "projectEndDate");
+  if (!endDate) return null;
+
+  return projectStatus === "CLOSED"
+    ? t.timesheets.errors.projectClosedOn(endDate)
+    : t.timesheets.errors.projectEndsOn(endDate);
+}
+
 function toErrorState(
   result: Extract<ApiResult<unknown>, { ok: false }>,
   t: Dictionary,
+  projectStatus = "",
 ): TimesheetFormState {
   const { code, message, details } = result.error;
 
   return {
     status: "error",
-    message: errorCopy(code, t) ?? message ?? t.timesheets.errors.fallback,
+    message:
+      projectEndMessage(details, projectStatus, t) ??
+      errorCopy(code, t) ??
+      message ??
+      t.timesheets.errors.fallback,
     code,
     issues: readValidationIssues(details).map((issue) => issue.message),
     submissionCode: null,
@@ -95,6 +123,7 @@ export async function saveTimesheetAction(
   const intent = String(formData.get("intent") ?? "draft");
   const assignmentId = Number(formData.get("assignmentId"));
   const weekStart = String(formData.get("weekStart") ?? "");
+  const projectStatus = String(formData.get("projectStatus") ?? "");
   const days = parseDays(String(formData.get("days") ?? "[]"));
 
   if (!Number.isInteger(assignmentId) || assignmentId <= 0) {
@@ -133,7 +162,7 @@ export async function saveTimesheetAction(
 
   if (!saved.ok) {
     if (saved.status === 401) redirect("/login?reason=session_expired");
-    return toErrorState(saved, t);
+    return toErrorState(saved, t, projectStatus);
   }
 
   revalidatePath("/timesheets");
@@ -157,7 +186,7 @@ export async function saveTimesheetAction(
 
   if (!submitted.ok) {
     if (submitted.status === 401) redirect("/login?reason=session_expired");
-    return toErrorState(submitted, t);
+    return toErrorState(submitted, t, projectStatus);
   }
 
   revalidatePath("/timesheets");
@@ -169,4 +198,44 @@ export async function saveTimesheetAction(
     message: t.timesheets.submittedTitle,
     submissionCode: submitted.data.confirmation.submissionCode,
   };
+}
+
+export async function discardDraftAction(
+  _prevState: DraftActionState,
+  formData: FormData,
+): Promise<DraftActionState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (!canSubmitTimesheets(actor.role.code)) {
+    return { status: "error", message: t.timesheets.errors.FORBIDDEN };
+  }
+
+  const timesheetId = Number(formData.get("timesheetId"));
+
+  if (!Number.isInteger(timesheetId) || timesheetId <= 0) {
+    return { status: "error", message: t.timesheets.errors.fallback };
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ discarded: boolean }>(
+    `/timesheets/${timesheetId}`,
+    { method: "DELETE", token },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+    return {
+      status: "error",
+      message:
+        errorCopy(result.error.code, t) ??
+        result.error.message ??
+        t.timesheets.errors.fallback,
+    };
+  }
+
+  revalidatePath("/timesheets");
+  revalidatePath("/dashboard");
+
+  return { status: "success", message: t.timesheets.drafts.discarded };
 }

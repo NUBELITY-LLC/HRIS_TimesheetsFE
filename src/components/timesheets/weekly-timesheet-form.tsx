@@ -1,7 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import {
   AlertIcon,
@@ -14,6 +21,7 @@ import {
   TrashIcon,
 } from "@/components/icons";
 import { useDictionary, useLocale } from "@/i18n/provider";
+import { formatProjectDate } from "@/lib/catalog/lifecycle";
 import { saveTimesheetAction } from "@/lib/timesheets/actions";
 import {
   INITIAL_TIMESHEET_FORM_STATE,
@@ -60,6 +68,7 @@ const NO_ERRORS: FormErrors = { days: {}, rows: {} };
 export type WeeklyTimesheetFormProps = {
   assignments: Assignment[];
   assignmentId: number;
+  companyId: string;
   weekStart: string;
   currentWeekStart: string;
   timesheet: Timesheet | null;
@@ -97,6 +106,7 @@ function hasErrors(errors: FormErrors): boolean {
 export function WeeklyTimesheetForm({
   assignments,
   assignmentId,
+  companyId,
   weekStart,
   currentWeekStart,
   timesheet,
@@ -115,20 +125,31 @@ export function WeeklyTimesheetForm({
     seedEntries(weekStart, timesheet),
   );
   const [errors, setErrors] = useState<FormErrors>(NO_ERRORS);
+  const [dirty, setDirty] = useState(false);
   const rowCounter = useRef(0);
 
   const editable = !timesheet || timesheet.editable;
   const busy = isSaving || isNavigating;
 
   const assignment = assignments.find((item) => item.id === assignmentId) ?? null;
-  const clients = useMemo(() => {
+
+  const companies = useMemo(() => {
     const seen = new Map<number, string>();
-    for (const item of assignments) seen.set(item.client.id, item.client.name);
+    for (const item of assignments) {
+      if (item.company) seen.set(item.company.id, item.company.name);
+    }
     return [...seen].map(([id, name]) => ({ id, name }));
   }, [assignments]);
 
-  const clientAssignments = assignments.filter(
-    (item) => item.client.id === assignment?.client.id,
+  const companyAssignments = companyId
+    ? assignments.filter((item) => String(item.company?.id ?? "") === companyId)
+    : assignments;
+
+  const projectEndDate = assignment?.project.endDate ?? null;
+  const projectEndLabel = formatProjectDate(
+    projectEndDate,
+    locale,
+    projectEndDate ?? "",
   );
 
   const days = useMemo(
@@ -148,9 +169,15 @@ export function WeeklyTimesheetForm({
     [weekStart, entries],
   );
 
+  function isAfterProjectEnd(iso: string): boolean {
+    return Boolean(projectEndDate && iso > projectEndDate);
+  }
+
   const totalMinutes = days.reduce((total, day) => total + day.minutes, 0);
 
   const payload: DraftDayPayload[] = days.flatMap((day) => {
+    if (isAfterProjectEnd(day.iso)) return [];
+
     const activities = day.rows
       .filter((row) => row.minutes !== null && row.activity.trim().length > 0)
       .map((row) => ({
@@ -161,12 +188,62 @@ export function WeeklyTimesheetForm({
     return activities.length ? [{ date: day.iso, activities }] : [];
   });
 
-  function navigate(nextAssignmentId: number, nextWeekStart: string) {
+  const payloadJson = JSON.stringify(payload);
+  const unsaved = dirty || state.status === "error";
+  const pendingChanges = unsaved || isSaving;
+
+  useEffect(() => {
+    if (!pendingChanges) return;
+
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    function confirmLeaving(event: MouseEvent) {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      const link = target?.closest("a");
+      const href = link?.getAttribute("href");
+
+      if (!link || !href || href.startsWith("#") || link.target === "_blank") {
+        return;
+      }
+
+      if (!window.confirm(t.timesheets.unsavedConfirm)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }
+
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    document.addEventListener("click", confirmLeaving, true);
+
+    return () => {
+      window.removeEventListener("beforeunload", warnBeforeUnload);
+      document.removeEventListener("click", confirmLeaving, true);
+    };
+  }, [pendingChanges, t]);
+
+  function navigate(
+    nextAssignmentId: number,
+    nextWeekStart: string,
+    nextCompanyId = companyId,
+  ) {
+    if (unsaved && !window.confirm(t.timesheets.unsavedConfirm)) return;
+
+    const query = new URLSearchParams({
+      assignmentId: String(nextAssignmentId),
+      weekStart: nextWeekStart,
+    });
+    if (nextCompanyId) query.set("company", nextCompanyId);
+
     startNavigation(() => {
-      router.replace(
-        `/timesheets?assignmentId=${nextAssignmentId}&weekStart=${nextWeekStart}`,
-        { scroll: false },
-      );
+      router.replace(`/timesheets?${query.toString()}`, { scroll: false });
     });
   }
 
@@ -183,6 +260,7 @@ export function WeeklyTimesheetForm({
       ),
     }));
     setErrors(NO_ERRORS);
+    setDirty(true);
   }
 
   function addRow(iso: string) {
@@ -199,6 +277,7 @@ export function WeeklyTimesheetForm({
       return { ...prev, [iso]: rows.length ? rows : [createRow(iso)] };
     });
     setErrors(NO_ERRORS);
+    setDirty(true);
   }
 
   function validate(intent: "draft" | "submit"): FormErrors {
@@ -241,7 +320,13 @@ export function WeeklyTimesheetForm({
     return (event: React.MouseEvent<HTMLButtonElement>) => {
       const next = validate(intent);
       setErrors(next);
-      if (hasErrors(next)) event.preventDefault();
+
+      if (hasErrors(next)) {
+        event.preventDefault();
+        return;
+      }
+
+      setDirty(false);
     };
   }
 
@@ -266,7 +351,14 @@ export function WeeklyTimesheetForm({
     <form action={formAction} className="space-y-5" noValidate>
       <input type="hidden" name="assignmentId" value={assignmentId} />
       <input type="hidden" name="weekStart" value={weekStart} />
-      <input type="hidden" name="days" value={JSON.stringify(payload)} />
+      <input type="hidden" name="days" value={payloadJson} />
+      {assignment ? (
+        <input
+          type="hidden"
+          name="projectStatus"
+          value={assignment.project.status}
+        />
+      ) : null}
 
       {banner ? (
         <div
@@ -298,25 +390,37 @@ export function WeeklyTimesheetForm({
 
       {statusPanel}
 
-      <div className="grid gap-4 rounded-xl border border-line bg-surface p-5 shadow-sm sm:grid-cols-3">
+      <div className="grid gap-4 rounded-xl border border-line bg-surface p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-1.5">
-          <label htmlFor="clientId" className="block text-sm font-medium text-ink-soft">
-            {t.timesheets.clientLabel}
+          <label
+            htmlFor="companyId"
+            className="block text-sm font-medium text-ink-soft"
+          >
+            {t.timesheets.companyLabel}
           </label>
           <select
-            id="clientId"
-            value={assignment?.client.id ?? ""}
-            disabled={busy}
+            id="companyId"
+            value={companyId}
+            disabled={busy || companies.length === 0}
             onChange={(event) => {
-              const clientId = Number(event.target.value);
-              const next = assignments.find((item) => item.client.id === clientId);
-              if (next) navigate(next.id, weekStart);
+              const nextCompanyId = event.target.value;
+              const keepsAssignment =
+                !nextCompanyId ||
+                String(assignment?.company?.id ?? "") === nextCompanyId;
+              const next = keepsAssignment
+                ? assignment
+                : (assignments.find(
+                    (item) => String(item.company?.id ?? "") === nextCompanyId,
+                  ) ?? null);
+
+              navigate(next?.id ?? assignmentId, weekStart, nextCompanyId);
             }}
             className={FIELD_CLASS}
           >
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
+            <option value="">{t.timesheets.companyAll}</option>
+            {companies.map((company) => (
+              <option key={company.id} value={company.id}>
+                {company.name}
               </option>
             ))}
           </select>
@@ -333,13 +437,22 @@ export function WeeklyTimesheetForm({
             onChange={(event) => navigate(Number(event.target.value), weekStart)}
             className={FIELD_CLASS}
           >
-            {clientAssignments.map((item) => (
+            {companyAssignments.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.project.name}
                 {item.project.code ? ` (${item.project.code})` : ""}
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <span className="block text-sm font-medium text-ink-soft">
+            {t.timesheets.clientLabel}
+          </span>
+          <p className="rounded-lg border border-line bg-surface-muted px-3 py-2.5 text-sm text-ink-soft">
+            {assignment?.client.name ?? t.common.none}
+          </p>
         </div>
 
         <div className="space-y-1.5">
@@ -390,6 +503,15 @@ export function WeeklyTimesheetForm({
         </div>
       </div>
 
+      {projectEndDate ? (
+        <p className="flex gap-2 rounded-xl border border-warn-200 bg-warn-50 p-3.5 text-sm text-warn-700">
+          <AlertIcon className="mt-0.5 size-4 shrink-0" />
+          {assignment?.project.status === "CLOSED"
+            ? t.timesheets.projectClosedNotice(projectEndLabel)
+            : t.timesheets.projectEndNotice(projectEndLabel)}
+        </p>
+      ) : null}
+
       <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-muted px-5 py-3.5">
           <h2 className="text-sm font-semibold text-ink">{t.timesheets.tableTitle}</h2>
@@ -414,12 +536,18 @@ export function WeeklyTimesheetForm({
           {days.map((day) => {
             const dayLabel = `${formatWeekday(day.date, locale)} ${formatDayAndMonth(day.date, locale)}`;
             const overLimit = day.minutes > DAY_MAX_MINUTES;
+            const afterProjectEnd = isAfterProjectEnd(day.iso);
+            const dayLocked = !editable || afterProjectEnd;
 
             return (
               <div
                 key={day.iso}
                 className={`grid gap-3 px-5 py-4 sm:grid-cols-[8rem_1fr] sm:gap-4 ${
-                  day.weekend ? "bg-surface-muted/60" : ""
+                  afterProjectEnd
+                    ? "bg-surface-muted/60 opacity-60"
+                    : day.weekend
+                      ? "bg-surface-muted/60"
+                      : ""
                 }`}
               >
                 <div className="flex items-center gap-2 sm:block">
@@ -451,7 +579,7 @@ export function WeeklyTimesheetForm({
                           <select
                             aria-label={t.timesheets.hoursAriaLabel(dayLabel)}
                             value={row.minutes ?? ""}
-                            disabled={!editable || busy}
+                            disabled={dayLocked || busy}
                             onChange={(event) =>
                               updateRow(day.iso, row.id, {
                                 minutes: parseTaskMinutes(event.target.value),
@@ -475,7 +603,7 @@ export function WeeklyTimesheetForm({
                             aria-label={t.timesheets.activityAriaLabel(dayLabel)}
                             placeholder={t.timesheets.activityPlaceholder}
                             value={row.activity}
-                            disabled={!editable || busy}
+                            disabled={dayLocked || busy}
                             onChange={(event) =>
                               updateRow(day.iso, row.id, {
                                 activity: event.target.value,
@@ -486,7 +614,7 @@ export function WeeklyTimesheetForm({
                             }`}
                           />
 
-                          {editable ? (
+                          {editable && !afterProjectEnd ? (
                             <button
                               type="button"
                               aria-label={t.timesheets.removeTask}
@@ -506,7 +634,13 @@ export function WeeklyTimesheetForm({
                     );
                   })}
 
-                  {editable ? (
+                  {afterProjectEnd ? (
+                    <p className="text-xs text-ink-muted">
+                      {t.timesheets.dayAfterProjectEnd}
+                    </p>
+                  ) : null}
+
+                  {editable && !afterProjectEnd ? (
                     <button
                       type="button"
                       disabled={busy}
@@ -528,12 +662,20 @@ export function WeeklyTimesheetForm({
         </div>
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
-          <p className="text-sm text-ink-muted">
-            {t.timesheets.totalHours}:{" "}
-            <span className="text-lg font-semibold text-brand-600 tabular-nums">
-              {formatMinutes(totalMinutes)}
-            </span>
-          </p>
+          <div className="space-y-1">
+            <p className="text-sm text-ink-muted">
+              {t.timesheets.totalHours}:{" "}
+              <span className="text-lg font-semibold text-brand-600 tabular-nums">
+                {formatMinutes(totalMinutes)}
+              </span>
+            </p>
+            {editable && unsaved && !isSaving ? (
+              <p className="flex items-center gap-1.5 text-xs text-ink-muted">
+                <span className="size-1.5 rounded-full bg-warn-700" />
+                {t.timesheets.unsaved}
+              </p>
+            ) : null}
+          </div>
           {editable ? (
             <div className="flex flex-wrap gap-2">
               <button
