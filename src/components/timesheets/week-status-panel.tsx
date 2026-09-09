@@ -18,10 +18,12 @@ export async function WeekStatusPanel({ timesheet }: { timesheet: Timesheet }) {
             </span>
           ) : null}
         </div>
-        <ApprovalProgress
-          steps={timesheet.approvals ?? []}
-          currentSeq={timesheet.currentSeq}
-        />
+        {timesheet.approvals?.length ? (
+          <ApprovalProgress
+            steps={timesheet.approvals}
+            currentSeq={timesheet.currentSeq}
+          />
+        ) : null}
       </div>
 
       {timesheet.editable ? null : (

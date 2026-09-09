@@ -9,6 +9,7 @@ import type {
   TeamTimesheet,
   Timesheet,
   TimesheetReview,
+  TimesheetStatus,
 } from "./types";
 
 export const EMPTY_DASHBOARD_SUMMARY: DashboardSummary = {
@@ -90,12 +91,15 @@ export async function fetchRecentSubmissions(
   return result.ok ? result.data : [];
 }
 
-export async function fetchDrafts(pageSize = 10): Promise<Timesheet[]> {
+async function fetchByStatus(
+  status: TimesheetStatus,
+  pageSize: number,
+): Promise<Timesheet[]> {
   const token = await getSessionToken();
   const params = new URLSearchParams({
     page: "1",
     pageSize: String(pageSize),
-    status: "DRAFT",
+    status,
   });
   const result = await apiRequest<Timesheet[]>(
     `/timesheets/mine?${params.toString()}`,
@@ -103,6 +107,17 @@ export async function fetchDrafts(pageSize = 10): Promise<Timesheet[]> {
   );
 
   return result.ok ? result.data : [];
+}
+
+export async function fetchDrafts(pageSize = 10): Promise<Timesheet[]> {
+  const [drafts, rejected] = await Promise.all([
+    fetchByStatus("DRAFT", pageSize),
+    fetchByStatus("REJECTED", pageSize),
+  ]);
+
+  return [...drafts, ...rejected]
+    .sort((a, b) => b.weekStart.localeCompare(a.weekStart))
+    .slice(0, pageSize);
 }
 
 export async function fetchTeamSummary(): Promise<TeamSummary> {

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
+  startTransition,
   useActionState,
   useEffect,
   useMemo,
@@ -179,7 +180,7 @@ export function WeeklyTimesheetForm({
     if (isAfterProjectEnd(day.iso)) return [];
 
     const activities = day.rows
-      .filter((row) => row.minutes !== null && row.activity.trim().length > 0)
+      .filter((row) => row.minutes !== null)
       .map((row) => ({
         minutes: row.minutes as number,
         activity: row.activity.trim(),
@@ -293,7 +294,7 @@ export function WeeklyTimesheetForm({
 
         if (row.minutes === null) {
           next.rows[row.id] = t.timesheets.errors.hoursRequired;
-        } else if (!activity) {
+        } else if (!activity && intent === "submit") {
           next.rows[row.id] = t.timesheets.errors.activityRequired;
         }
       }
@@ -314,6 +315,19 @@ export function WeeklyTimesheetForm({
     }
 
     return next;
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const data = new FormData(event.currentTarget);
+
+    if (submitter instanceof HTMLButtonElement && submitter.name === "intent") {
+      data.set("intent", submitter.value);
+    }
+
+    startTransition(() => formAction(data));
   }
 
   function guard(intent: "draft" | "submit") {
@@ -348,7 +362,7 @@ export function WeeklyTimesheetForm({
             : null;
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
       <input type="hidden" name="assignmentId" value={assignmentId} />
       <input type="hidden" name="weekStart" value={weekStart} />
       <input type="hidden" name="days" value={payloadJson} />

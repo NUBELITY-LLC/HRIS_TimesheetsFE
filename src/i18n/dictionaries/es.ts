@@ -196,7 +196,7 @@ export const es = {
     drafts: {
       title: "Borradores",
       count: (count: number) =>
-        count === 1 ? "1 semana en borrador" : `${count} semanas en borrador`,
+        count === 1 ? "1 semana sin enviar" : `${count} semanas sin enviar`,
       empty: "No tienes borradores.",
       open: "Abrir",
       discard: "Descartar",

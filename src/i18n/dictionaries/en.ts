@@ -200,7 +200,7 @@ export const en: Dictionary = {
     drafts: {
       title: "Drafts",
       count: (count: number) =>
-        count === 1 ? "1 week in draft" : `${count} weeks in draft`,
+        count === 1 ? "1 unsent week" : `${count} unsent weeks`,
       empty: "You have no drafts.",
       open: "Open",
       discard: "Discard",
