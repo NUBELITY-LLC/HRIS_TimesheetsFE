@@ -102,10 +102,15 @@ export function DraftsPanel({
               className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-ink">
-                  {weekLabel}
+                <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
+                  <span className="truncate">{weekLabel}</span>
+                  {draft.status === "REJECTED" ? (
+                    <span className="rounded-full bg-danger-50 px-2 py-0.5 text-xs font-medium text-danger-700">
+                      {t.timesheetStatus.REJECTED}
+                    </span>
+                  ) : null}
                   {isCurrent ? (
-                    <span className="ml-2 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                    <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
                       {t.timesheets.drafts.current}
                     </span>
                   ) : null}
@@ -128,7 +133,9 @@ export function DraftsPanel({
                     {t.timesheets.drafts.open}
                   </Link>
                 )}
-                <DiscardDraft timesheetId={draft.id} weekLabel={weekLabel} />
+                {draft.status === "DRAFT" ? (
+                  <DiscardDraft timesheetId={draft.id} weekLabel={weekLabel} />
+                ) : null}
               </div>
             </li>
           );

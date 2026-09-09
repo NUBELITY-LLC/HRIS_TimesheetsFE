@@ -47,7 +47,7 @@ function parseDays(raw: string): DraftDayPayload[] {
       const minutes = Number(row.minutes);
       const activity = String(row.activity ?? "").trim().slice(0, 255);
 
-      if (!isTaskMinutes(minutes) || !activity) return [];
+      if (!isTaskMinutes(minutes)) return [];
 
       return [{ minutes, activity }];
     });
@@ -141,6 +141,17 @@ export async function saveTimesheetAction(
       status: "error",
       code: "BAD_REQUEST",
       message: t.timesheets.errors.fallback,
+    };
+  }
+
+  if (
+    intent === "submit" &&
+    days.some((day) => day.activities.some((row) => !row.activity))
+  ) {
+    return {
+      ...INITIAL_TIMESHEET_FORM_STATE,
+      status: "error",
+      message: t.timesheets.errors.review,
     };
   }
 
