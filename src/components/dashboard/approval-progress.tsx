@@ -1,4 +1,9 @@
-import { BanIcon, CheckIcon, ChevronRightIcon, ClockIcon } from "@/components/icons";
+import {
+  BanIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  ClockIcon,
+} from "@/components/icons";
 import { getDictionary } from "@/i18n/server";
 import {
   approvalChipState,

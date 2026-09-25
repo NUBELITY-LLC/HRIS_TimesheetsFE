@@ -33,21 +33,38 @@ export async function getSessionToken(): Promise<string | null> {
   return cookieStore.get(SESSION_COOKIE)?.value ?? null;
 }
 
-export const getCurrentUser = cache(
-  async (): Promise<AuthenticatedUser | null> => {
-    const token = await getSessionToken();
-    if (!token) return null;
+type SessionState =
+  | { status: "authenticated"; user: AuthenticatedUser }
+  | { status: "anonymous" }
+  | { status: "unavailable"; code: string };
 
-    const result = await apiRequest<{ user: AuthenticatedUser }>("/auth/me", {
-      token,
-    });
+const loadSession = cache(async (): Promise<SessionState> => {
+  const token = await getSessionToken();
+  if (!token) return { status: "anonymous" };
 
-    return result.ok ? result.data.user : null;
-  },
-);
+  const result = await apiRequest<{ user: AuthenticatedUser }>("/auth/me", {
+    token,
+  });
+
+  if (result.ok) return { status: "authenticated", user: result.data.user };
+
+  if (result.status === 401 || result.status === 403) {
+    return { status: "anonymous" };
+  }
+
+  return { status: "unavailable", code: result.error.code };
+});
+
+export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
+  const session = await loadSession();
+  return session.status === "authenticated" ? session.user : null;
+}
 
 export async function requireUser(): Promise<AuthenticatedUser> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login?reason=session_expired");
-  return user;
+  const session = await loadSession();
+
+  if (session.status === "authenticated") return session.user;
+  if (session.status === "anonymous") redirect("/login?reason=session_expired");
+
+  throw new Error(`Session lookup failed with ${session.code}`);
 }

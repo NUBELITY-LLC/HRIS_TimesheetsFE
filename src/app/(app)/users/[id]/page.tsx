@@ -26,8 +26,8 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
   const actor = await requireUser();
   const t = await getDictionary();
 
-  if (!canManageUsers(actor.role.code)) {
-    return <NoAccess message={t.users.noAccessBody(roleName(actor.role.code, t))} />;
+  if (!canManageUsers(actor)) {
+    return <NoAccess message={t.users.noAccessBody} />;
   }
 
   const { id } = await params;
@@ -81,21 +81,25 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
         <div className="p-5">
           <UserForm
             mode="edit"
+            actor={actor}
             userId={user.id}
             roles={roles}
             canChangeRole={!isSelf && canGrantRole(actor.role.code, user.role.code)}
+            canChangePermissions={!isSelf}
             canChangeStatus={!isSelf}
             defaultValues={{
               fullName: user.fullName,
               userName: user.userName,
               email: user.email,
               roleCode: user.role.code,
+              permissions: user.permissions,
               jobTitle: user.jobTitle ?? "",
               isActive: user.isActive,
               projectId: "",
               projectPayRate: "",
               projectStartDate: "",
               projectEndDate: "",
+              projectAssignmentCode: "",
             }}
           />
         </div>

@@ -178,11 +178,15 @@ export async function changePasswordAction(
         }
       }
     }
-    if (code === "INVALID_CURRENT_PASSWORD" || code === "CURRENT_PASSWORD_REQUIRED") {
+    if (
+      code === "INVALID_CURRENT_PASSWORD" ||
+      code === "CURRENT_PASSWORD_REQUIRED"
+    ) {
       nextFieldErrors.currentPassword = t.changePassword.errors[code];
     }
     if (code === "PASSWORD_NOT_CHANGED") {
-      nextFieldErrors.newPassword = t.changePassword.errors.PASSWORD_NOT_CHANGED;
+      nextFieldErrors.newPassword =
+        t.changePassword.errors.PASSWORD_NOT_CHANGED;
     }
 
     const copy = t.changePassword.errors as Record<string, string>;

@@ -6,7 +6,7 @@ import { UserForm } from "@/components/users/user-form";
 import { fetchAllProjects } from "@/lib/catalog/queries";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
-import { canManageUsers, manageableRoles, roleName } from "@/lib/users/roles";
+import { canManageUsers, manageableRoles } from "@/lib/users/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
@@ -17,7 +17,7 @@ export default async function NewUserPage() {
   const actor = await requireUser();
   const t = await getDictionary();
 
-  if (!canManageUsers(actor.role.code)) {
+  if (!canManageUsers(actor)) {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="flex gap-3 rounded-xl border border-line bg-surface p-5">
@@ -27,7 +27,7 @@ export default async function NewUserPage() {
               {t.users.noAccessTitle}
             </h1>
             <p className="mt-1 text-sm text-ink-muted">
-              {t.users.create.noAccessBody(roleName(actor.role.code, t))}
+              {t.users.create.noAccessBody}
             </p>
           </div>
         </div>
@@ -58,7 +58,12 @@ export default async function NewUserPage() {
           {t.users.form.section}
         </h2>
         <div className="p-5">
-          <UserForm mode="create" roles={roles} projects={projects} />
+          <UserForm
+            mode="create"
+            actor={actor}
+            roles={roles}
+            projects={projects}
+          />
         </div>
       </section>
 

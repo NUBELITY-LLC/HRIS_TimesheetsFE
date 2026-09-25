@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 
 import { SpinnerIcon, TrashIcon } from "@/components/icons";
+import { useConfirmedSubmit } from "@/components/ui/use-confirm";
 import { useDictionary, useLocale } from "@/i18n/provider";
 import { discardDraftAction } from "@/lib/timesheets/actions";
 import { INITIAL_DRAFT_ACTION_STATE } from "@/lib/timesheets/form-state";
@@ -23,17 +24,19 @@ function DiscardDraft({
     discardDraftAction,
     INITIAL_DRAFT_ACTION_STATE,
   );
+  const { guard, dialog } = useConfirmedSubmit();
 
   return (
     <form
       action={formAction}
       className="relative"
-      onSubmit={(event) => {
-        if (!window.confirm(t.timesheets.drafts.confirm(weekLabel))) {
-          event.preventDefault();
-        }
-      }}
+      onSubmit={guard({
+        title: t.timesheets.drafts.confirm(weekLabel),
+        confirmLabel: t.timesheets.drafts.discard,
+        tone: "danger",
+      })}
     >
+      {dialog}
       <input type="hidden" name="timesheetId" value={timesheetId} />
       <button
         type="submit"
@@ -118,6 +121,7 @@ export function DraftsPanel({
                 <p className="mt-0.5 truncate text-xs text-ink-muted">
                   {draft.project?.name ?? t.common.unknown}
                   {draft.client ? ` · ${draft.client.name}` : ""}
+                  {draft.assignmentCode ? ` · ${draft.assignmentCode}` : ""}
                 </p>
               </div>
 
@@ -127,7 +131,7 @@ export function DraftsPanel({
                 </span>
                 {isCurrent ? null : (
                   <Link
-                    href={`/timesheets?${query.toString()}`}
+                    href={`/timesheets/new?${query.toString()}`}
                     className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted"
                   >
                     {t.timesheets.drafts.open}

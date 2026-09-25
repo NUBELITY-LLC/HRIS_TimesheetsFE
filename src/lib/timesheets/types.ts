@@ -26,11 +26,26 @@ export const TIMESHEET_STATUSES = [
 
 export type TimesheetStatus = (typeof TIMESHEET_STATUSES)[number];
 
+export const FINANCE_STATUSES = ["REVIEW", "PAYROLL", "PAID"] as const;
+
+export type FinanceStatus = (typeof FINANCE_STATUSES)[number];
+
+const FINANCE_STATUS_BY_TIMESHEET: Record<TimesheetStatus, FinanceStatus> = {
+  DRAFT: "REVIEW",
+  SUBMITTED: "REVIEW",
+  IN_REVIEW: "REVIEW",
+  REJECTED: "REVIEW",
+  APPROVED: "PAYROLL",
+  CLOSED: "PAYROLL",
+  PAID: "PAID",
+};
+
+export function financeStatusOf(status: TimesheetStatus): FinanceStatus {
+  return FINANCE_STATUS_BY_TIMESHEET[status];
+}
+
 export type ApprovalStatus =
-  | "PENDING"
-  | "APPROVED"
-  | "REJECTED_TO_PREVIOUS"
-  | "REJECTED_TO_CONSULTANT";
+  "PENDING" | "APPROVED" | "REJECTED_TO_PREVIOUS" | "REJECTED_TO_CONSULTANT";
 
 export type ApproverType = "CLIENT_EMAIL" | "USER" | "ROLE";
 
@@ -38,16 +53,35 @@ export type ApprovalStep = {
   seq: number;
   approverType: ApproverType;
   approverName: string | null;
+  approverEmail: string | null;
   approverRoleCode: string | null;
   status: ApprovalStatus;
   decidedAt: string | null;
   comments: string | null;
 };
 
+export type SubmissionNotifications = {
+  inApp: number;
+  email: number;
+  emailDelivered: number;
+};
+
+export type SubmissionConfirmation = {
+  submissionCode: string;
+  submittedAt: string | null;
+  totalMinutes: number;
+  totalHours: number;
+  cycleNo: number;
+  currentStep: ApprovalStep | null;
+  steps: ApprovalStep[];
+  notifications: SubmissionNotifications;
+};
+
 export type Assignment = {
   id: number;
   startDate: string;
   endDate: string | null;
+  assignmentCode: string | null;
   client: { id: number; name: string };
   company: { id: number; name: string } | null;
   project: {
@@ -75,6 +109,7 @@ export type TimesheetDay = {
 export type Timesheet = {
   id: number;
   assignmentId: number;
+  assignmentCode: string | null;
   submissionCode: string | null;
   weekStart: string;
   weekEnd: string;
@@ -87,6 +122,7 @@ export type Timesheet = {
   updatedAt: string;
   editable: boolean;
   client: { id: number; name: string } | null;
+  company: { id: number; name: string } | null;
   project: { id: number; name: string; code: string | null } | null;
   days?: TimesheetDay[];
   approvals?: ApprovalStep[];
@@ -116,7 +152,9 @@ export type TeamSummary = {
 };
 
 export function isRejected(status: ApprovalStatus): boolean {
-  return status === "REJECTED_TO_PREVIOUS" || status === "REJECTED_TO_CONSULTANT";
+  return (
+    status === "REJECTED_TO_PREVIOUS" || status === "REJECTED_TO_CONSULTANT"
+  );
 }
 
 export function currentApprovalStep(

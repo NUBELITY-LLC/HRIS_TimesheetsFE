@@ -11,12 +11,17 @@ export type ApiRequestOptions = {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
   token?: string | null;
+  timeoutMs?: number;
 };
 
 export const CLIENT_ERROR_CODES = {
   network: "NETWORK_ERROR",
   malformed: "MALFORMED_RESPONSE",
+  timeout: "REQUEST_TIMEOUT",
 } as const;
+
+export const DEFAULT_TIMEOUT_MS = 15_000;
+export const UPLOAD_TIMEOUT_MS = 60_000;
 
 function isErrorBody(value: unknown): value is { error: ApiErrorPayload } {
   if (typeof value !== "object" || value === null || !("error" in value)) {
@@ -37,8 +42,13 @@ export async function apiRequest<T>(
 ): Promise<ApiResult<T>> {
   const { method = "GET", body, token } = options;
 
+  const multipart = body instanceof FormData;
+  const timeoutMs =
+    options.timeoutMs ?? (multipart ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS);
+
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (body !== undefined && !multipart)
+    headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response: Response;
@@ -46,16 +56,37 @@ export async function apiRequest<T>(
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined
+          ? undefined
+          : multipart
+            ? (body as FormData)
+            : JSON.stringify(body),
       cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
     });
-  } catch {
+  } catch (error) {
+    if (isAbort(error)) throw error;
+
+    if (isTimeout(error)) {
+      return {
+        ok: false,
+        status: 0,
+        error: {
+          code: CLIENT_ERROR_CODES.timeout,
+          message:
+            "No pudimos contactar al servidor. Inténtalo de nuevo en un momento.",
+        },
+      };
+    }
+
     return {
       ok: false,
       status: 0,
       error: {
         code: CLIENT_ERROR_CODES.network,
-        message: `No se pudo contactar al backend en ${API_BASE_URL}`,
+        message:
+          "No pudimos contactar al servidor. Inténtalo de nuevo en un momento.",
       },
     };
   }
@@ -71,7 +102,7 @@ export async function apiRequest<T>(
         ? payload.error
         : {
             code: CLIENT_ERROR_CODES.malformed,
-            message: `El backend respondio ${response.status} sin un cuerpo de error valido`,
+            message: "No pudimos completar la operación. Vuelve a intentarlo.",
           },
     };
   }
@@ -82,7 +113,7 @@ export async function apiRequest<T>(
       status: response.status,
       error: {
         code: CLIENT_ERROR_CODES.malformed,
-        message: "El backend respondio sin la envoltura `data` esperada",
+        message: "No pudimos completar la operación. Vuelve a intentarlo.",
       },
     };
   }
@@ -96,6 +127,14 @@ export async function apiRequest<T>(
         ? readPagination((payload as { pagination: unknown }).pagination)
         : null,
   };
+}
+
+function isTimeout(error: unknown): boolean {
+  return error instanceof Error && error.name === "TimeoutError";
+}
+
+function isAbort(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 function safeParse(raw: string): unknown {

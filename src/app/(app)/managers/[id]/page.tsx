@@ -27,8 +27,8 @@ export default async function EditClientPage({
   const actor = await requireUser();
   const t = await getDictionary();
 
-  if (!canManageCatalog(actor.role.code)) {
-    return <CatalogNoAccess roleCode={actor.role.code} />;
+  if (!canManageCatalog(actor)) {
+    return <CatalogNoAccess />;
   }
 
   const { id } = await params;
@@ -52,9 +52,9 @@ export default async function EditClientPage({
     );
   }
 
-  const linkedManager = managers.find(
-    (person) => person.email === client.contactEmail,
-  );
+  const linkedManager = client.user
+    ? managers.find((person) => person.id === client.user?.id)
+    : undefined;
 
   const options =
     client.company && !companies.some((item) => item.id === client.company?.id)

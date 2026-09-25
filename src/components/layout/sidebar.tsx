@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import {
   BriefcaseIcon,
   BuildingIcon,
+  CalendarIcon,
   UserIcon,
   CheckIcon,
   ClockIcon,
@@ -20,9 +21,11 @@ import { useDictionary } from "@/i18n/provider";
 import { logoutAction } from "@/lib/auth/actions";
 import {
   canManageCatalog,
+  canManagePayroll,
   canManageUsers,
   canReviewTimesheets,
   canSubmitTimesheets,
+  canViewHoursReports,
 } from "@/lib/users/roles";
 import type { AuthenticatedUser } from "@/lib/api/types";
 
@@ -32,19 +35,28 @@ type NavItem = {
     | "timesheets"
     | "reviews"
     | "history"
+    | "reports"
     | "companies"
     | "clients"
     | "projects"
+    | "payTerms"
+    | "holidays"
+    | "payrollRules"
     | "users"
     | "account";
   href: string;
   icon: typeof DashboardIcon;
   available: boolean;
-  visibleFor?: (roleCode: string) => boolean;
+  visibleFor?: (user: AuthenticatedUser) => boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", href: "/dashboard", icon: DashboardIcon, available: true },
+  {
+    key: "dashboard",
+    href: "/dashboard",
+    icon: DashboardIcon,
+    available: true,
+  },
   {
     key: "timesheets",
     href: "/timesheets",
@@ -59,7 +71,21 @@ const NAV_ITEMS: NavItem[] = [
     available: true,
     visibleFor: canReviewTimesheets,
   },
-  { key: "history", href: "/history", icon: HistoryIcon, available: false },
+  {
+    key: "history",
+    href: "/history",
+    icon: HistoryIcon,
+    available: true,
+    visibleFor: (user) =>
+      canSubmitTimesheets(user) || canReviewTimesheets(user),
+  },
+  {
+    key: "reports",
+    href: "/reports",
+    icon: CalendarIcon,
+    available: true,
+    visibleFor: canViewHoursReports,
+  },
   {
     key: "companies",
     href: "/companies",
@@ -80,6 +106,27 @@ const NAV_ITEMS: NavItem[] = [
     icon: BriefcaseIcon,
     available: true,
     visibleFor: canManageCatalog,
+  },
+  {
+    key: "payTerms",
+    href: "/pay-terms",
+    icon: ClockIcon,
+    available: true,
+    visibleFor: canManagePayroll,
+  },
+  {
+    key: "holidays",
+    href: "/holidays",
+    icon: CalendarIcon,
+    available: true,
+    visibleFor: canManagePayroll,
+  },
+  {
+    key: "payrollRules",
+    href: "/payroll-rules",
+    icon: SettingsIcon,
+    available: true,
+    visibleFor: canManagePayroll,
   },
   {
     key: "users",
@@ -105,7 +152,7 @@ export function Sidebar({ user }: { user: AuthenticatedUser }) {
   const t = useDictionary();
 
   const navItems = NAV_ITEMS.filter(
-    (item) => !item.visibleFor || item.visibleFor(user.role.code),
+    (item) => !item.visibleFor || item.visibleFor(user),
   );
 
   return (
@@ -118,7 +165,8 @@ export function Sidebar({ user }: { user: AuthenticatedUser }) {
         <ul className="space-y-1">
           {navItems.map(({ key, href, icon: Icon, available }) => {
             const label = t.nav[key];
-            const isActive = pathname === href || pathname.startsWith(`${href}/`);
+            const isActive =
+              pathname === href || pathname.startsWith(`${href}/`);
             const content = (
               <>
                 <Icon className="size-[18px]" />
@@ -167,7 +215,9 @@ export function Sidebar({ user }: { user: AuthenticatedUser }) {
               {user.fullName}
             </span>
             <span className="block truncate text-xs text-slate-400">
-              {user.jobTitle ?? t.roles[user.role.code as "ADMIN"]?.name ?? user.role.name}
+              {user.jobTitle ??
+                t.roles[user.role.code as "ADMIN"]?.name ??
+                user.role.name}
             </span>
           </span>
           <form action={logoutAction}>

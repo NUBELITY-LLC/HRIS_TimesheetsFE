@@ -4,23 +4,27 @@ export type UserFormField =
   | "email"
   | "password"
   | "roleCode"
+  | "permissions"
   | "jobTitle"
   | "projectId"
   | "projectPayRate"
   | "projectStartDate"
-  | "projectEndDate";
+  | "projectEndDate"
+  | "projectAssignmentCode";
 
 export type UserFormValues = {
   fullName: string;
   userName: string;
   email: string;
   roleCode: string;
+  permissions: string[];
   jobTitle: string;
   isActive: boolean;
   projectId: string;
   projectPayRate: string;
   projectStartDate: string;
   projectEndDate: string;
+  projectAssignmentCode: string;
 };
 
 export type UserFormState = {
@@ -42,12 +46,14 @@ export const EMPTY_USER_FORM_VALUES: UserFormValues = {
   userName: "",
   email: "",
   roleCode: "",
+  permissions: [],
   jobTitle: "",
   isActive: true,
   projectId: "",
   projectPayRate: "",
   projectStartDate: "",
   projectEndDate: "",
+  projectAssignmentCode: "",
 };
 
 export const INITIAL_USER_FORM_STATE: UserFormState = {
@@ -63,7 +69,14 @@ export type UserProjectFormState = {
   status: "idle" | "success" | "error";
   message: string | null;
   fieldErrors: Partial<
-    Record<"projectId" | "payRate" | "startDate" | "endDate", string>
+    Record<
+      | "projectId"
+      | "payRate"
+      | "startDate"
+      | "endDate"
+      | "assignmentCode",
+      string
+    >
   >;
 };
 

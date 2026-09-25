@@ -1,7 +1,5 @@
 export type ChangePasswordField =
-  | "currentPassword"
-  | "newPassword"
-  | "confirmPassword";
+  "currentPassword" | "newPassword" | "confirmPassword";
 
 export type ChangePasswordFormState = {
   message: string | null;

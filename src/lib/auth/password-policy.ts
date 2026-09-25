@@ -1,11 +1,7 @@
 import type { Dictionary } from "@/i18n/dictionaries";
 
 export type PasswordRuleId =
-  | "length"
-  | "lowercase"
-  | "uppercase"
-  | "number"
-  | "symbol";
+  "length" | "lowercase" | "uppercase" | "number" | "symbol";
 
 export const MIN_PASSWORD_LENGTH = 8;
 
@@ -22,10 +18,7 @@ export const PASSWORD_RULES: Array<{
   { id: "symbol", test: (password) => /[^A-Za-z0-9\s]/.test(password) },
 ];
 
-export function passwordRuleLabel(
-  id: PasswordRuleId,
-  t: Dictionary,
-): string {
+export function passwordRuleLabel(id: PasswordRuleId, t: Dictionary): string {
   return id === "length"
     ? t.password.rules.length(MIN_PASSWORD_LENGTH)
     : t.password.rules[id];

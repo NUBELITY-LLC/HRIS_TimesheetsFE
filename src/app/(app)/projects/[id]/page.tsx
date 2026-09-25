@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { ArrowLeftIcon, BriefcaseIcon, CheckIcon } from "@/components/icons";
+import {
+  ArrowLeftIcon,
+  BriefcaseIcon,
+  CheckIcon,
+  LockIcon,
+} from "@/components/icons";
 import { ApprovalStepsForm } from "@/components/catalog/approval-steps-form";
 import { ApprovalStepsSummary } from "@/components/catalog/approval-steps-summary";
 import { ProjectLifecycle } from "@/components/catalog/project-lifecycle";
@@ -45,8 +50,8 @@ export default async function EditProjectPage({
   const t = await getDictionary();
   const locale = await getLocale();
 
-  if (!canManageCatalog(actor.role.code)) {
-    return <CatalogNoAccess roleCode={actor.role.code} />;
+  if (!canManageCatalog(actor)) {
+    return <CatalogNoAccess />;
   }
 
   const { id } = await params;
@@ -95,12 +100,14 @@ export default async function EditProjectPage({
             contactEmail: null,
             isActive: projectClient.isActive,
             company: null,
+            user: null,
           },
           ...clients,
         ]
       : clients;
 
   const closed = isProjectClosed(project);
+  const workflowReady = workflow?.isComplete ?? false;
   const activeAssignments = assignments.filter(
     (assignment) => assignment.isActive,
   ).length;
@@ -140,40 +147,44 @@ export default async function EditProjectPage({
         </p>
       ) : null}
 
-      <Link
-        href={`/projects/${project.id}/team`}
-        className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-5 shadow-sm transition-colors hover:bg-surface-muted"
-      >
-        <div className="flex items-center gap-3">
-          <BriefcaseIcon className="size-5 shrink-0 text-ink-muted" />
-          <div>
-            <p className="text-sm font-semibold text-ink">
-              {t.catalog.team.title}
-            </p>
-            <p className="mt-0.5 text-xs text-ink-muted">
-              {t.catalog.team.count(activeAssignments)}
-            </p>
+      {workflowReady ? (
+        <Link
+          href={`/projects/${project.id}/team`}
+          className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-5 shadow-sm transition-colors hover:bg-surface-muted"
+        >
+          <div className="flex items-center gap-3">
+            <BriefcaseIcon className="size-5 shrink-0 text-ink-muted" />
+            <div>
+              <p className="text-sm font-semibold text-ink">
+                {t.catalog.team.title}
+              </p>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                {t.catalog.team.count(activeAssignments)}
+              </p>
+            </div>
+          </div>
+          <span className="text-sm font-medium text-brand-600">
+            {t.catalog.team.manage}
+          </span>
+        </Link>
+      ) : (
+        <div
+          aria-disabled="true"
+          className="flex items-center justify-between gap-4 rounded-xl border border-line bg-surface-muted/50 p-5"
+        >
+          <div className="flex items-center gap-3">
+            <LockIcon className="size-5 shrink-0 text-ink-muted" />
+            <div>
+              <p className="text-sm font-semibold text-ink-muted">
+                {t.catalog.team.title}
+              </p>
+              <p className="mt-0.5 text-xs text-ink-muted">
+                {t.catalog.team.blocked(workflow?.minApprovers ?? APPROVERS_MIN)}
+              </p>
+            </div>
           </div>
         </div>
-        <span className="text-sm font-medium text-brand-600">
-          {t.catalog.team.manage}
-        </span>
-      </Link>
-
-      <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
-        <h2 className="border-b border-line bg-surface-muted px-5 py-3.5 text-sm font-semibold text-ink">
-          {t.catalog.lifecycle.section}
-        </h2>
-        <div className="p-5">
-          <ProjectLifecycle
-            projectId={project.id}
-            isClosed={closed}
-            endDate={formatProjectDate(project.endDate, locale, t.common.none)}
-            activeAssignments={activeAssignments}
-            today={toISODate(new Date())}
-          />
-        </div>
-      </section>
+      )}
 
       <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
         <h2 className="border-b border-line bg-surface-muted px-5 py-3.5 text-sm font-semibold text-ink">
@@ -220,6 +231,21 @@ export default async function EditProjectPage({
               projectClientId={projectClientRecord?.id ?? null}
             />
           )}
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+        <h2 className="border-b border-line bg-surface-muted px-5 py-3.5 text-sm font-semibold text-ink">
+          {t.catalog.lifecycle.section}
+        </h2>
+        <div className="p-5">
+          <ProjectLifecycle
+            projectId={project.id}
+            isClosed={closed}
+            endDate={formatProjectDate(project.endDate, locale, t.common.none)}
+            activeAssignments={activeAssignments}
+            today={toISODate(new Date())}
+          />
         </div>
       </section>
     </div>

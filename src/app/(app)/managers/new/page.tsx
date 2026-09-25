@@ -21,8 +21,8 @@ export default async function NewClientPage() {
   const actor = await requireUser();
   const t = await getDictionary();
 
-  if (!canManageCatalog(actor.role.code)) {
-    return <CatalogNoAccess roleCode={actor.role.code} />;
+  if (!canManageCatalog(actor)) {
+    return <CatalogNoAccess />;
   }
 
   const [companies, managers] = await Promise.all([

@@ -4,9 +4,9 @@ import { apiRequest } from "@/lib/api/client";
 import type { Pagination, UserView } from "@/lib/api/types";
 import { getSessionToken } from "@/lib/auth/session";
 import {
-  APPROVER_ROLE_CODES,
   MANAGER_CLIENT_ROLE_CODES,
   PROJECT_ASSIGNABLE_ROLE_CODES,
+  PERMISSION_TIMESHEETS_APPROVE,
   PROJECT_MANAGER_ROLE_CODES,
   type RoleCode,
 } from "@/lib/users/roles";
@@ -151,9 +151,12 @@ export async function fetchClients(
   if (filters.search) params.set("search", filters.search);
   if (filters.companyId) params.set("companyId", filters.companyId);
 
-  const result = await apiRequest<ClientView[]>(`/clients?${params.toString()}`, {
-    token,
-  });
+  const result = await apiRequest<ClientView[]>(
+    `/clients?${params.toString()}`,
+    {
+      token,
+    },
+  );
 
   if (!result.ok) return { ok: false, message: result.error.message };
 
@@ -274,16 +277,20 @@ export async function fetchApprovalWorkflow(
   return result.ok ? result.data : null;
 }
 
-async function fetchUsersByRole(roleCode: string): Promise<UserView[]> {
+async function fetchUsers(filter: {
+  roleCode?: string;
+  permission?: string;
+}): Promise<UserView[]> {
   const token = await getSessionToken();
   const params = new URLSearchParams({
     page: "1",
     pageSize: "100",
     status: "active",
-    roleCode,
     sortBy: "fullName",
     sortDir: "asc",
   });
+  if (filter.roleCode) params.set("roleCode", filter.roleCode);
+  if (filter.permission) params.set("permission", filter.permission);
 
   const result = await apiRequest<UserView[]>(`/users?${params.toString()}`, {
     token,
@@ -292,19 +299,28 @@ async function fetchUsersByRole(roleCode: string): Promise<UserView[]> {
   return result.ok ? result.data : [];
 }
 
-async function fetchPeopleByRoles(roleCodes: RoleCode[]): Promise<PersonView[]> {
-  const groups = await Promise.all(roleCodes.map(fetchUsersByRole));
+function toPerson(user: UserView): PersonView {
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    roleCode: user.role.code,
+    isActive: user.isActive,
+  };
+}
 
-  return groups
-    .flat()
-    .map((user) => ({
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      roleCode: user.role.code,
-      isActive: user.isActive,
-    }))
-    .sort((a, b) => a.fullName.localeCompare(b.fullName));
+function byFullName(a: PersonView, b: PersonView): number {
+  return a.fullName.localeCompare(b.fullName);
+}
+
+async function fetchPeopleByRoles(
+  roleCodes: RoleCode[],
+): Promise<PersonView[]> {
+  const groups = await Promise.all(
+    roleCodes.map((roleCode) => fetchUsers({ roleCode })),
+  );
+
+  return groups.flat().map(toPerson).sort(byFullName);
 }
 
 export async function fetchProjectManagers(): Promise<PersonView[]> {
@@ -312,7 +328,8 @@ export async function fetchProjectManagers(): Promise<PersonView[]> {
 }
 
 export async function fetchApprovalCandidates(): Promise<PersonView[]> {
-  return fetchPeopleByRoles(APPROVER_ROLE_CODES);
+  const users = await fetchUsers({ permission: PERMISSION_TIMESHEETS_APPROVE });
+  return users.map(toPerson).sort(byFullName);
 }
 
 export async function fetchManagerUsers(): Promise<PersonView[]> {

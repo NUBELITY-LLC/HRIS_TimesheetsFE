@@ -2,18 +2,21 @@
 
 import { useActionState } from "react";
 
-import { BanIcon, RefreshIcon, SpinnerIcon } from "@/components/icons";
+import { BanIcon, RefreshIcon, SpinnerIcon, TrashIcon } from "@/components/icons";
 import {
   deactivateUserAction,
+  deleteUserAction,
   reactivateUserAction,
 } from "@/lib/users/actions";
 import { INITIAL_ROW_ACTION_STATE } from "@/lib/users/form-state";
+import { useConfirmedSubmit } from "@/components/ui/use-confirm";
 import { useDictionary } from "@/i18n/provider";
 
 type UserStatusActionsProps = {
   userId: number;
   fullName: string;
   isActive: boolean;
+  canDelete: boolean;
   disabled: boolean;
   disabledReason?: string;
 };
@@ -22,15 +25,10 @@ export function UserStatusActions({
   userId,
   fullName,
   isActive,
+  canDelete,
   disabled,
   disabledReason,
 }: UserStatusActionsProps) {
-  const t = useDictionary();
-  const [state, formAction, isPending] = useActionState(
-    isActive ? deactivateUserAction : reactivateUserAction,
-    INITIAL_ROW_ACTION_STATE,
-  );
-
   if (disabled) {
     return (
       <span
@@ -43,14 +41,49 @@ export function UserStatusActions({
   }
 
   return (
+    <span className="flex items-center justify-end gap-1">
+      <StatusButton
+        userId={userId}
+        fullName={fullName}
+        isActive={isActive}
+      />
+      {!isActive && canDelete ? (
+        <DeleteButton userId={userId} fullName={fullName} />
+      ) : null}
+    </span>
+  );
+}
+
+function StatusButton({
+  userId,
+  fullName,
+  isActive,
+}: {
+  userId: number;
+  fullName: string;
+  isActive: boolean;
+}) {
+  const t = useDictionary();
+  const [state, formAction, isPending] = useActionState(
+    isActive ? deactivateUserAction : reactivateUserAction,
+    INITIAL_ROW_ACTION_STATE,
+  );
+  const { guard, dialog } = useConfirmedSubmit();
+
+  return (
     <form
       action={formAction}
-      onSubmit={(event) => {
-        if (!isActive) return;
-        const confirmed = window.confirm(t.users.confirmDeactivate(fullName));
-        if (!confirmed) event.preventDefault();
-      }}
+      onSubmit={guard(
+        isActive
+          ? {
+              title: t.users.confirmDeactivate(fullName),
+              confirmLabel: t.users.table.deactivate,
+              tone: "danger",
+            }
+          : null,
+      )}
     >
+      {dialog}
       <input type="hidden" name="id" value={userId} />
       <button
         type="submit"
@@ -70,6 +103,53 @@ export function UserStatusActions({
           <RefreshIcon className="size-3.5" />
         )}
         {isActive ? t.users.table.deactivate : t.users.table.reactivate}
+      </button>
+    </form>
+  );
+}
+
+function DeleteButton({
+  userId,
+  fullName,
+}: {
+  userId: number;
+  fullName: string;
+}) {
+  const t = useDictionary();
+  const [state, formAction, isPending] = useActionState(
+    deleteUserAction,
+    INITIAL_ROW_ACTION_STATE,
+  );
+  const { guard, dialog } = useConfirmedSubmit();
+
+  return (
+    <form
+      action={formAction}
+      onSubmit={guard({
+        title: t.users.confirmDelete(fullName),
+        body: t.users.confirmDeleteBody,
+        confirmLabel: t.users.table.delete,
+        tone: "danger",
+      })}
+    >
+      {dialog}
+      <input type="hidden" name="id" value={userId} />
+      <button
+        type="submit"
+        disabled={isPending}
+        title={
+          state.status === "error"
+            ? (state.message ?? undefined)
+            : t.users.table.delete
+        }
+        className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-danger-600 transition-colors hover:bg-danger-50 disabled:opacity-60"
+      >
+        {isPending ? (
+          <SpinnerIcon className="size-3.5 animate-spin" />
+        ) : (
+          <TrashIcon className="size-3.5" />
+        )}
+        {t.users.table.delete}
       </button>
     </form>
   );

@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
-import { ReviewDetail } from "@/components/reviews/review-detail";
+import { ApprovalDetailView } from "@/components/reviews/approval-detail";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
-import { fetchTimesheetReview } from "@/lib/timesheets/queries";
-import { canReviewTimesheets, roleName } from "@/lib/users/roles";
+import { fetchApprovalDetail } from "@/lib/approvals/queries";
+import { canReviewTimesheets } from "@/lib/users/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
@@ -42,21 +42,31 @@ export default async function ReviewDetailPage({
   const actor = await requireUser();
   const t = await getDictionary();
 
-  if (!canReviewTimesheets(actor.role.code)) {
+  if (!canReviewTimesheets(actor)) {
     return (
       <Notice
         title={t.reviews.noAccessTitle}
-        body={t.reviews.noAccessBody(roleName(actor.role.code, t))}
+        body={t.reviews.noAccessBody}
       />
     );
   }
 
   const { id } = await params;
-  const review = await fetchTimesheetReview(id);
+  const approvalId = Number(id);
 
-  if (!review) {
-    return <Notice title={t.reviews.notFoundTitle} body={t.reviews.notFoundBody} />;
+  if (!Number.isInteger(approvalId) || approvalId <= 0) {
+    return (
+      <Notice title={t.reviews.notFoundTitle} body={t.reviews.notFoundBody} />
+    );
   }
 
-  return <ReviewDetail review={review} />;
+  const approval = await fetchApprovalDetail(approvalId);
+
+  if (!approval) {
+    return (
+      <Notice title={t.reviews.notFoundTitle} body={t.reviews.notFoundBody} />
+    );
+  }
+
+  return <ApprovalDetailView approval={approval} />;
 }

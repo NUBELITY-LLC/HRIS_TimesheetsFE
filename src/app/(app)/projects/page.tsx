@@ -62,8 +62,8 @@ export default async function ProjectsPage({
   const t = await getDictionary();
   const locale = await getLocale();
 
-  if (!canManageCatalog(actor.role.code)) {
-    return <CatalogNoAccess roleCode={actor.role.code} />;
+  if (!canManageCatalog(actor)) {
+    return <CatalogNoAccess />;
   }
 
   const filters = parseFilters(await searchParams);

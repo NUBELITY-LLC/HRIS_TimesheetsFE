@@ -10,13 +10,24 @@ import { roleName } from "@/lib/users/roles";
 
 export type SubmissionRow = Timesheet & { owner?: TimesheetOwner };
 
+function rejectionOf(submission: SubmissionRow) {
+  if (submission.status !== "REJECTED") return null;
+
+  return (
+    [...(submission.approvals ?? [])]
+      .reverse()
+      .find((step) => step.status === "REJECTED_TO_CONSULTANT") ?? null
+  );
+}
+
 export type SubmissionsTableProps = {
   title: string;
   submissions: SubmissionRow[];
-  action: "review" | "soon";
+  action: "review" | "view";
   empty: { title: string; body: string; cta?: { href: string; label: string } };
   showOwner?: boolean;
   headerAction?: React.ReactNode;
+  approvalIdByTimesheet?: ReadonlyMap<number, number>;
 };
 
 export async function SubmissionsTable({
@@ -26,6 +37,7 @@ export async function SubmissionsTable({
   empty,
   showOwner = false,
   headerAction,
+  approvalIdByTimesheet,
 }: SubmissionsTableProps) {
   const t = await getDictionary();
   const locale = await getLocale();
@@ -81,62 +93,94 @@ export async function SubmissionsTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {submissions.map((submission) => (
-                <tr key={submission.id} className="align-middle">
-                  {showOwner ? (
+              {submissions.map((submission) => {
+                const approvalId = approvalIdByTimesheet?.get(submission.id);
+                const rejection = rejectionOf(submission);
+
+                return (
+                  <tr key={submission.id} className="align-middle">
+                    {showOwner ? (
+                      <td className="px-5 py-3.5">
+                        <span className="block font-medium text-ink">
+                          {submission.owner?.fullName ?? t.common.unknown}
+                        </span>
+                        <span className="block text-ink-muted">
+                          {submission.owner
+                            ? roleName(submission.owner.roleCode, t)
+                            : t.common.none}
+                        </span>
+                      </td>
+                    ) : null}
+                    <td className="px-5 py-3.5 font-medium whitespace-nowrap text-ink">
+                      {formatWeekRange(submission.weekStart, locale)}
+                    </td>
                     <td className="px-5 py-3.5">
                       <span className="block font-medium text-ink">
-                        {submission.owner?.fullName ?? t.common.unknown}
+                        {submission.company?.name ?? t.common.none}
                       </span>
                       <span className="block text-ink-muted">
-                        {submission.owner
-                          ? roleName(submission.owner.roleCode, t)
-                          : t.common.none}
+                        {submission.client?.name ?? t.common.none} ·{" "}
+                        {submission.project?.name ?? t.common.none}
+                        {submission.assignmentCode
+                          ? ` · ${submission.assignmentCode}`
+                          : ""}
                       </span>
                     </td>
-                  ) : null}
-                  <td className="px-5 py-3.5 font-medium whitespace-nowrap text-ink">
-                    {formatWeekRange(submission.weekStart, locale)}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className="block font-medium text-ink">
-                      {submission.client?.name ?? t.common.none}
-                    </span>
-                    <span className="block text-ink-muted">
-                      {submission.project?.name ?? t.common.none}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 font-semibold text-brand-600 tabular-nums">
-                    {formatMinutes(submission.totalMinutes)}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <TimesheetStatusBadge status={submission.status} />
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <ApprovalProgress
-                      steps={submission.approvals ?? []}
-                      currentSeq={submission.currentSeq}
-                    />
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    {action === "review" ? (
-                      <Link
-                        href={`/reviews/${submission.id}`}
-                        className="inline-flex rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted"
-                      >
-                        {t.dashboard.review}
-                      </Link>
-                    ) : (
-                      <Link
-                        href={`/timesheets?assignmentId=${submission.assignmentId}&weekStart=${submission.weekStart}`}
-                        className="inline-flex rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted"
-                      >
-                        {t.dashboard.view}
-                      </Link>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-5 py-3.5 font-semibold text-brand-600 tabular-nums">
+                      {formatMinutes(submission.totalMinutes)}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <TimesheetStatusBadge status={submission.status} />
+                      {rejection?.comments ? (
+                        <p className="mt-1.5 max-w-56 text-xs text-danger-700">
+                          <span className="font-medium">
+                            {t.dashboard.rejectionReason(
+                              rejection.approverName ?? t.common.unknown,
+                            )}
+                          </span>{" "}
+                          {rejection.comments}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <ApprovalProgress
+                        steps={submission.approvals ?? []}
+                        currentSeq={submission.currentSeq}
+                      />
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      {action === "review" ? (
+                        approvalId ? (
+                          <Link
+                            href={`/reviews/${approvalId}`}
+                            className="inline-flex rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted"
+                          >
+                            {t.dashboard.review}
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-ink-muted">
+                            {t.common.none}
+                          </span>
+                        )
+                      ) : submission.status === "DRAFT" ? (
+                        <Link
+                          href={`/timesheets/new?assignmentId=${submission.assignmentId}&weekStart=${submission.weekStart}`}
+                          className="inline-flex rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted"
+                        >
+                          {t.dashboard.resume}
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/history/${submission.id}`}
+                          className="inline-flex rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted"
+                        >
+                          {t.dashboard.view}
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

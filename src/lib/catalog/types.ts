@@ -1,4 +1,5 @@
 import type { ApproverType } from "@/lib/timesheets/types";
+import type { PayTerms } from "@/lib/payroll/pay-terms";
 
 export type CompanyView = {
   id: number;
@@ -14,6 +15,7 @@ export type ClientView = {
   contactEmail: string | null;
   isActive: boolean;
   company: CompanyView | null;
+  user: { id: number; fullName: string; email: string } | null;
 };
 
 export type PersonView = {
@@ -46,6 +48,8 @@ export type ProjectAssignmentView = {
   startDate: string;
   endDate: string | null;
   isActive: boolean;
+  assignmentCode: string | null;
+  payTerms: PayTerms;
   consultant: PersonView | null;
 };
 
@@ -79,6 +83,8 @@ export type ApprovalWorkflowView = {
   maxApprovers: number;
   isComplete: boolean;
 };
+
+export const ASSIGNMENT_CODE_MAX = 50;
 
 export const RFC_LENGTHS = [12, 13] as const;
 
