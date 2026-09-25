@@ -5,15 +5,22 @@ import { redirect } from "next/navigation";
 
 import { apiRequest, type ApiResult } from "@/lib/api/client";
 import { translateFieldMessage } from "@/lib/api/messages";
-import { readValidationIssues, type UserProjectView, type UserView } from "@/lib/api/types";
+import {
+  readValidationIssues,
+  type UserProjectView,
+  type UserView,
+} from "@/lib/api/types";
 import { passwordPolicyError } from "@/lib/auth/password-policy";
+import { ASSIGNMENT_CODE_MAX } from "@/lib/catalog/types";
 import { getSessionToken, requireUser } from "@/lib/auth/session";
 import { getDictionary } from "@/i18n/server";
 import type { Dictionary } from "@/i18n/dictionaries";
 import {
+  canDeleteUsers,
   canHaveProject,
   canManageUsers,
   grantableRoleCodes,
+  isPermissionCode,
   requiresProject,
   roleName,
 } from "./roles";
@@ -33,6 +40,7 @@ const FIELD_NAMES: UserFormField[] = [
   "email",
   "password",
   "roleCode",
+  "permissions",
   "jobTitle",
 ];
 
@@ -42,6 +50,7 @@ const PROJECT_ISSUE_FIELDS: Record<string, UserFormField> = {
   "projects.0.payRate": "projectPayRate",
   "projects.0.startDate": "projectStartDate",
   "projects.0.endDate": "projectEndDate",
+  "projects.0.assignmentCode": "projectAssignmentCode",
 };
 
 const MONEY = /^\d{1,10}([.,]\d{1,2})?$/;
@@ -57,13 +66,29 @@ function readValues(formData: FormData): UserFormValues {
     userName: String(formData.get("userName") ?? "").trim(),
     email: String(formData.get("email") ?? "").trim(),
     roleCode: String(formData.get("roleCode") ?? "").trim(),
+    permissions: formData
+      .getAll("permissions")
+      .map(String)
+      .filter(isPermissionCode),
     jobTitle: String(formData.get("jobTitle") ?? "").trim(),
     isActive: formData.get("isActive") !== null,
     projectId: String(formData.get("projectId") ?? "").trim(),
     projectPayRate: String(formData.get("projectPayRate") ?? "").trim(),
     projectStartDate: String(formData.get("projectStartDate") ?? "").trim(),
     projectEndDate: String(formData.get("projectEndDate") ?? "").trim(),
+    projectAssignmentCode: String(
+      formData.get("projectAssignmentCode") ?? "",
+    ).trim(),
   };
+}
+
+function permissionsPayload(
+  formData: FormData,
+  values: UserFormValues,
+): { permissions?: string[] } {
+  return formData.get("permissionsEditable") === "1"
+    ? { permissions: values.permissions }
+    : {};
 }
 
 function isField(path: string): path is UserFormField {
@@ -72,6 +97,7 @@ function isField(path: string): path is UserFormField {
 
 function issueField(path: string): UserFormField | null {
   if (isField(path)) return path;
+  if (path.startsWith("permissions")) return "permissions";
   return PROJECT_ISSUE_FIELDS[path] ?? null;
 }
 
@@ -83,7 +109,8 @@ function conflictField(message: string): "email" | "userName" | null {
 }
 
 function errorCopy(code: string, t: Dictionary): string | undefined {
-  return (t.users.errors as Record<string, unknown>)[code] as string | undefined;
+  return (t.users.errors as Record<string, unknown>)[code] as
+    string | undefined;
 }
 
 function allowedRolesHint(
@@ -182,7 +209,7 @@ export async function createUserAction(
   const actor = await requireUser();
   const values = readValues(formData);
 
-  if (!canManageUsers(actor.role.code)) return forbiddenState(values, t);
+  if (!canManageUsers(actor)) return forbiddenState(values, t);
 
   const password = String(formData.get("password") ?? "");
   const fieldErrors: UserFormState["fieldErrors"] = {};
@@ -191,7 +218,8 @@ export async function createUserAction(
   if (policyError) fieldErrors.password = policyError;
 
   const needsProject = requiresProject(values.roleCode);
-  const wantsProject = canHaveProject(values.roleCode) && Boolean(values.projectId);
+  const wantsProject =
+    canHaveProject(values.roleCode) && Boolean(values.projectId);
   const rate = values.projectPayRate ? parseRate(values.projectPayRate) : null;
 
   if (needsProject && !values.projectId) {
@@ -213,6 +241,10 @@ export async function createUserAction(
   ) {
     fieldErrors.projectEndDate = t.users.errors.dateOrder;
   }
+  if (values.projectAssignmentCode.length > ASSIGNMENT_CODE_MAX) {
+    fieldErrors.projectAssignmentCode =
+      t.users.errors.assignmentCodeLength(ASSIGNMENT_CODE_MAX);
+  }
 
   if (Object.keys(fieldErrors).length) {
     return {
@@ -232,7 +264,12 @@ export async function createUserAction(
             projectId: Number(values.projectId),
             payRate: rate,
             startDate: values.projectStartDate,
-            ...(values.projectEndDate ? { endDate: values.projectEndDate } : {}),
+            ...(values.projectEndDate
+              ? { endDate: values.projectEndDate }
+              : {}),
+            ...(values.projectAssignmentCode
+              ? { assignmentCode: values.projectAssignmentCode }
+              : {}),
           },
         ]
       : undefined;
@@ -247,6 +284,7 @@ export async function createUserAction(
       email: values.email,
       password,
       roleCode: values.roleCode,
+      ...permissionsPayload(formData, values),
       ...(values.jobTitle ? { jobTitle: values.jobTitle } : {}),
       isActive: values.isActive,
       ...(projects ? { projects } : {}),
@@ -286,7 +324,7 @@ export async function updateUserAction(
   const values = readValues(formData);
   const id = Number(formData.get("id"));
 
-  if (!canManageUsers(actor.role.code)) return forbiddenState(values, t);
+  if (!canManageUsers(actor)) return forbiddenState(values, t);
 
   if (!Number.isInteger(id) || id <= 0) {
     return {
@@ -306,7 +344,7 @@ export async function updateUserAction(
     if (policyError) {
       return {
         status: "error",
-        message: "Please review the highlighted fields.",
+        message: t.users.form.reviewFields,
         code: "WEAK_PASSWORD",
         fieldErrors: { password: policyError },
         values,
@@ -324,6 +362,7 @@ export async function updateUserAction(
       userName: values.userName,
       email: values.email,
       roleCode: values.roleCode,
+      ...permissionsPayload(formData, values),
       jobTitle: values.jobTitle || null,
       isActive: values.isActive,
       ...(password ? { password } : {}),
@@ -350,12 +389,14 @@ export async function updateUserAction(
       userName: saved.userName,
       email: saved.email,
       roleCode: saved.role.code,
+      permissions: saved.permissions,
       jobTitle: saved.jobTitle ?? "",
       isActive: saved.isActive,
       projectId: "",
       projectPayRate: "",
       projectStartDate: "",
       projectEndDate: "",
+      projectAssignmentCode: "",
     },
     savedUser: {
       fullName: saved.fullName,
@@ -373,7 +414,7 @@ async function setUserActive(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageUsers(actor.role.code)) {
+  if (!canManageUsers(actor)) {
     return { status: "error", message: t.users.errors.FORBIDDEN };
   }
 
@@ -446,7 +487,7 @@ export async function assignUserProjectAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageUsers(actor.role.code)) {
+  if (!canManageUsers(actor)) {
     return {
       ...INITIAL_USER_PROJECT_FORM_STATE,
       status: "error",
@@ -460,6 +501,7 @@ export async function assignUserProjectAction(
   const endDate = String(formData.get("endDate") ?? "").trim();
   const rawRate = String(formData.get("payRate") ?? "").trim();
   const rate = rawRate ? parseRate(rawRate) : null;
+  const assignmentCode = String(formData.get("assignmentCode") ?? "").trim();
 
   const fieldErrors: UserProjectFormState["fieldErrors"] = {};
 
@@ -471,6 +513,10 @@ export async function assignUserProjectAction(
   else if (rate === null) fieldErrors.payRate = t.users.errors.payRateInvalid;
   if (startDate && endDate && endDate < startDate) {
     fieldErrors.endDate = t.users.errors.dateOrder;
+  }
+  if (assignmentCode.length > ASSIGNMENT_CODE_MAX) {
+    fieldErrors.assignmentCode =
+      t.users.errors.assignmentCodeLength(ASSIGNMENT_CODE_MAX);
   }
 
   if (!Number.isInteger(userId) || userId <= 0) {
@@ -500,6 +546,7 @@ export async function assignUserProjectAction(
         payRate: rate,
         startDate,
         ...(endDate ? { endDate } : {}),
+        ...(assignmentCode ? { assignmentCode } : {}),
       },
     },
   );
@@ -515,6 +562,9 @@ export async function assignUserProjectAction(
       if (issue.path === "payRate") detailFields.payRate = issue.message;
       if (issue.path === "startDate") detailFields.startDate = issue.message;
       if (issue.path === "endDate") detailFields.endDate = issue.message;
+      if (issue.path === "assignmentCode") {
+        detailFields.assignmentCode = issue.message;
+      }
     }
 
     return {
@@ -546,7 +596,7 @@ export async function removeUserProjectAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageUsers(actor.role.code)) {
+  if (!canManageUsers(actor)) {
     return { status: "error", message: t.users.errors.FORBIDDEN };
   }
 
@@ -594,7 +644,7 @@ export async function updateUserAssignmentAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageUsers(actor.role.code)) {
+  if (!canManageUsers(actor)) {
     return {
       ...INITIAL_USER_PROJECT_FORM_STATE,
       status: "error",
@@ -623,6 +673,7 @@ export async function updateUserAssignmentAction(
   const startDate = String(formData.get("startDate") ?? "").trim();
   const endDate = String(formData.get("endDate") ?? "").trim();
   const rate = rawRate ? parseRate(rawRate) : null;
+  const assignmentCode = String(formData.get("assignmentCode") ?? "").trim();
 
   const fieldErrors: UserProjectFormState["fieldErrors"] = {};
 
@@ -631,6 +682,10 @@ export async function updateUserAssignmentAction(
   if (!startDate) fieldErrors.startDate = t.users.errors.projectStartRequired;
   if (startDate && endDate && endDate < startDate) {
     fieldErrors.endDate = t.users.errors.dateOrder;
+  }
+  if (assignmentCode.length > ASSIGNMENT_CODE_MAX) {
+    fieldErrors.assignmentCode =
+      t.users.errors.assignmentCodeLength(ASSIGNMENT_CODE_MAX);
   }
 
   if (Object.keys(fieldErrors).length) {
@@ -651,6 +706,7 @@ export async function updateUserAssignmentAction(
         payRate: rate,
         startDate,
         endDate: endDate || null,
+        assignmentCode: assignmentCode || null,
         ...(reactivate ? { isActive: true } : {}),
       },
     },
@@ -666,6 +722,9 @@ export async function updateUserAssignmentAction(
       if (issue.path === "payRate") detailFields.payRate = issue.message;
       if (issue.path === "startDate") detailFields.startDate = issue.message;
       if (issue.path === "endDate") detailFields.endDate = issue.message;
+      if (issue.path === "assignmentCode") {
+        detailFields.assignmentCode = issue.message;
+      }
     }
 
     return {
@@ -689,5 +748,48 @@ export async function updateUserAssignmentAction(
     message: reactivate
       ? t.users.errors.assignmentReactivated
       : t.users.errors.assignmentUpdated,
+  };
+}
+
+export async function deleteUserAction(
+  _prevState: RowActionState,
+  formData: FormData,
+): Promise<RowActionState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (!canDeleteUsers(actor)) {
+    return { status: "error", message: t.users.errors.FORBIDDEN };
+  }
+
+  const id = Number(formData.get("id"));
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return { status: "error", message: t.users.errors.NOT_FOUND };
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ deleted: { fullName: string } }>(
+    `/users/${id}/permanent`,
+    { method: "DELETE", token },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+
+    return {
+      status: "error",
+      message:
+        errorCopy(result.error.code, t) ??
+        result.error.message ??
+        t.users.errors.fallback,
+    };
+  }
+
+  revalidatePath("/users");
+
+  return {
+    status: "success",
+    message: t.users.errors.deleted(result.data.deleted.fullName),
   };
 }

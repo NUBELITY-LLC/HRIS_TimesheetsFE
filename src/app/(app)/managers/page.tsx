@@ -46,8 +46,8 @@ export default async function ClientsPage({
   const actor = await requireUser();
   const t = await getDictionary();
 
-  if (!canManageCatalog(actor.role.code)) {
-    return <CatalogNoAccess roleCode={actor.role.code} />;
+  if (!canManageCatalog(actor)) {
+    return <CatalogNoAccess />;
   }
 
   const filters = parseFilters(await searchParams);

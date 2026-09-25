@@ -11,6 +11,7 @@ import {
   useTransition,
 } from "react";
 
+import { useConfirm } from "@/components/ui/use-confirm";
 import {
   AlertIcon,
   CalendarIcon,
@@ -22,11 +23,14 @@ import {
   TrashIcon,
 } from "@/components/icons";
 import { useDictionary, useLocale } from "@/i18n/provider";
+import type { Dictionary } from "@/i18n/dictionaries";
 import { formatProjectDate } from "@/lib/catalog/lifecycle";
 import { saveTimesheetAction } from "@/lib/timesheets/actions";
+import { approvalStepLabel } from "@/lib/timesheets/approvals";
 import {
   INITIAL_TIMESHEET_FORM_STATE,
   type DraftDayPayload,
+  type TimesheetFormState,
 } from "@/lib/timesheets/form-state";
 import {
   DAY_MAX_MINUTES,
@@ -76,7 +80,10 @@ export type WeeklyTimesheetFormProps = {
   statusPanel?: React.ReactNode;
 };
 
-function seedEntries(weekStart: string, timesheet: Timesheet | null): WeekEntries {
+function seedEntries(
+  weekStart: string,
+  timesheet: Timesheet | null,
+): WeekEntries {
   const entries: WeekEntries = {};
 
   for (const date of weekDates(weekStart)) {
@@ -96,11 +103,36 @@ function seedEntries(weekStart: string, timesheet: Timesheet | null): WeekEntrie
   return entries;
 }
 
+function routingLines(state: TimesheetFormState, t: Dictionary): string[] {
+  const lines: string[] = [];
+
+  if (state.submissionCode) {
+    lines.push(t.timesheets.submissionCode(state.submissionCode));
+  }
+
+  if (state.routedTo) {
+    lines.push(t.timesheets.routedTo(approvalStepLabel(state.routedTo, t)));
+  }
+
+  const notifications = state.notifications;
+  if (!notifications) return lines;
+
+  if (notifications.inApp > 0) {
+    lines.push(t.timesheets.routingInApp(notifications.inApp));
+  }
+
+  if (notifications.email > 0) {
+    lines.push(t.timesheets.routingEmailSent);
+  }
+
+  return lines;
+}
+
 function hasErrors(errors: FormErrors): boolean {
   return Boolean(
     errors.form ||
-      Object.keys(errors.days).length ||
-      Object.keys(errors.rows).length,
+    Object.keys(errors.days).length ||
+    Object.keys(errors.rows).length,
   );
 }
 
@@ -122,6 +154,7 @@ export function WeeklyTimesheetForm({
     INITIAL_TIMESHEET_FORM_STATE,
   );
   const [isNavigating, startNavigation] = useTransition();
+  const { confirm, dialog } = useConfirm();
   const [entries, setEntries] = useState<WeekEntries>(() =>
     seedEntries(weekStart, timesheet),
   );
@@ -132,7 +165,8 @@ export function WeeklyTimesheetForm({
   const editable = !timesheet || timesheet.editable;
   const busy = isSaving || isNavigating;
 
-  const assignment = assignments.find((item) => item.id === assignmentId) ?? null;
+  const assignment =
+    assignments.find((item) => item.id === assignmentId) ?? null;
 
   const companies = useMemo(() => {
     const seen = new Map<number, string>();
@@ -215,10 +249,16 @@ export function WeeklyTimesheetForm({
         return;
       }
 
-      if (!window.confirm(t.timesheets.unsavedConfirm)) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
+      event.preventDefault();
+      event.stopPropagation();
+
+      void confirm({
+        title: t.timesheets.unsavedConfirm,
+        confirmLabel: t.timesheets.leaveAnyway,
+        tone: "danger",
+      }).then((accepted) => {
+        if (accepted) router.push(href);
+      });
     }
 
     window.addEventListener("beforeunload", warnBeforeUnload);
@@ -228,14 +268,23 @@ export function WeeklyTimesheetForm({
       window.removeEventListener("beforeunload", warnBeforeUnload);
       document.removeEventListener("click", confirmLeaving, true);
     };
-  }, [pendingChanges, t]);
+  }, [pendingChanges, t, confirm, router]);
 
-  function navigate(
+  async function navigate(
     nextAssignmentId: number,
     nextWeekStart: string,
     nextCompanyId = companyId,
   ) {
-    if (unsaved && !window.confirm(t.timesheets.unsavedConfirm)) return;
+    if (
+      unsaved &&
+      !(await confirm({
+        title: t.timesheets.unsavedConfirm,
+        confirmLabel: t.timesheets.leaveAnyway,
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
 
     const query = new URLSearchParams({
       assignmentId: String(nextAssignmentId),
@@ -244,7 +293,7 @@ export function WeeklyTimesheetForm({
     if (nextCompanyId) query.set("company", nextCompanyId);
 
     startNavigation(() => {
-      router.replace(`/timesheets?${query.toString()}`, { scroll: false });
+      router.replace(`/timesheets/new?${query.toString()}`, { scroll: false });
     });
   }
 
@@ -353,9 +402,7 @@ export function WeeklyTimesheetForm({
           ? {
               tone: "success" as const,
               message: state.message,
-              issues: state.submissionCode
-                ? [t.timesheets.submissionCode(state.submissionCode)]
-                : [],
+              issues: routingLines(state, t),
             }
           : state.status === "draft"
             ? { tone: "info" as const, message: state.message, issues: [] }
@@ -363,6 +410,7 @@ export function WeeklyTimesheetForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      {dialog}
       <input type="hidden" name="assignmentId" value={assignmentId} />
       <input type="hidden" name="weekStart" value={weekStart} />
       <input type="hidden" name="days" value={payloadJson} />
@@ -441,20 +489,26 @@ export function WeeklyTimesheetForm({
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="projectId" className="block text-sm font-medium text-ink-soft">
+          <label
+            htmlFor="projectId"
+            className="block text-sm font-medium text-ink-soft"
+          >
             {t.timesheets.projectLabel}
           </label>
           <select
             id="projectId"
             value={assignmentId}
             disabled={busy}
-            onChange={(event) => navigate(Number(event.target.value), weekStart)}
+            onChange={(event) =>
+              navigate(Number(event.target.value), weekStart)
+            }
             className={FIELD_CLASS}
           >
             {companyAssignments.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.project.name}
                 {item.project.code ? ` (${item.project.code})` : ""}
+                {item.assignmentCode ? ` · ${item.assignmentCode}` : ""}
               </option>
             ))}
           </select>
@@ -471,6 +525,15 @@ export function WeeklyTimesheetForm({
 
         <div className="space-y-1.5">
           <span className="block text-sm font-medium text-ink-soft">
+            {t.common.assignmentCode}
+          </span>
+          <p className="rounded-lg border border-line bg-surface-muted px-3 py-2.5 text-sm text-ink-soft">
+            {assignment?.assignmentCode ?? t.common.none}
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <span className="block text-sm font-medium text-ink-soft">
             {t.timesheets.weekLabel}
           </span>
           <div className="flex items-center gap-1 rounded-lg border border-line bg-white px-1.5 py-1">
@@ -478,7 +541,9 @@ export function WeeklyTimesheetForm({
               type="button"
               aria-label={t.timesheets.previousWeek}
               disabled={busy}
-              onClick={() => navigate(assignmentId, shiftWeekISO(weekStart, -1))}
+              onClick={() =>
+                navigate(assignmentId, shiftWeekISO(weekStart, -1))
+              }
               className="grid size-8 shrink-0 place-items-center rounded-md text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink disabled:opacity-50"
             >
               <ChevronLeftIcon className="size-4" />
@@ -489,7 +554,9 @@ export function WeeklyTimesheetForm({
               ) : (
                 <CalendarIcon className="size-4 shrink-0 text-ink-muted" />
               )}
-              <span className="truncate">{formatWeekRange(weekStart, locale)}</span>
+              <span className="truncate">
+                {formatWeekRange(weekStart, locale)}
+              </span>
             </span>
             <button
               type="button"
@@ -528,7 +595,9 @@ export function WeeklyTimesheetForm({
 
       <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-muted px-5 py-3.5">
-          <h2 className="text-sm font-semibold text-ink">{t.timesheets.tableTitle}</h2>
+          <h2 className="text-sm font-semibold text-ink">
+            {t.timesheets.tableTitle}
+          </h2>
           <p className="text-xs text-ink-muted">
             {t.timesheets.tableRules(
               formatMinutes(TASK_MIN_MINUTES),
@@ -603,7 +672,9 @@ export function WeeklyTimesheetForm({
                               rowError ? ERROR_FIELD_CLASS : ""
                             }`}
                           >
-                            <option value="">{t.timesheets.hoursPlaceholder}</option>
+                            <option value="">
+                              {t.timesheets.hoursPlaceholder}
+                            </option>
                             {TASK_MINUTE_OPTIONS.map((minutes) => (
                               <option key={minutes} value={minutes}>
                                 {formatMinutes(minutes)}
@@ -614,7 +685,9 @@ export function WeeklyTimesheetForm({
                           <input
                             type="text"
                             maxLength={255}
-                            aria-label={t.timesheets.activityAriaLabel(dayLabel)}
+                            aria-label={t.timesheets.activityAriaLabel(
+                              dayLabel,
+                            )}
                             placeholder={t.timesheets.activityPlaceholder}
                             value={row.activity}
                             disabled={dayLocked || busy}
@@ -667,7 +740,9 @@ export function WeeklyTimesheetForm({
                   ) : null}
 
                   {errors.days[day.iso] ? (
-                    <p className="text-xs text-danger-600">{errors.days[day.iso]}</p>
+                    <p className="text-xs text-danger-600">
+                      {errors.days[day.iso]}
+                    </p>
                   ) : null}
                 </div>
               </div>

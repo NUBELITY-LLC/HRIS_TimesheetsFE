@@ -32,8 +32,10 @@ const BACKEND_MESSAGE_KEYS: Record<string, FieldErrorKey> = {
   "La contrasena debe incluir al menos una mayuscula": "passwordNeedsUppercase",
   "La contrasena debe incluir al menos un numero": "passwordNeedsNumber",
   "La contrasena debe incluir al menos un simbolo": "passwordNeedsSymbol",
-  "La nueva contrasena debe incluir al menos una minuscula": "passwordNeedsLowercase",
-  "La nueva contrasena debe incluir al menos una mayuscula": "passwordNeedsUppercase",
+  "La nueva contrasena debe incluir al menos una minuscula":
+    "passwordNeedsLowercase",
+  "La nueva contrasena debe incluir al menos una mayuscula":
+    "passwordNeedsUppercase",
   "La nueva contrasena debe incluir al menos un numero": "passwordNeedsNumber",
   "La nueva contrasena debe incluir al menos un simbolo": "passwordNeedsSymbol",
   "La nueva contrasena excede los 200 caracteres": "passwordTooLong",

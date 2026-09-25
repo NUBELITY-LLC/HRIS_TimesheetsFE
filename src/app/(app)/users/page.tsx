@@ -16,7 +16,12 @@ import {
   type UserSortField,
   type UserStatus,
 } from "@/lib/users/queries";
-import { canManageRole, canManageUsers, roleName } from "@/lib/users/roles";
+import {
+  canDeleteUsers,
+  canManageRole,
+  canManageUsers,
+  roleName,
+} from "@/lib/users/roles";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { formatDateTime } from "@/lib/format/datetime";
 
@@ -65,7 +70,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/users">) {
   const t = await getDictionary();
   const locale = await getLocale();
 
-  if (!canManageUsers(actor.role.code)) {
+  if (!canManageUsers(actor)) {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="flex gap-3 rounded-xl border border-line bg-surface p-5">
@@ -75,7 +80,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/users">) {
               {t.users.noAccessTitle}
             </h1>
             <p className="mt-1 text-sm text-ink-muted">
-              {t.users.noAccessBody(roleName(actor.role.code, t))}
+              {t.users.noAccessBody}
             </p>
           </div>
         </div>
@@ -210,6 +215,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/users">) {
                               userId={user.id}
                               fullName={user.fullName}
                               isActive={user.isActive}
+                              canDelete={canDeleteUsers(actor)}
                               disabled={!manageable || isSelf}
                               disabledReason={
                                 isSelf

@@ -20,7 +20,11 @@ import {
   INITIAL_ASSIGNMENT_FORM_STATE,
   INITIAL_ASSIGNMENT_ROW_STATE,
 } from "@/lib/catalog/form-state";
-import type { PersonView, ProjectAssignmentView } from "@/lib/catalog/types";
+import {
+  ASSIGNMENT_CODE_MAX,
+  type PersonView,
+  type ProjectAssignmentView,
+} from "@/lib/catalog/types";
 import { roleName } from "@/lib/users/roles";
 
 const INPUT_BASE =
@@ -102,10 +106,16 @@ function MemberRow({
     INITIAL_ASSIGNMENT_FORM_STATE,
   );
 
-  const ids = { payRate: useId(), startDate: useId(), endDate: useId() };
+  const ids = {
+    assignmentCode: useId(),
+    payRate: useId(),
+    startDate: useId(),
+    endDate: useId(),
+  };
   const { fieldErrors } = state;
 
   const [draft, setDraft] = useState<{
+    assignmentCode: string;
     payRate: string;
     startDate: string;
     endDate: string;
@@ -115,11 +125,13 @@ function MemberRow({
     draft !== null &&
     (!sameRate(draft.payRate, assignment.payRate) ||
       draft.startDate !== assignment.startDate ||
-      draft.endDate !== (assignment.endDate ?? ""));
+      draft.endDate !== (assignment.endDate ?? "") ||
+      draft.assignmentCode !== (assignment.assignmentCode ?? ""));
 
   function handleChange(event: React.FormEvent<HTMLFormElement>) {
     const data = new FormData(event.currentTarget);
     setDraft({
+      assignmentCode: String(data.get("assignmentCode") ?? ""),
       payRate: String(data.get("payRate") ?? ""),
       startDate: String(data.get("startDate") ?? ""),
       endDate: String(data.get("endDate") ?? ""),
@@ -157,6 +169,25 @@ function MemberRow({
                 value={assignment.consultant.id}
               />
             ) : null}
+
+            <div className="space-y-1">
+              <label htmlFor={ids.assignmentCode} className={LABEL_CLASS}>
+                {t.users.form.assignmentCode}
+              </label>
+              <input
+                id={ids.assignmentCode}
+                name="assignmentCode"
+                type="text"
+                maxLength={ASSIGNMENT_CODE_MAX}
+                placeholder={t.users.form.assignmentCodePlaceholder}
+                defaultValue={assignment.assignmentCode ?? ""}
+                disabled={isPending}
+                className={inputClass(
+                  Boolean(fieldErrors.assignmentCode),
+                  "w-36",
+                )}
+              />
+            </div>
 
             <div className="space-y-1">
               <label htmlFor={ids.payRate} className={LABEL_CLASS}>
@@ -239,6 +270,7 @@ function MemberRow({
                 {t.users.form.reactivateAssignment}
               </button>
             )}
+
           </form>
 
           {assignment.isActive ? (
@@ -268,7 +300,12 @@ function MemberRow({
         </p>
       ) : null}
 
-      {[fieldErrors.payRate, fieldErrors.startDate, fieldErrors.endDate]
+      {[
+        fieldErrors.assignmentCode,
+        fieldErrors.payRate,
+        fieldErrors.startDate,
+        fieldErrors.endDate,
+      ]
         .filter((error): error is string => Boolean(error))
         .map((error) => (
           <p key={error} className="text-xs text-danger-600">
@@ -298,6 +335,7 @@ export function ProjectTeam({
 
   const ids = {
     consultantId: useId(),
+    assignmentCode: useId(),
     payRate: useId(),
     startDate: useId(),
     endDate: useId(),
@@ -447,6 +485,33 @@ export function ProjectTeam({
               {fieldErrors.payRate ? (
                 <p className="text-xs text-danger-600">{fieldErrors.payRate}</p>
               ) : null}
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor={ids.assignmentCode}
+                className="block text-xs font-medium text-ink-soft"
+              >
+                {t.users.form.assignmentCode}
+              </label>
+              <input
+                id={ids.assignmentCode}
+                name="assignmentCode"
+                type="text"
+                maxLength={ASSIGNMENT_CODE_MAX}
+                placeholder={t.users.form.assignmentCodePlaceholder}
+                disabled={disabled}
+                className={inputClass(Boolean(fieldErrors.assignmentCode))}
+              />
+              {fieldErrors.assignmentCode ? (
+                <p className="text-xs text-danger-600">
+                  {fieldErrors.assignmentCode}
+                </p>
+              ) : (
+                <p className="text-xs text-ink-muted">
+                  {t.users.form.assignmentCodeHint}
+                </p>
+              )}
             </div>
           </div>
 

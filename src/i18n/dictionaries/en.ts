@@ -9,9 +9,13 @@ export const en: Dictionary = {
   common: {
     appName: "Nubelity TS",
     apply: "Apply",
+    assignmentCode: "Assignment ID",
+    cancel: "Cancel",
+    confirm: "Confirm",
     backToUsers: "Back to users",
     never: "Never",
     next: "Next",
+    company: "Company",
     none: "—",
     previous: "Previous",
     signOut: "Sign out",
@@ -19,14 +23,24 @@ export const en: Dictionary = {
     unknown: "Unknown",
     you: "You",
   },
+  pageError: {
+    title: "Something went wrong",
+    body: "We couldn't show this section. Please try again.",
+    retry: "Try again",
+  },
   nav: {
     dashboard: "Dashboard",
     timesheets: "My Timesheets",
     reviews: "Timesheet reviews",
+    notifications: "Notifications",
     companies: "Companies",
     clients: "Managers",
     projects: "Projects",
+    payTerms: "Pay terms",
+    holidays: "Holidays",
+    payrollRules: "Payroll rules",
     history: "History",
+    reports: "Hours report",
     users: "Users",
     account: "My account",
   },
@@ -125,10 +139,19 @@ export const en: Dictionary = {
     approvedValue: (count: number) =>
       count === 1 ? "1 approved" : `${count} approved`,
     recentTitle: "Recent timesheet submissions",
+    resume: "Resume",
+    reviewQueueTitle: "Waiting for your review",
+    reviewQueueHint: (count: number) =>
+      count === 1
+        ? "1 timesheet is waiting for your decision"
+        : `${count} timesheets are waiting for your decision`,
+    reviewQueueEmptyTitle: "Nothing is waiting for your decision.",
+    reviewQueueEmptyBody:
+      "When a timesheet reaches a step of yours, it will show up here.",
     viewAll: "View all",
     columns: {
       range: "Week",
-      project: "Manager / Project",
+      project: "Company / Project",
       hours: "Total hours",
       progress: "Approval workflow progress",
       status: "Status",
@@ -137,6 +160,8 @@ export const en: Dictionary = {
     },
     view: "View",
     review: "Review",
+    teamSection: "Team",
+    personalSection: "My hours",
     teamTitle: "Team timesheets",
     teamHours: "Team hours this month",
     teamHoursHint: "Consultants, employees and managers",
@@ -144,8 +169,9 @@ export const en: Dictionary = {
     pendingReviewHint: "Waiting for your decision",
     teamEmptyTitle: "No team timesheets yet.",
     teamEmptyBody: "Once the team submits their hours you will see them here.",
+    rejectionReason: (who: string) => `Rejected by ${who}:`,
     emptyTitle: "No submissions yet.",
-    emptyBody: "Log your weekly hours and they will show up here.",
+    emptyBody: "Submit your weekly hours and they will show up here.",
     emptyCta: "Go to my timesheets",
     stages: {
       CUSTOMER: "Manager",
@@ -156,7 +182,22 @@ export const en: Dictionary = {
   },
   timesheets: {
     breadcrumb: "My timesheets",
-    breadcrumbCurrent: "New submission",
+    backToOverview: "Back to my hours",
+    overview: {
+      title: "My hours",
+      intro: (week: string) =>
+        `Status of your projects for the week of ${week}.`,
+      listTitle: "Assigned projects",
+      progress: (sent: number, total: number) =>
+        `${sent} of ${total} submitted this week`,
+      notStarted: "Not started",
+      actions: {
+        start: "Log hours",
+        resume: "Resume draft",
+        fix: "Fix",
+        view: "View",
+      },
+    },
     title: "Submit weekly timesheet",
     clientLabel: "Manager",
     companyLabel: "Company",
@@ -194,8 +235,7 @@ export const en: Dictionary = {
     removeTask: "Remove task",
     totalHours: "Total hours",
     noAccessTitle: "You cannot log hours",
-    noAccessBody: (role: string) =>
-      `Logging hours is for consultants, employees and managers. Your account is a ${role}.`,
+    noAccessBody: "Your account doesn't have access to logging hours.",
     saveDraft: "Save draft",
     drafts: {
       title: "Drafts",
@@ -210,14 +250,20 @@ export const en: Dictionary = {
       current: "Open week",
     },
     unsaved: "Unsaved",
-    unsavedConfirm:
-      "You have unsaved changes in this week. Leave anyway?",
+    leaveAnyway: "Leave without saving",
+    unsavedConfirm: "You have unsaved changes in this week. Leave anyway?",
     submit: "Submit timesheet",
     draftSaved: "Draft saved.",
     saving: "Saving…",
     submitting: "Submitting…",
     submittedTitle: "Timesheet sent for approval.",
     submissionCode: (code: string) => `Submission code: ${code}`,
+    routedTo: (approver: string) => `First approver: ${approver}.`,
+    routingInApp: (count: number) =>
+      count === 1
+        ? "The approval task was created and the approver was notified in the app."
+        : `The approval task was created and ${count} approvers were notified in the app.`,
+    routingEmailSent: "The hours approval request was sent.",
     weekStatus: "Week status",
     lockedTitle: "This week is already in the approval workflow.",
     errors: {
@@ -229,9 +275,10 @@ export const en: Dictionary = {
       empty: "Log at least one task before submitting.",
       review: "Please review the highlighted fields.",
       assignmentRequired: "Select the project you worked on.",
-      FORBIDDEN: "Your role cannot log hours.",
+      FORBIDDEN: "You can't log hours.",
       NOT_FOUND: "That assignment or timesheet no longer exists.",
-      TIMESHEET_LOCKED: "This week was already submitted and cannot be changed.",
+      TIMESHEET_LOCKED:
+        "This week was already submitted and cannot be changed.",
       TIMESHEET_NOT_SUBMITTABLE:
         "This week is already in the approval workflow.",
       TIMESHEET_EMPTY: "Log at least one activity before submitting.",
@@ -239,6 +286,8 @@ export const en: Dictionary = {
         "This project has no approval workflow configured; contact your manager.",
       INCOMPLETE_APPROVAL_WORKFLOW:
         "This project does not have enough approvers configured; contact your manager.",
+      NO_APPROVER_AVAILABLE:
+        "The first approver of this project has nobody to notify; contact your manager.",
       projectClosedOn: (date: string) =>
         `This project closed on ${date}: later days cannot be logged.`,
       projectEndsOn: (date: string) =>
@@ -252,45 +301,180 @@ export const en: Dictionary = {
   reviews: {
     eyebrow: "Approvals",
     title: "Timesheet review",
+    intro:
+      "These are the tasks where you are the approver of the current step.",
+    groupColumns: {
+      consultant: "Consultant",
+      clientProject: "Company / Project",
+      hours: "Hours",
+      hourCost: "Hour cost",
+      totalCost: "Total cost",
+      step: "Workflow step",
+      action: "Action",
+    },
+    groupTaskCount: (count: number) =>
+      count === 1 ? "1 pending record" : `${count} pending records`,
+    review: "Review",
+    detail: {
+      eyebrow: "Timesheet review",
+      activeStage: (seq: number, name: string) =>
+        `Step ${seq}: ${name} (active)`,
+      resolvedBy: (approver: string, date: string) =>
+        `Approved by ${approver} on ${date}`,
+      infoTitle: "Consultant and project",
+      consultant: "Consultant",
+      clientProject: "Manager / Project",
+      week: "Week",
+      hours: "Hours",
+      hourCost: "Hour cost",
+      amount: "Total cost",
+      payoutTitle: "Total payout",
+      dailyTitle: "Logged daily details",
+      actionsTitle: "Actions",
+      cannotDecide:
+        "This step is not yours to resolve: either you are not its approver, or it was already resolved.",
+      evidenceTitle: "Attached evidence",
+      evidenceEmpty: "No evidence attached.",
+    },
     listTitle: "Pending review",
+    taskCount: (count: number) =>
+      count === 1 ? "1 task on this page" : `${count} tasks on this page`,
+    loadErrorTitle: "We could not load your approval tasks.",
+    summary: (total: number, page: number, pages: number) =>
+      `${total} tasks · page ${page} of ${pages}`,
     emptyTitle: "Nothing to review.",
     emptyBody: "Submitted timesheets will show up here.",
     notFoundTitle: "That timesheet is not available.",
     notFoundBody: "It may already be resolved, or it does not exist yet.",
     back: "Back to reviews",
     phaseTitle: "Current approval phase",
-    stageLine: (index: number, name: string) => `Stage ${index}: ${name} (active)`,
     noActiveStage: "No active stage",
-    stages: {
-      CUSTOMER: "Manager review",
-      SUPERVISOR: "Supervisor review",
-      CTO: "CTO review",
-      FINANCE: "Finance review",
-    },
-    summaryTitle: "Timesheet summary",
-    person: "Person",
-    project: "Manager / Project",
     totalHours: "Total hours",
-    dailyTitle: "Daily breakdown",
     columns: {
       day: "Day",
       activity: "Activity",
       hours: "Hours",
     },
     noActivity: "No activity",
-    decisionTitle: "Decision panel",
-    commentsLabel: "Reviewer comments (optional)",
-    commentsPlaceholder: "Type any queries or notes here…",
-    approve: "Approve timesheet",
-    reject: "Reject with comments",
-    rejectNeedsComment: "Write a comment to reject this timesheet.",
-    approvedTitle: "Timesheet approved.",
-    rejectedTitle: "Timesheet rejected.",
-    decisionPending:
-      "The decision will be sent to the backend in the next iteration.",
     noAccessTitle: "You don't have access to reviews",
-    noAccessBody: (role: string) =>
-      `Reviewing timesheets is restricted to managers and administrators. Your account is a ${role}.`,
+    noAccessBody: "Your account doesn't have access to reviewing hours.",
+  },
+  reports: {
+    eyebrow: "Reports",
+    title: "Hours by person",
+    intro: "Review each person's hours for the date range you choose.",
+    noAccessTitle: "You do not have access to this section.",
+    noAccessBody: "If you think this is a mistake, contact your administrator.",
+    loadErrorTitle: "We could not load the report.",
+    people: {
+      listTitle: "Consultants, employees and managers",
+      searchLabel: "Search",
+      searchPlaceholder: "Name, username or email",
+      statusLabel: "Status",
+      statusActive: "Active",
+      statusInactive: "Inactive",
+      statusAll: "All",
+      columns: {
+        person: "Person",
+        role: "Role",
+        email: "Email",
+        status: "Status",
+        action: "Action",
+      },
+      active: "Active",
+      inactive: "Inactive",
+      open: "View hours",
+      emptyTitle: "No people match that search.",
+      emptyBody: "Adjust the search or the status filter.",
+      summary: (total: number, page: number, pages: number) =>
+        `${total} ${total === 1 ? "person" : "people"} · page ${page} of ${pages}`,
+    },
+    detail: {
+      back: "Back to people",
+      eyebrow: "Hours report",
+      notFoundTitle: "That person is not available.",
+      notFoundBody: "Check the people list.",
+      rangeLabel: "Date range",
+      from: "From",
+      to: "To",
+      apply: "View hours",
+      totalHours: "Total hours",
+      totalHoursHint: (from: string, to: string) => `From ${from} to ${to}`,
+      workedDays: "Days with hours",
+      workedDaysHint: (days: number) =>
+        days === 1 ? "1 day in the range" : `${days} days in the range`,
+      average: "Average per worked day",
+      averageHint: "Per day with hours",
+      payoutTitle: "Total payout",
+      hourCost: "Hourly cost",
+      amount: "Amount",
+      mixedCurrencies: "This range has more than one currency.",
+      dailyTitle: "Daily breakdown",
+      columns: {
+        day: "Day",
+        project: "Company / Project",
+        submission: "Submission",
+        status: "Status",
+        hours: "Hours",
+        hourCost: "Hourly cost",
+        amount: "Amount",
+      },
+      total: "Range total",
+      emptyTitle: "No hours in this range.",
+      emptyBody: "Try other dates.",
+    },
+  },
+  history: {
+    tabsLabel: "History type",
+    tabs: {
+      submissions: "My submissions",
+      decisions: "My decisions",
+    },
+    decisions: {
+      listTitle: "Timesheets you resolved",
+      kinds: {
+        APPROVED: "Approved",
+        RETURNED_TO_PREVIOUS: "Sent back a step",
+        RETURNED_TO_CONSULTANT: "Sent back to consultant",
+      },
+      summary: (total: number, page: number, pages: number) =>
+        `${total} decisions · page ${page} of ${pages}`,
+      emptyTitle: "You have not resolved any timesheet yet.",
+      emptyBody: "Approvals and returns you make will be recorded here.",
+    },
+    detail: {
+      eyebrow: "History",
+      title: "Submission detail",
+      back: "Back to history",
+      project: "Client / Project",
+      hours: "Total hours",
+      submitted: "Submitted",
+      progress: "Approval progress",
+      dailyTitle: "Logged daily details",
+      notFoundTitle: "That submission is not available.",
+      notFoundBody: "It may not exist, or it may not be yours.",
+    },
+    eyebrow: "My hours",
+    title: "Submission history",
+    intro: "Every week you have logged, with the status of its workflow.",
+    reviewerEyebrow: "Timesheet reviews",
+    reviewerTitle: "Decision history",
+    reviewerIntro:
+      "The timesheets you approved or returned, with their outcome.",
+    filterLabel: "Filter by status",
+    filterAll: "All",
+    listTitle: "Submissions",
+    summary: (total: number, page: number, pages: number) =>
+      `${total} submissions · page ${page} of ${pages}`,
+    emptyTitle: "No submissions yet.",
+    emptyBody: "Once you log and submit a week, it will show up here.",
+    loadErrorTitle: "We could not load your history.",
+    noAccessTitle: "You do not have access to the history",
+  },
+  financeStatus: {
+    REVIEW: "Review",
+    PAYROLL: "Payroll processing",
+    PAID: "Payment complete",
   },
   timesheetStatus: {
     DRAFT: "Draft",
@@ -304,11 +488,121 @@ export const en: Dictionary = {
   approvals: {
     client: "Manager",
     step: (seq: number) => `Step ${seq}`,
+    external: {
+      badge: "External manager",
+      hint: "Replies by email; has no account in the platform.",
+    },
+    onBehalf: {
+      evidenceHint:
+        "Attach the email or a screenshot of the external manager's reply.",
+      action: "Approve on their behalf",
+      intro:
+        "Use this only if the external manager already replied and their answer was not recorded.",
+      commentsLabel: "Comment (optional)",
+      commentsPlaceholder: "e.g. Approved by email on September 3rd.",
+      confirm: (approver: string) =>
+        `Approve the step of ${approver} on their behalf?`,
+      submit: "Confirm approval",
+      submitting: "Approving…",
+      cancel: "Cancel",
+      completed: (code: string) =>
+        `Timesheet ${code} approved: it was the last step of the workflow.`,
+      advanced: (approver: string) =>
+        `Step approved. The workflow moved on to ${approver}.`,
+    },
+    decide: {
+      confirmApproveBody: (approver: string) =>
+        `The timesheet will move on to ${approver} for review.`,
+      confirmApproveFinalBody:
+        "This is the last step: the timesheet will be approved.",
+      approveTo: (approver: string) => `Approve and pass to ${approver}`,
+      approveFinal: "Approve and close the workflow",
+      rejectToConsultant: "Reject",
+      modeLabel: "Decision",
+      evidenceLabel: "Evidence (optional)",
+      evidenceHint: "PDF, PNG, JPG or WEBP. 10 MB max.",
+      approve: "Approve",
+      approving: "Approving…",
+      reject: "Reject",
+      rejecting: "Rejecting…",
+      cancel: "Cancel",
+      confirmApprove: (person: string) =>
+        `Approve ${person}'s hours and move the workflow forward?`,
+      approveCommentsLabel: "Comment (optional)",
+      approveCommentsPlaceholder: "e.g. Hours checked against the sprint plan.",
+      targetLabel: "Where does the timesheet go back to?",
+      targetConsultant: "To the consultant, to fix their hours",
+      targetPrevious: "To the previous approver, for a new review",
+      rejectCommentsLabel: "Reason for rejection",
+      rejectCommentsPlaceholder: "Explain what needs to be corrected.",
+      commentsRequired: "Write the reason for the rejection.",
+      completed: (code: string) =>
+        `Timesheet ${code} approved: it was the last step of the workflow.`,
+      advanced: (approver: string) =>
+        `Step approved. The workflow moved on to ${approver}.`,
+      returnedToPrevious: (approver: string) =>
+        `Timesheet sent back to ${approver} for a new review.`,
+      returnedToConsultant: (code: string) =>
+        `Timesheet ${code} sent back to the consultant for corrections.`,
+    },
+    errors: {
+      EVIDENCE_TOO_LARGE: "The evidence file exceeds 10 MB.",
+      EVIDENCE_TYPE_NOT_ALLOWED: "Evidence must be a PDF, PNG, JPG or WEBP.",
+      NOT_STEP_APPROVER: "You are not the approver of the current step.",
+      APPROVAL_STEP_EXTERNAL:
+        "This step belongs to an external manager; approve on their behalf instead.",
+      NO_PREVIOUS_STEP:
+        "This is the first step; send it back to the consultant.",
+      COMMENTS_REQUIRED: "Explain why you are rejecting the timesheet.",
+      FORBIDDEN:
+        "Only the project manager can approve on behalf of the external manager.",
+      NOT_FOUND: "That approval task no longer exists.",
+      APPROVAL_STEP_NOT_EXTERNAL:
+        "This step does not belong to an external manager.",
+      APPROVAL_STEP_NOT_CURRENT: "This step is no longer the current one.",
+      APPROVAL_STEP_RESOLVED: "This task was already resolved.",
+      TIMESHEET_NOT_IN_REVIEW: "The timesheet is no longer in review.",
+      NO_APPROVER_AVAILABLE:
+        "The next approver of this project has nobody to notify; check the configuration.",
+      NETWORK_ERROR:
+        "We could not reach the server. Please try again in a moment.",
+      fallback: "The task could not be approved. Please try again.",
+    },
+  },
+  notifications: {
+    eyebrow: "Notifications",
+    title: "My notifications",
+    seeAll: "See all",
+    markAll: "Mark all as read",
+    markRead: "Mark as read",
+    unread: "Unread",
+    unreadCount: (count: number) =>
+      count === 1 ? "1 unread notification" : `${count} unread notifications`,
+    filters: {
+      all: "All",
+      unread: "Unread",
+      read: "Read",
+    },
+    kinds: {
+      REVIEW_REQUESTED: "Review requested",
+      APPROVED: "Approved",
+      REJECTED: "Rejected",
+      REMINDER: "Reminder",
+      TASK_ASSIGNED: "Project assignment",
+      OTHER: "Notice",
+    },
+    emptyTitle: "You have no notifications.",
+    emptyBody: "Alerts about timesheets waiting for you will show up here.",
+    loadErrorTitle: "We could not load your notifications.",
+    summary: (total: number, page: number, pages: number) =>
+      `${total} notifications · page ${page} of ${pages}`,
+    errors: {
+      fallback: "The notification could not be updated. Please try again.",
+    },
   },
   catalog: {
     noAccessTitle: "You don't have access to this module",
-    noAccessBody: (role: string) =>
-      `Managing managers and projects is restricted to administrators and managers. Your account is a ${role}.`,
+    noAccessBody: "Your account doesn't have access to managers and projects.",
     filters: {
       search: "Search",
       status: "Status",
@@ -336,9 +630,9 @@ export const en: Dictionary = {
       save: "Save changes",
       saving: "Saving…",
       managerUser: "System user",
-      managerUserPlaceholder: "External manager (no account)",
+      managerUserPlaceholder: "No system account",
       managerUserEmpty:
-        "There are no active manager or finance users; enter the external manager details.",
+        "There are no users available; enter the manager details.",
       clientName: "Manager name",
       clientNamePlaceholder: "Trading name",
       contactEmail: "Contact email",
@@ -445,6 +739,8 @@ export const en: Dictionary = {
       eyebrow: "Team",
       title: "Project team",
       manage: "Manage team",
+      blocked: (min: number) =>
+        `Set up the approval workflow (at least ${min} approvers) before assigning people.`,
       back: "Back to the project",
       count: (count: number) =>
         count === 1 ? "1 person assigned" : `${count} people assigned`,
@@ -488,7 +784,9 @@ export const en: Dictionary = {
       cancel: "Cancel",
       closed: "Project closed.",
       closedAssignments: (count: number) =>
-        count === 1 ? "1 assignment was closed." : `${count} assignments were closed.`,
+        count === 1
+          ? "1 assignment was closed."
+          : `${count} assignments were closed.`,
       strandedTimesheets: (count: number) =>
         count === 1
           ? "1 draft timesheet can no longer be submitted."
@@ -538,7 +836,8 @@ export const en: Dictionary = {
       displayNameLabel: "Display name",
       displayNamePlaceholder: "Optional",
       addStep: "Add approver",
-      maxReached: (max: number) => `You reached the maximum of ${max} approvers.`,
+      maxReached: (max: number) =>
+        `You reached the maximum of ${max} approvers.`,
       removeStep: "Remove approver",
       moveUp: "Move up",
       moveDown: "Move down",
@@ -547,10 +846,10 @@ export const en: Dictionary = {
       saved: "Approval workflow updated.",
       reviewSteps: "Review the flagged approvers.",
       noApprovers: "This project has no approvers yet.",
-      noCandidates: "There are no active admins or managers to nominate.",
+      noCandidates: "There is no one active who can approve hours.",
     },
     errors: {
-      FORBIDDEN: "Your role cannot manage the catalog.",
+      FORBIDDEN: "You can't manage the catalog.",
       CONFLICT: "A record with those details already exists.",
       NOT_FOUND: "That record no longer exists.",
       UNPROCESSABLE_ENTITY: "Please check the data you sent.",
@@ -563,14 +862,17 @@ export const en: Dictionary = {
       companyRequired: "Select a company.",
       personRequired: "Select the person.",
       assignmentStart: "Enter the assignment start date.",
+      assignmentCodeLength: (max: number) =>
+        `The assignment ID takes up to ${max} characters.`,
       payRateRequired: "Enter the hourly rate for the assignment.",
       payRateInvalid: "The rate accepts numbers with up to 2 decimals.",
       clientNameRequired: "Enter the manager name.",
       managerUserInvalid:
-        "That user is not active or no longer holds a manager or finance role.",
+        "That user is no longer active or can't be a manager.",
       clientRequired: "Select a manager.",
       projectNameRequired: "Enter the project name.",
       dateOrder: "The end date cannot be earlier than the start date.",
+      approverWithoutPermission: "This person can't approve hours.",
       approversMin: (min: number) =>
         `The workflow requires at least ${min} approvers.`,
       approversMax: (max: number) =>
@@ -652,10 +954,14 @@ export const en: Dictionary = {
       edit: "Edit",
       deactivate: "Deactivate",
       reactivate: "Reactivate",
+      delete: "Delete",
       active: "Active",
       inactive: "Inactive",
       pendingPassword: "Pending password change",
     },
+    confirmDelete: (name: string) => `Permanently delete ${name}?`,
+    confirmDeleteBody:
+      "This cannot be undone. It is only possible if the account has no history in the system.",
     confirmDeactivate: (name: string) =>
       `Deactivate ${name}? They will not be able to sign in until someone reactivates the account.`,
     cannotDeactivateSelf: "You cannot deactivate your own account.",
@@ -667,17 +973,15 @@ export const en: Dictionary = {
     summary: (total: number, page: number, totalPages: number) =>
       `${total} ${total === 1 ? "user" : "users"} · page ${page} of ${totalPages}`,
     noAccessTitle: "You don't have access to this module",
-    noAccessBody: (role: string) =>
-      `Managing users is restricted to administrators and managers. Your account is a ${role}.`,
+    noAccessBody: "Your account doesn't have access to user management.",
     noAccessUserTitle: "You don't have access to this user",
     noAccessUserGeneric: "Your role cannot manage accounts with that role.",
     cannotHaveProjects: (role: string) =>
       `${role} accounts do not take project assignments.`,
     create: {
       title: "Create a user",
-      noAccessBody: (role: string) =>
-        `Creating users is restricted to administrators and managers. Your account is a ${role}.`,
-      rolesSection: "What each role can do",
+      noAccessBody: "Your account can't create users.",
+      rolesSection: "Available roles",
     },
     edit: {
       title: "Edit user",
@@ -700,6 +1004,10 @@ export const en: Dictionary = {
       role: "Role",
       rolePlaceholder: "Select a role…",
       roleLockedHint: "You cannot change your own role.",
+      permissionsSection: "Permissions",
+      permissionsHint: "Check what this person can do.",
+      permissionsLockedHint: "You cannot change your own permissions.",
+      permissionsFixedHint: "This role has fixed permissions.",
       jobTitle: "Job title",
       jobTitlePlaceholder: "Senior Consultant",
       jobTitleHint: "Optional.",
@@ -714,6 +1022,9 @@ export const en: Dictionary = {
       inactiveAssignment: "Inactive",
       projectStart: "Assignment start",
       projectEnd: "Assignment end",
+      assignmentCode: "Assignment ID",
+      assignmentCodePlaceholder: "",
+      assignmentCodeHint: "Optional.",
       projectsSection: "Assigned projects",
       manageProjects: "Manage projects",
       projectsCount: (count: number) =>
@@ -737,9 +1048,18 @@ export const en: Dictionary = {
       reviewFields: "Please review the highlighted fields.",
     },
     errors: {
-      FORBIDDEN: "Your role is not allowed to manage users.",
+      USER_STILL_ACTIVE: "Deactivate the account before deleting it.",
+      SELF_DELETION: "You cannot delete your own account.",
+      USER_HAS_HISTORY:
+        "This user already has history in the system (projects, timesheets or approvals), so it can only stay deactivated.",
+      deleted: (name: string) => `${name} was permanently deleted.`,
+      FORBIDDEN: "You can't manage users.",
       ROLE_NOT_ALLOWED: "Your role cannot manage users with that role.",
       SELF_ROLE_CHANGE: "You cannot change your own role.",
+      SELF_PERMISSIONS_CHANGE: "You cannot change your own permissions.",
+      PERMISSION_NOT_GRANTABLE: "You can't grant some of the selected permissions.",
+      PERMISSION_NOT_ALLOWED_FOR_ROLE:
+        "Some of the selected permissions don't apply to this role.",
       SELF_DEACTIVATION: "You cannot deactivate your own account.",
       NOT_FOUND: "That user no longer exists.",
       PASSWORD_CHANGE_REQUIRED:
@@ -753,6 +1073,8 @@ export const en: Dictionary = {
       allowedRoles: (roles: string) => ` You can assign: ${roles}.`,
       projectRequired: "A consultant user requires at least one project.",
       projectStartRequired: "Enter the assignment start date.",
+      assignmentCodeLength: (max: number) =>
+        `The assignment ID takes up to ${max} characters.`,
       payRateRequired: "Enter the hourly rate for the assignment.",
       payRateInvalid: "The rate accepts numbers with up to 2 decimals.",
       dateOrder: "The end date cannot be earlier than the start date.",
@@ -779,12 +1101,155 @@ export const en: Dictionary = {
     },
     FINANCE: {
       name: "Finance",
+      description: "Approves hours on its lanes and views reports.",
+    },
+    EXTERNAL_MANAGER: {
+      name: "External manager",
       description:
-        "Only approves timesheets on its assigned lanes; manages no users or catalogs.",
+        "Approves and views hours for the projects where they are an approver.",
     },
     ADMIN: {
       name: "Administrator",
       description: "Full access, including managing any kind of account.",
+    },
+  },
+  permissions: {
+    TIMESHEETS_SUBMIT: {
+      name: "Log hours",
+      description: "Fills in and submits weekly timesheets.",
+    },
+    TIMESHEETS_APPROVE: {
+      name: "Approve hours",
+      description: "Reviews and approves timesheets; can be an approver on projects.",
+    },
+    CATALOG_MANAGE: {
+      name: "Manage catalog",
+      description: "Companies, managers and projects.",
+    },
+    USERS_MANAGE: {
+      name: "Manage users",
+      description: "Creates and edits accounts and their permissions.",
+    },
+    REPORTS_VIEW: {
+      name: "View reports",
+      description: "Views hour reports per person.",
+    },
+    PAYROLL_MANAGE: {
+      name: "Manage payroll and pay",
+      description: "Pay terms for each assignment, holidays and payroll rules.",
+    },
+  },
+  payTerms: {
+    section: "Pay terms",
+    summary: (contract: string, divisor: number) => `${contract} · ÷${divisor}`,
+    contractType: "Contract type",
+    contractTypes: { CONTRACTOR: "Contractor", PAYROLL: "Payroll" },
+    country: "Country",
+    hoursDivisor: "Hourly divisor",
+    dailyHours: "Workday (hours)",
+    overtimeMultiplier: "Overtime (×)",
+    holidayMultiplier: "Holidays (×)",
+    payrollRules: "The payroll rules of the selected country apply.",
+    breakdownTitle: "Pay breakdown",
+    hourlyRate: "Hourly cost",
+    buckets: {
+      REGULAR: "Regular hours",
+      SUNDAY: "Sunday",
+      OVERTIME: "Overtime",
+      OVERTIME_TRIPLE: "Triple overtime",
+      HOLIDAY: "Holiday",
+    },
+    errors: {
+      contractType: "Choose a valid contract type.",
+      country: "Choose a valid country.",
+      hoursDivisor: (min: number, max: number) =>
+        `The hourly divisor must be between ${min} and ${max}.`,
+      dailyHours: (min: number, max: number) =>
+        `The workday must be between ${min} and ${max} hours.`,
+      overtimeMultiplier: (min: number, max: number) =>
+        `The overtime multiplier must be between ${min} and ${max}.`,
+      holidayMultiplier: (min: number, max: number) =>
+        `The holiday multiplier must be between ${min} and ${max}.`,
+      invalid: "Please review the pay terms.",
+    },
+  },
+  payTermsPage: {
+    eyebrow: "Payroll and pay",
+    title: "Pay terms",
+    noAccessBody: "Your account doesn't have access to payroll and pay.",
+    search: "Search person",
+    searchPlaceholder: "Name",
+    contractType: "Contract",
+    allContracts: "All",
+    status: "Status",
+    statusActive: "Active",
+    statusInactive: "Inactive",
+    statusAll: "All",
+    filter: "Filter",
+    payRate: "Rate",
+    hourlyRate: "Hourly cost",
+    inactive: "Inactive",
+    save: "Save",
+    saved: "Pay terms saved.",
+    empty: "No assignments match these filters.",
+    loadError: "We could not load the assignments.",
+    summary: (total: number, page: number, pages: number) =>
+      `${total} ${total === 1 ? "assignment" : "assignments"} · page ${page} of ${pages}`,
+    previous: "Previous",
+    next: "Next",
+    errors: {
+      FORBIDDEN: "You can't change pay terms.",
+      payRateInvalid: "The rate accepts numbers with up to 2 decimals.",
+      NOT_FOUND: "That assignment no longer exists.",
+      fallback: "We couldn't save the pay terms. Please try again.",
+    },
+  },
+  payrollRules: {
+    eyebrow: "Payroll and pay",
+    title: "Payroll rules by country",
+    country: "Country",
+    notConfigured:
+      "This country has no rules of its own yet; base values are shown.",
+    overtimeMultiplier: "Overtime (×)",
+    weeklyDoubleOvertimeHours: "Double overtime hours per week",
+    weeklyDoubleOvertimeHoursHint:
+      "Past this limit the triple overtime multiplier applies. Leave it empty if it doesn't apply.",
+    overtimeTripleMultiplier: "Triple overtime (×)",
+    holidayMultiplier: "Holiday worked (×)",
+    sundayPremiumPercent: "Sunday premium (%)",
+    save: "Save rules",
+    saving: "Saving…",
+    saved: "Rules saved.",
+    configuredTitle: "Configured countries",
+    errors: {
+      range: (field: string, min: number, max: number) =>
+        `${field} must be between ${min} and ${max}.`,
+      FORBIDDEN: "You can't change the payroll rules.",
+      fallback: "We couldn't save the rules. Please try again.",
+    },
+  },
+  holidays: {
+    eyebrow: "Payroll and pay",
+    title: "Holidays",
+    year: "Year",
+    country: "Country",
+    date: "Date",
+    name: "Name",
+    namePlaceholder: "Independence Day",
+    add: "Add day",
+    adding: "Adding…",
+    remove: "Remove",
+    empty: "There are no holidays for this year.",
+    loadError: "We could not load the holidays.",
+    added: "Holiday added.",
+    removed: "Holiday removed.",
+    confirmRemove: (name: string) => `Remove ${name} from the calendar?`,
+    errors: {
+      dateRequired: "Enter the date.",
+      nameRequired: "Enter the holiday name.",
+      CONFLICT: "There is already a holiday on that date.",
+      FORBIDDEN: "You can't change the calendar.",
+      fallback: "We couldn't save. Please try again.",
     },
   },
   fieldErrors: {
@@ -796,12 +1261,15 @@ export const en: Dictionary = {
     fullNameTooLong: "The full name cannot exceed 150 characters.",
     userNameTooShort: "The username must be at least 3 characters.",
     userNameTooLong: "The username cannot exceed 50 characters.",
-    userNamePattern: "Only letters, numbers, dot, dash and underscore are allowed.",
+    userNamePattern:
+      "Only letters, numbers, dot, dash and underscore are allowed.",
     emailInvalid: "Enter a valid email address.",
     emailTooLong: "The email cannot exceed 254 characters.",
     passwordTooShort: "The password must be at least 8 characters.",
-    passwordNeedsLowercase: "The password must include at least one lowercase letter.",
-    passwordNeedsUppercase: "The password must include at least one uppercase letter.",
+    passwordNeedsLowercase:
+      "The password must include at least one lowercase letter.",
+    passwordNeedsUppercase:
+      "The password must include at least one uppercase letter.",
     passwordNeedsNumber: "The password must include at least one number.",
     passwordNeedsSymbol: "The password must include at least one symbol.",
     roleRequired: "Select a role.",

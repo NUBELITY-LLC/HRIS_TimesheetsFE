@@ -5,12 +5,14 @@ export const ROLE_MANAGER = "MANAGER";
 export const ROLE_FINANCE = "FINANCE";
 export const ROLE_CONSULTANT = "CONSULTANT";
 export const ROLE_EMPLOYEE = "EMPLOYEE";
+export const ROLE_EXTERNAL_MANAGER = "EXTERNAL_MANAGER";
 
 export type RoleCode =
   | "CONSULTANT"
   | "EMPLOYEE"
   | "MANAGER"
   | "FINANCE"
+  | "EXTERNAL_MANAGER"
   | "ADMIN";
 
 export type RoleOption = {
@@ -24,6 +26,7 @@ export const ROLE_CODES: RoleCode[] = [
   ROLE_EMPLOYEE,
   ROLE_MANAGER,
   ROLE_FINANCE,
+  ROLE_EXTERNAL_MANAGER,
   ROLE_ADMIN,
 ] as RoleCode[];
 
@@ -34,6 +37,7 @@ export const PROJECT_MANAGER_ROLE_CODES: RoleCode[] = [
 
 export const MANAGER_CLIENT_ROLE_CODES: RoleCode[] = [
   ROLE_MANAGER,
+  ROLE_EXTERNAL_MANAGER,
   ROLE_FINANCE,
 ] as RoleCode[];
 
@@ -43,25 +47,6 @@ export const APPROVER_ROLE_CODES: RoleCode[] = [
   ROLE_FINANCE,
 ] as RoleCode[];
 
-const MANAGER_MANAGEABLE_ROLES: string[] = [
-  ROLE_CONSULTANT,
-  ROLE_EMPLOYEE,
-  ROLE_MANAGER,
-  ROLE_FINANCE,
-];
-
-const MANAGER_GRANTABLE_ROLES: string[] = [
-  ROLE_CONSULTANT,
-  ROLE_EMPLOYEE,
-  ROLE_FINANCE,
-];
-
-const TIMESHEET_AUTHOR_ROLES: string[] = [
-  ROLE_CONSULTANT,
-  ROLE_EMPLOYEE,
-  ROLE_MANAGER,
-];
-
 export const PROJECT_ASSIGNABLE_ROLE_CODES: RoleCode[] = [
   ROLE_CONSULTANT,
   ROLE_EMPLOYEE,
@@ -69,41 +54,155 @@ export const PROJECT_ASSIGNABLE_ROLE_CODES: RoleCode[] = [
   ROLE_FINANCE,
 ] as RoleCode[];
 
-const PROJECT_ASSIGNABLE_ROLES: string[] = [
+const DELEGATED_MANAGEABLE_ROLES: string[] = [
   ROLE_CONSULTANT,
   ROLE_EMPLOYEE,
   ROLE_MANAGER,
   ROLE_FINANCE,
+  ROLE_EXTERNAL_MANAGER,
 ];
 
-export function canManageUsers(actorRoleCode: string): boolean {
-  return actorRoleCode === ROLE_ADMIN || actorRoleCode === ROLE_MANAGER;
+const DELEGATED_GRANTABLE_ROLES: string[] = [
+  ROLE_CONSULTANT,
+  ROLE_EMPLOYEE,
+  ROLE_FINANCE,
+  ROLE_EXTERNAL_MANAGER,
+];
+
+export const PERMISSION_TIMESHEETS_SUBMIT = "TIMESHEETS_SUBMIT";
+export const PERMISSION_TIMESHEETS_APPROVE = "TIMESHEETS_APPROVE";
+export const PERMISSION_CATALOG_MANAGE = "CATALOG_MANAGE";
+export const PERMISSION_USERS_MANAGE = "USERS_MANAGE";
+export const PERMISSION_REPORTS_VIEW = "REPORTS_VIEW";
+export const PERMISSION_PAYROLL_MANAGE = "PAYROLL_MANAGE";
+
+export type PermissionCode =
+  | "TIMESHEETS_SUBMIT"
+  | "TIMESHEETS_APPROVE"
+  | "CATALOG_MANAGE"
+  | "USERS_MANAGE"
+  | "REPORTS_VIEW"
+  | "PAYROLL_MANAGE";
+
+export const PERMISSION_CODES: PermissionCode[] = [
+  PERMISSION_TIMESHEETS_SUBMIT,
+  PERMISSION_TIMESHEETS_APPROVE,
+  PERMISSION_CATALOG_MANAGE,
+  PERMISSION_USERS_MANAGE,
+  PERMISSION_REPORTS_VIEW,
+  PERMISSION_PAYROLL_MANAGE,
+] as PermissionCode[];
+
+const DEFAULT_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
+  ADMIN: [
+    "TIMESHEETS_APPROVE",
+    "CATALOG_MANAGE",
+    "USERS_MANAGE",
+    "REPORTS_VIEW",
+    "PAYROLL_MANAGE",
+  ],
+  MANAGER: [
+    "TIMESHEETS_SUBMIT",
+    "TIMESHEETS_APPROVE",
+    "CATALOG_MANAGE",
+    "USERS_MANAGE",
+  ],
+  FINANCE: [
+    "TIMESHEETS_SUBMIT",
+    "TIMESHEETS_APPROVE",
+    "REPORTS_VIEW",
+    "PAYROLL_MANAGE",
+  ],
+  CONSULTANT: ["TIMESHEETS_SUBMIT"],
+  EMPLOYEE: ["TIMESHEETS_SUBMIT"],
+  EXTERNAL_MANAGER: ["TIMESHEETS_APPROVE"],
+};
+
+const FIXED_PERMISSION_ROLES: string[] = [ROLE_ADMIN, ROLE_EXTERNAL_MANAGER];
+
+export type Viewer = {
+  role: { code: string };
+  permissions?: string[];
+};
+
+export function hasPermission(user: Viewer, code: PermissionCode): boolean {
+  return (user.permissions ?? []).includes(code);
 }
 
-export function canSubmitTimesheets(actorRoleCode: string): boolean {
-  return TIMESHEET_AUTHOR_ROLES.includes(actorRoleCode);
+export function isPermissionCode(value: string): value is PermissionCode {
+  return (PERMISSION_CODES as string[]).includes(value);
 }
 
-export function canReviewTimesheets(actorRoleCode: string): boolean {
-  return (
-    actorRoleCode === ROLE_ADMIN ||
-    actorRoleCode === ROLE_MANAGER ||
-    actorRoleCode === ROLE_FINANCE
+export function defaultPermissionsFor(roleCode: string): PermissionCode[] {
+  return roleCode in DEFAULT_PERMISSIONS
+    ? [...DEFAULT_PERMISSIONS[roleCode as RoleCode]]
+    : [];
+}
+
+export function hasFixedPermissions(roleCode: string): boolean {
+  return FIXED_PERMISSION_ROLES.includes(roleCode);
+}
+
+export function grantablePermissionCodes(
+  actor: Viewer,
+  targetRoleCode: string,
+  current: string[] = [],
+): PermissionCode[] {
+  if (hasFixedPermissions(targetRoleCode)) {
+    return defaultPermissionsFor(targetRoleCode);
+  }
+  if (actor.role.code === ROLE_ADMIN) return PERMISSION_CODES;
+
+  const defaults = defaultPermissionsFor(targetRoleCode);
+  return PERMISSION_CODES.filter(
+    (code) =>
+      hasPermission(actor, code) ||
+      defaults.includes(code) ||
+      current.includes(code),
   );
 }
 
-export function canViewTeamDashboard(actorRoleCode: string): boolean {
+export function canDeleteUsers(actor: Viewer): boolean {
+  return actor.role.code === ROLE_ADMIN;
+}
+
+export function canManageUsers(actor: Viewer): boolean {
+  return hasPermission(actor, PERMISSION_USERS_MANAGE);
+}
+
+export function canSubmitTimesheets(actor: Viewer): boolean {
+  return hasPermission(actor, PERMISSION_TIMESHEETS_SUBMIT);
+}
+
+export function canReviewTimesheets(actor: Viewer): boolean {
+  return hasPermission(actor, PERMISSION_TIMESHEETS_APPROVE);
+}
+
+export function canApproveOnBehalf(actor: Viewer): boolean {
   return (
-    canReviewTimesheets(actorRoleCode) && !canSubmitTimesheets(actorRoleCode)
+    canReviewTimesheets(actor) &&
+    PROJECT_MANAGER_ROLE_CODES.some((code) => code === actor.role.code)
   );
 }
 
-export function canViewAllTimesheets(actorRoleCode: string): boolean {
-  return actorRoleCode === ROLE_ADMIN;
+export function canViewTeamDashboard(actor: Viewer): boolean {
+  return canReviewTimesheets(actor);
 }
 
-export function canManageCatalog(actorRoleCode: string): boolean {
-  return actorRoleCode === ROLE_ADMIN || actorRoleCode === ROLE_MANAGER;
+export function canViewHoursReports(actor: Viewer): boolean {
+  return hasPermission(actor, PERMISSION_REPORTS_VIEW);
+}
+
+export function canSeeCosts(actor: Viewer): boolean {
+  return actor.role.code !== ROLE_EXTERNAL_MANAGER;
+}
+
+export function canManagePayroll(actor: Viewer): boolean {
+  return hasPermission(actor, PERMISSION_PAYROLL_MANAGE);
+}
+
+export function canManageCatalog(actor: Viewer): boolean {
+  return hasPermission(actor, PERMISSION_CATALOG_MANAGE);
 }
 
 export function canBeManagerClient(targetRoleCode: string): boolean {
@@ -111,7 +210,7 @@ export function canBeManagerClient(targetRoleCode: string): boolean {
 }
 
 export function canHaveProject(targetRoleCode: string): boolean {
-  return PROJECT_ASSIGNABLE_ROLES.includes(targetRoleCode);
+  return PROJECT_ASSIGNABLE_ROLE_CODES.some((code) => code === targetRoleCode);
 }
 
 export function requiresProject(targetRoleCode: string): boolean {
@@ -123,18 +222,12 @@ export function canManageRole(
   targetRoleCode: string,
 ): boolean {
   if (actorRoleCode === ROLE_ADMIN) return true;
-  if (actorRoleCode === ROLE_MANAGER) {
-    return MANAGER_MANAGEABLE_ROLES.includes(targetRoleCode);
-  }
-  return false;
+  return DELEGATED_MANAGEABLE_ROLES.includes(targetRoleCode);
 }
 
 export function grantableRoleCodes(actorRoleCode: string): RoleCode[] {
   if (actorRoleCode === ROLE_ADMIN) return ROLE_CODES;
-  if (actorRoleCode === ROLE_MANAGER) {
-    return ROLE_CODES.filter((code) => MANAGER_GRANTABLE_ROLES.includes(code));
-  }
-  return [];
+  return ROLE_CODES.filter((code) => DELEGATED_GRANTABLE_ROLES.includes(code));
 }
 
 export function canGrantRole(

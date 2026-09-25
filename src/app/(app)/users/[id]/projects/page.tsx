@@ -27,8 +27,8 @@ export default async function UserProjectsPage({
   const actor = await requireUser();
   const t = await getDictionary();
 
-  if (!canManageUsers(actor.role.code)) {
-    return <NoAccess message={t.users.noAccessBody(roleName(actor.role.code, t))} />;
+  if (!canManageUsers(actor)) {
+    return <NoAccess message={t.users.noAccessBody} />;
   }
 
   const { id } = await params;

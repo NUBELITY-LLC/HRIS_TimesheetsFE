@@ -42,10 +42,7 @@ export type ClientFormValues = {
 };
 
 export type ClientFormField =
-  | "companyId"
-  | "userId"
-  | "clientName"
-  | "contactEmail";
+  "companyId" | "userId" | "clientName" | "contactEmail";
 
 export type ClientFormState = {
   status: "idle" | "success" | "error";
@@ -82,12 +79,7 @@ export type ProjectFormValues = {
 };
 
 export type ProjectFormField =
-  | "clientId"
-  | "projectName"
-  | "code"
-  | "managerId"
-  | "startDate"
-  | "endDate";
+  "clientId" | "projectName" | "code" | "managerId" | "startDate" | "endDate";
 
 export type ProjectFormState = {
   status: "idle" | "success" | "error";
@@ -119,7 +111,8 @@ export type AssignmentFormField =
   | "consultantId"
   | "payRate"
   | "startDate"
-  | "endDate";
+  | "endDate"
+  | "assignmentCode";
 
 export type AssignmentFormState = {
   status: "idle" | "success" | "error";

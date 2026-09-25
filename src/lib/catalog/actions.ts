@@ -36,6 +36,7 @@ import {
 import {
   APPROVERS_MAX,
   APPROVERS_MIN,
+  ASSIGNMENT_CODE_MAX,
   type ApprovalWorkflowView,
   type ClientView,
   type CloseProjectResult,
@@ -71,8 +72,7 @@ function entityId(formData: FormData): number | null {
 
 function errorCopy(code: string, t: Dictionary): string | undefined {
   return (t.catalog.errors as Record<string, unknown>)[code] as
-    | string
-    | undefined;
+    string | undefined;
 }
 
 function detailField(details: unknown): string | null {
@@ -152,7 +152,7 @@ export async function saveCompanyAction(
     isActive: formData.get("isActive") !== null,
   };
 
-  if (!canManageCatalog(actor.role.code)) {
+  if (!canManageCatalog(actor)) {
     return {
       status: "error",
       message: t.catalog.errors.FORBIDDEN,
@@ -163,8 +163,10 @@ export async function saveCompanyAction(
   }
 
   const fieldErrors: Partial<Record<CompanyFormField, string>> = {};
-  if (!values.legalName) fieldErrors.legalName = t.catalog.errors.legalNameRequired;
-  if (!values.tradeName) fieldErrors.tradeName = t.catalog.errors.tradeNameRequired;
+  if (!values.legalName)
+    fieldErrors.legalName = t.catalog.errors.legalNameRequired;
+  if (!values.tradeName)
+    fieldErrors.tradeName = t.catalog.errors.tradeNameRequired;
   if (values.rfc && values.rfc.length !== 12 && values.rfc.length !== 13) {
     fieldErrors.rfc = t.catalog.errors.rfcLength;
   }
@@ -240,7 +242,7 @@ export async function saveClientAction(
     isActive: formData.get("isActive") !== null,
   };
 
-  if (!canManageCatalog(actor.role.code)) {
+  if (!canManageCatalog(actor)) {
     return {
       status: "error",
       message: t.catalog.errors.FORBIDDEN,
@@ -302,6 +304,7 @@ export async function saveClientAction(
     companyId,
     clientName: values.clientName,
     contactEmail: values.contactEmail || null,
+    userId: linkedToUser ? userId : null,
     isActive: values.isActive,
   };
 
@@ -363,7 +366,7 @@ export async function saveProjectAction(
       : text(formData, "endDate"),
   };
 
-  if (!canManageCatalog(actor.role.code)) {
+  if (!canManageCatalog(actor)) {
     return {
       status: "error",
       message: t.catalog.errors.FORBIDDEN,
@@ -527,7 +530,7 @@ export async function saveApprovalStepsAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageCatalog(actor.role.code)) {
+  if (!canManageCatalog(actor)) {
     return approvalStepsError(t.catalog.errors.FORBIDDEN);
   }
 
@@ -620,9 +623,11 @@ export async function saveApprovalStepsAction(
     if (result.status === 401) redirect("/login?reason=session_expired");
 
     const message =
-      errorCopy(result.error.code, t) ??
-      result.error.message ??
-      t.catalog.errors.fallback;
+      detailCode(result.error.details) === "APPROVER_WITHOUT_PERMISSION"
+        ? t.catalog.errors.approverWithoutPermission
+        : (errorCopy(result.error.code, t) ??
+          result.error.message ??
+          t.catalog.errors.fallback);
     const errors = stepErrorsFrom(result.error.details, message);
 
     return approvalStepsError(
@@ -714,7 +719,7 @@ export async function closeProjectAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageCatalog(actor.role.code)) {
+  if (!canManageCatalog(actor)) {
     return lifecycleError(t.catalog.errors.FORBIDDEN);
   }
 
@@ -763,7 +768,7 @@ export async function reopenProjectAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageCatalog(actor.role.code)) {
+  if (!canManageCatalog(actor)) {
     return lifecycleError(t.catalog.errors.FORBIDDEN);
   }
 
@@ -818,6 +823,7 @@ function assignmentFieldErrors(
     if (issue.path === "payRate") errors.payRate = issue.message;
     if (issue.path === "startDate") errors.startDate = issue.message;
     if (issue.path === "endDate") errors.endDate = issue.message;
+    if (issue.path === "assignmentCode") errors.assignmentCode = issue.message;
   }
 
   return errors;
@@ -840,7 +846,7 @@ export async function assignProjectMemberAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageCatalog(actor.role.code)) {
+  if (!canManageCatalog(actor)) {
     return {
       ...INITIAL_ASSIGNMENT_FORM_STATE,
       status: "error",
@@ -854,6 +860,7 @@ export async function assignProjectMemberAction(
   const endDate = text(formData, "endDate");
   const rawRate = text(formData, "payRate");
   const rate = rawRate ? parseRate(rawRate) : null;
+  const assignmentCode = text(formData, "assignmentCode");
 
   if (!Number.isInteger(projectId) || projectId <= 0) {
     return {
@@ -873,6 +880,10 @@ export async function assignProjectMemberAction(
   else if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
   if (startDate && endDate && endDate < startDate) {
     fieldErrors.endDate = t.catalog.errors.dateOrder;
+  }
+  if (assignmentCode.length > ASSIGNMENT_CODE_MAX) {
+    fieldErrors.assignmentCode =
+      t.catalog.errors.assignmentCodeLength(ASSIGNMENT_CODE_MAX);
   }
 
   if (Object.keys(fieldErrors).length) {
@@ -894,6 +905,7 @@ export async function assignProjectMemberAction(
         payRate: rate,
         startDate,
         ...(endDate ? { endDate } : {}),
+        ...(assignmentCode ? { assignmentCode } : {}),
       },
     },
   );
@@ -927,7 +939,7 @@ export async function updateProjectAssignmentAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageCatalog(actor.role.code)) {
+  if (!canManageCatalog(actor)) {
     return {
       ...INITIAL_ASSIGNMENT_FORM_STATE,
       status: "error",
@@ -957,6 +969,7 @@ export async function updateProjectAssignmentAction(
   const endDate = text(formData, "endDate");
   const rawRate = text(formData, "payRate");
   const rate = rawRate ? parseRate(rawRate) : null;
+  const assignmentCode = text(formData, "assignmentCode");
 
   const fieldErrors: Partial<Record<AssignmentFormField, string>> = {};
 
@@ -965,6 +978,10 @@ export async function updateProjectAssignmentAction(
   if (!startDate) fieldErrors.startDate = t.catalog.errors.assignmentStart;
   if (startDate && endDate && endDate < startDate) {
     fieldErrors.endDate = t.catalog.errors.dateOrder;
+  }
+  if (assignmentCode.length > ASSIGNMENT_CODE_MAX) {
+    fieldErrors.assignmentCode =
+      t.catalog.errors.assignmentCodeLength(ASSIGNMENT_CODE_MAX);
   }
 
   if (Object.keys(fieldErrors).length) {
@@ -985,6 +1002,7 @@ export async function updateProjectAssignmentAction(
         payRate: rate,
         startDate,
         endDate: endDate || null,
+        assignmentCode: assignmentCode || null,
         ...(reactivate ? { isActive: true } : {}),
       },
     },
@@ -1019,7 +1037,7 @@ export async function removeProjectAssignmentAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageCatalog(actor.role.code)) {
+  if (!canManageCatalog(actor)) {
     return { status: "error", message: t.catalog.errors.FORBIDDEN };
   }
 

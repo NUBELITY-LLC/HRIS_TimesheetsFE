@@ -7,9 +7,13 @@ export const es = {
   common: {
     appName: "Nubelity TS",
     apply: "Aplicar",
+    assignmentCode: "ID asignación",
+    cancel: "Cancelar",
+    confirm: "Confirmar",
     backToUsers: "Volver a usuarios",
     never: "Nunca",
     next: "Siguiente",
+    company: "Empresa",
     none: "—",
     previous: "Anterior",
     signOut: "Cerrar sesión",
@@ -17,14 +21,24 @@ export const es = {
     unknown: "Desconocido",
     you: "Tu",
   },
+  pageError: {
+    title: "Algo no salió bien",
+    body: "No pudimos mostrar esta sección. Vuelve a intentarlo.",
+    retry: "Reintentar",
+  },
   nav: {
     dashboard: "Panel",
     timesheets: "Mis horas",
     reviews: "Revisión de horas",
+    notifications: "Notificaciones",
     companies: "Empresas",
     clients: "Gerentes",
     projects: "Proyectos",
+    payTerms: "Condiciones de pago",
+    holidays: "Días festivos",
+    payrollRules: "Reglas de nómina",
     history: "Historial",
+    reports: "Reporte de horas",
     users: "Usuarios",
     account: "Mi cuenta",
   },
@@ -63,14 +77,16 @@ export const es = {
     usernameRequired: "Escribe tu usuario o correo.",
     passwordRequired: "Escribe tu contraseña.",
     lockoutNow: "Ya puedes volver a intentarlo.",
-    lockoutOneMinute: "Podrás volver a intentarlo en un minuto aproximadamente.",
+    lockoutOneMinute:
+      "Podrás volver a intentarlo en un minuto aproximadamente.",
     lockoutMinutes: (minutes: number) =>
       `Podrás volver a intentarlo en unos ${minutes} minutos.`,
     errors: {
       INVALID_CREDENTIALS: "Usuario o contraseña incorrectos.",
       ACCOUNT_LOCKED:
         "Tu cuenta está bloqueada temporalmente por demasiados intentos fallidos.",
-      ACCOUNT_INACTIVE: "Esta cuenta está inactiva. Contacta a tu administrador.",
+      ACCOUNT_INACTIVE:
+        "Esta cuenta está inactiva. Contacta a tu administrador.",
       TOO_MANY_REQUESTS:
         "Demasiados intentos desde este dispositivo. Inténtalo más tarde.",
       BAD_REQUEST: "Revisa los campos marcados e inténtalo de nuevo.",
@@ -100,7 +116,8 @@ export const es = {
       CURRENT_PASSWORD_REQUIRED: "Escribe tu contraseña actual.",
       PASSWORD_NOT_CHANGED:
         "La contraseña nueva debe ser distinta a la provisional.",
-      ACCOUNT_INACTIVE: "Esta cuenta está inactiva. Contacta a tu administrador.",
+      ACCOUNT_INACTIVE:
+        "Esta cuenta está inactiva. Contacta a tu administrador.",
       NETWORK_ERROR:
         "No pudimos contactar al servidor. Inténtalo de nuevo en un momento.",
       fallback: "No se pudo actualizar la contraseña. Inténtalo de nuevo.",
@@ -121,10 +138,19 @@ export const es = {
     approvedValue: (count: number) =>
       count === 1 ? "1 aprobado" : `${count} aprobados`,
     recentTitle: "Envíos recientes",
+    resume: "Continuar",
+    reviewQueueTitle: "Pendientes de tu revisión",
+    reviewQueueHint: (count: number) =>
+      count === 1
+        ? "1 timesheet espera tu decisión"
+        : `${count} timesheets esperan tu decisión`,
+    reviewQueueEmptyTitle: "No hay nada esperando tu decisión.",
+    reviewQueueEmptyBody:
+      "Cuando un timesheet llegue a un paso tuyo, aparecerá aquí.",
     viewAll: "Ver todos",
     columns: {
       range: "Semana",
-      project: "Gerente / Proyecto",
+      project: "Empresa / Proyecto",
       hours: "Total de horas",
       progress: "Progreso de aprobación",
       status: "Estado",
@@ -133,6 +159,8 @@ export const es = {
     },
     view: "Ver",
     review: "Revisar",
+    teamSection: "Equipo",
+    personalSection: "Mis horas",
     teamTitle: "Registros del equipo",
     teamHours: "Horas del equipo este mes",
     teamHoursHint: "Consultores, empleados y managers",
@@ -140,8 +168,9 @@ export const es = {
     pendingReviewHint: "Esperan una decisión tuya",
     teamEmptyTitle: "Aún no hay registros del equipo.",
     teamEmptyBody: "Cuando el equipo envíe sus horas, las verás aquí.",
+    rejectionReason: (who: string) => `Rechazado por ${who}:`,
     emptyTitle: "Aún no tienes envíos.",
-    emptyBody: "Registra las horas de tu semana y aparecerán aquí.",
+    emptyBody: "Envía las horas de tu semana y aparecerán aquí.",
     emptyCta: "Ir a mis horas",
     stages: {
       CUSTOMER: "Gerente",
@@ -152,7 +181,22 @@ export const es = {
   },
   timesheets: {
     breadcrumb: "Mis horas",
-    breadcrumbCurrent: "Nuevo envío",
+    backToOverview: "Volver a mis horas",
+    overview: {
+      title: "Mis horas",
+      intro: (week: string) =>
+        `Estado de tus proyectos en la semana del ${week}.`,
+      listTitle: "Proyectos asignados",
+      progress: (sent: number, total: number) =>
+        `${sent} de ${total} enviados esta semana`,
+      notStarted: "Sin capturar",
+      actions: {
+        start: "Capturar horas",
+        resume: "Continuar borrador",
+        fix: "Corregir",
+        view: "Ver",
+      },
+    },
     title: "Enviar horas de la semana",
     clientLabel: "Gerente",
     companyLabel: "Empresa",
@@ -190,8 +234,7 @@ export const es = {
     removeTask: "Quitar tarea",
     totalHours: "Total de horas",
     noAccessTitle: "No puedes registrar horas",
-    noAccessBody: (role: string) =>
-      `El registro de horas es para consultores, empleados y managers. Tu cuenta es de tipo ${role}.`,
+    noAccessBody: "Tu cuenta no tiene acceso al registro de horas.",
     saveDraft: "Guardar borrador",
     drafts: {
       title: "Borradores",
@@ -206,6 +249,7 @@ export const es = {
       current: "Semana abierta",
     },
     unsaved: "Sin guardar",
+    leaveAnyway: "Salir sin guardar",
     unsavedConfirm:
       "Tienes cambios sin guardar en esta semana. ¿Salir de todos modos?",
     submit: "Enviar horas",
@@ -214,6 +258,12 @@ export const es = {
     submitting: "Enviando…",
     submittedTitle: "Horas enviadas a aprobación.",
     submissionCode: (code: string) => `Folio de envío: ${code}`,
+    routedTo: (approver: string) => `Primer aprobador: ${approver}.`,
+    routingInApp: (count: number) =>
+      count === 1
+        ? "Se creó la tarea de aprobación y se notificó al aprobador en la plataforma."
+        : `Se creó la tarea de aprobación y se notificó a ${count} aprobadores en la plataforma.`,
+    routingEmailSent: "Se envió la solicitud de aprobación de horas.",
     weekStatus: "Estado de la semana",
     lockedTitle: "Esta semana ya está en el flujo de aprobación.",
     errors: {
@@ -225,15 +275,18 @@ export const es = {
       empty: "Registra al menos una tarea antes de enviar.",
       review: "Revisa los campos marcados.",
       assignmentRequired: "Selecciona el proyecto en el que trabajaste.",
-      FORBIDDEN: "Tu rol no puede registrar horas.",
+      FORBIDDEN: "No puedes registrar horas.",
       NOT_FOUND: "La asignación o el registro ya no existe.",
       TIMESHEET_LOCKED: "La semana ya fue enviada y no admite cambios.",
-      TIMESHEET_NOT_SUBMITTABLE: "Esta semana ya está en el flujo de aprobación.",
+      TIMESHEET_NOT_SUBMITTABLE:
+        "Esta semana ya está en el flujo de aprobación.",
       TIMESHEET_EMPTY: "Registra al menos una actividad antes de enviar.",
       NO_APPROVAL_WORKFLOW:
         "El proyecto no tiene un flujo de aprobación configurado; contacta a tu manager.",
       INCOMPLETE_APPROVAL_WORKFLOW:
         "El proyecto no tiene suficientes aprobadores configurados; contacta a tu manager.",
+      NO_APPROVER_AVAILABLE:
+        "El primer aprobador del proyecto no tiene a quién notificar; contacta a tu manager.",
       projectClosedOn: (date: string) =>
         `El proyecto cerró el ${date}: no se pueden capturar días posteriores.`,
       projectEndsOn: (date: string) =>
@@ -247,45 +300,181 @@ export const es = {
   reviews: {
     eyebrow: "Aprobaciones",
     title: "Revisión de horas",
+    intro:
+      "Estas son las tareas donde eres el aprobador del paso vigente del flujo.",
+    groupColumns: {
+      consultant: "Consultor",
+      clientProject: "Empresa / Proyecto",
+      hours: "Horas",
+      hourCost: "Costo hora",
+      totalCost: "Costo total",
+      step: "Paso del flujo",
+      action: "Acción",
+    },
+    groupTaskCount: (count: number) =>
+      count === 1 ? "1 registro pendiente" : `${count} registros pendientes`,
+    review: "Revisar",
+    detail: {
+      eyebrow: "Revisión de timesheet",
+      activeStage: (seq: number, name: string) =>
+        `Paso ${seq}: ${name} (activo)`,
+      resolvedBy: (approver: string, date: string) =>
+        `Aprobado por ${approver} el ${date}`,
+      infoTitle: "Consultor y proyecto",
+      consultant: "Consultor",
+      clientProject: "Manager / Proyecto",
+      week: "Semana",
+      hours: "Horas",
+      hourCost: "Costo hora",
+      amount: "Costo total",
+      payoutTitle: "Total a pagar",
+      dailyTitle: "Detalle diario registrado",
+      actionsTitle: "Acciones",
+      cannotDecide:
+        "Este paso ya no está en tus manos: o no eres su aprobador, o ya fue resuelto.",
+      evidenceTitle: "Evidencia adjunta",
+      evidenceEmpty: "Sin evidencia adjunta.",
+    },
     listTitle: "Pendientes de revisión",
+    taskCount: (count: number) =>
+      count === 1 ? "1 tarea en esta página" : `${count} tareas en esta página`,
+    loadErrorTitle: "No se pudieron cargar tus tareas de aprobación.",
+    summary: (total: number, page: number, pages: number) =>
+      `${total} tareas · página ${page} de ${pages}`,
     emptyTitle: "No hay registros por revisar.",
     emptyBody: "Cuando alguien envíe sus horas, aparecerán aquí.",
     notFoundTitle: "Ese registro no está disponible.",
     notFoundBody: "Puede que ya se haya resuelto o que todavía no exista.",
     back: "Volver a revisiones",
     phaseTitle: "Fase de aprobación actual",
-    stageLine: (index: number, name: string) => `Etapa ${index}: ${name} (activa)`,
     noActiveStage: "Sin etapa activa",
-    stages: {
-      CUSTOMER: "Revisión del gerente",
-      SUPERVISOR: "Revisión del supervisor",
-      CTO: "Revisión del CTO",
-      FINANCE: "Revisión de finanzas",
-    },
-    summaryTitle: "Resumen del registro",
-    person: "Persona",
-    project: "Gerente / Proyecto",
     totalHours: "Total de horas",
-    dailyTitle: "Detalle diario",
     columns: {
       day: "Día",
       activity: "Actividad",
       hours: "Horas",
     },
     noActivity: "Sin actividad",
-    decisionTitle: "Panel de decisión",
-    commentsLabel: "Comentarios del revisor (opcional)",
-    commentsPlaceholder: "Escribe tus dudas o notas aquí…",
-    approve: "Aprobar registro",
-    reject: "Rechazar con comentarios",
-    rejectNeedsComment: "Escribe un comentario para rechazar el registro.",
-    approvedTitle: "Registro aprobado.",
-    rejectedTitle: "Registro rechazado.",
-    decisionPending:
-      "La decisión se enviará al backend en la siguiente iteración.",
     noAccessTitle: "No tienes acceso a las revisiones",
-    noAccessBody: (role: string) =>
-      `La revisión de horas está reservada a managers y administradores. Tu cuenta es de tipo ${role}.`,
+    noAccessBody: "Tu cuenta no tiene acceso a la revisión de horas.",
+  },
+  reports: {
+    eyebrow: "Reportes",
+    title: "Horas por persona",
+    intro: "Consulta las horas de cada persona por rango de fechas.",
+    noAccessTitle: "No tienes acceso a esta sección.",
+    noAccessBody: "Si crees que es un error, avisa a tu administrador.",
+    loadErrorTitle: "No pudimos cargar el reporte.",
+    people: {
+      listTitle: "Consultores, empleados y managers",
+      searchLabel: "Buscar",
+      searchPlaceholder: "Nombre, usuario o correo",
+      statusLabel: "Estado",
+      statusActive: "Activos",
+      statusInactive: "Inactivos",
+      statusAll: "Todos",
+      columns: {
+        person: "Persona",
+        role: "Rol",
+        email: "Correo",
+        status: "Estado",
+        action: "Acción",
+      },
+      active: "Activo",
+      inactive: "Inactivo",
+      open: "Ver horas",
+      emptyTitle: "No hay personas que coincidan.",
+      emptyBody: "Ajusta la búsqueda o el filtro de estado.",
+      summary: (total: number, page: number, pages: number) =>
+        `${total} ${total === 1 ? "persona" : "personas"} · página ${page} de ${pages}`,
+    },
+    detail: {
+      back: "Volver a personas",
+      eyebrow: "Reporte de horas",
+      notFoundTitle: "Esa persona no está disponible.",
+      notFoundBody: "Revisa la lista de personas.",
+      rangeLabel: "Rango de fechas",
+      from: "Desde",
+      to: "Hasta",
+      apply: "Ver horas",
+      totalHours: "Total de horas",
+      totalHoursHint: (from: string, to: string) => `Del ${from} al ${to}`,
+      workedDays: "Días con horas",
+      workedDaysHint: (days: number) =>
+        days === 1 ? "1 día en el rango" : `${days} días en el rango`,
+      average: "Promedio por día trabajado",
+      averageHint: "Por cada día con horas",
+      payoutTitle: "Total a pagar",
+      hourCost: "Costo hora",
+      amount: "Importe",
+      mixedCurrencies: "Hay más de una moneda en este rango.",
+      dailyTitle: "Detalle por día",
+      columns: {
+        day: "Día",
+        project: "Empresa / Proyecto",
+        submission: "Envío",
+        status: "Estado",
+        hours: "Horas",
+        hourCost: "Costo hora",
+        amount: "Importe",
+      },
+      total: "Total del rango",
+      emptyTitle: "Sin horas en este rango.",
+      emptyBody: "Prueba con otras fechas.",
+    },
+  },
+  history: {
+    tabsLabel: "Tipo de historial",
+    tabs: {
+      submissions: "Mis envíos",
+      decisions: "Mis decisiones",
+    },
+    decisions: {
+      listTitle: "Timesheets que resolviste",
+      kinds: {
+        APPROVED: "Aprobado",
+        RETURNED_TO_PREVIOUS: "Devuelto al paso previo",
+        RETURNED_TO_CONSULTANT: "Devuelto al consultor",
+      },
+      summary: (total: number, page: number, pages: number) =>
+        `${total} decisiones · página ${page} de ${pages}`,
+      emptyTitle: "Todavía no has resuelto ningún timesheet.",
+      emptyBody:
+        "Cuando apruebes o devuelvas horas, quedarán registradas aquí.",
+    },
+    detail: {
+      eyebrow: "Historial",
+      title: "Detalle del envío",
+      back: "Volver al historial",
+      project: "Cliente / Proyecto",
+      hours: "Total de horas",
+      submitted: "Enviado",
+      progress: "Progreso de aprobación",
+      dailyTitle: "Detalle diario registrado",
+      notFoundTitle: "Ese envío no está disponible.",
+      notFoundBody: "Puede que no exista o que no te pertenezca.",
+    },
+    eyebrow: "Mis horas",
+    title: "Historial de envíos",
+    intro: "Todas las semanas que has capturado, con el estado de su flujo.",
+    reviewerEyebrow: "Revisión de horas",
+    reviewerTitle: "Historial de decisiones",
+    reviewerIntro:
+      "Los timesheets que has aprobado o devuelto, con su resultado.",
+    filterLabel: "Filtrar por estado",
+    filterAll: "Todos",
+    listTitle: "Envíos",
+    summary: (total: number, page: number, pages: number) =>
+      `${total} envíos · página ${page} de ${pages}`,
+    emptyTitle: "Todavía no hay envíos.",
+    emptyBody: "Cuando captures y envíes una semana, aparecerá aquí.",
+    loadErrorTitle: "No se pudo cargar tu historial.",
+    noAccessTitle: "No tienes acceso al historial",
+  },
+  financeStatus: {
+    REVIEW: "En revisión",
+    PAYROLL: "Procesando nómina",
+    PAID: "Pago completado",
   },
   timesheetStatus: {
     DRAFT: "Borrador",
@@ -299,11 +488,125 @@ export const es = {
   approvals: {
     client: "Gerente",
     step: (seq: number) => `Paso ${seq}`,
+    external: {
+      badge: "Gerente externo",
+      hint: "Responde por correo; no tiene cuenta en la plataforma.",
+    },
+    onBehalf: {
+      evidenceHint:
+        "Adjunta el correo o captura de la respuesta del gerente externo.",
+      action: "Aprobar en su nombre",
+      intro:
+        "Úsalo solo si el gerente externo ya respondió y su respuesta no quedó registrada.",
+      commentsLabel: "Comentario (opcional)",
+      commentsPlaceholder: "Ej. Aprobado por correo el 3 de septiembre.",
+      confirm: (approver: string) =>
+        `¿Aprobar el paso de ${approver} en su nombre?`,
+      submit: "Confirmar aprobación",
+      submitting: "Aprobando…",
+      cancel: "Cancelar",
+      completed: (code: string) =>
+        `Timesheet ${code} aprobado: era el último paso del flujo.`,
+      advanced: (approver: string) =>
+        `Paso aprobado. El flujo avanzó a ${approver}.`,
+    },
+    decide: {
+      confirmApproveBody: (approver: string) =>
+        `El timesheet pasará a ${approver} para su revisión.`,
+      confirmApproveFinalBody:
+        "Es el último paso: el timesheet quedará aprobado.",
+      approveTo: (approver: string) => `Aprobar y pasar a ${approver}`,
+      approveFinal: "Aprobar y cerrar el flujo",
+      rejectToConsultant: "Rechazar",
+      modeLabel: "Decisión",
+      evidenceLabel: "Evidencia (opcional)",
+      evidenceHint: "PDF, PNG, JPG o WEBP. Máximo 10 MB.",
+      approve: "Aprobar",
+      approving: "Aprobando…",
+      reject: "Rechazar",
+      rejecting: "Rechazando…",
+      cancel: "Cancelar",
+      confirmApprove: (person: string) =>
+        `¿Aprobar las horas de ${person} y avanzar el flujo?`,
+      approveCommentsLabel: "Comentario (opcional)",
+      approveCommentsPlaceholder:
+        "Ej. Horas validadas contra el plan del sprint.",
+      targetLabel: "¿A dónde regresa el timesheet?",
+      targetConsultant: "Al consultor, para que corrija sus horas",
+      targetPrevious: "Al aprobador anterior, para que lo revise de nuevo",
+      rejectCommentsLabel: "Motivo del rechazo",
+      rejectCommentsPlaceholder: "Explica qué debe corregirse.",
+      commentsRequired: "Escribe el motivo del rechazo.",
+      completed: (code: string) =>
+        `Timesheet ${code} aprobado: era el último paso del flujo.`,
+      advanced: (approver: string) =>
+        `Paso aprobado. El flujo avanzó a ${approver}.`,
+      returnedToPrevious: (approver: string) =>
+        `Timesheet devuelto a ${approver} para una nueva revisión.`,
+      returnedToConsultant: (code: string) =>
+        `Timesheet ${code} devuelto al consultor para corrección.`,
+    },
+    errors: {
+      EVIDENCE_TOO_LARGE: "La evidencia excede los 10 MB.",
+      EVIDENCE_TYPE_NOT_ALLOWED: "La evidencia debe ser PDF, PNG, JPG o WEBP.",
+      NOT_STEP_APPROVER:
+        "No eres el aprobador del paso vigente de este timesheet.",
+      APPROVAL_STEP_EXTERNAL:
+        "Este paso es de un gerente externo; usa la aprobación en su nombre.",
+      NO_PREVIOUS_STEP:
+        "Este es el primer paso del flujo; devuélvelo al consultor.",
+      COMMENTS_REQUIRED: "Explica por qué rechazas el timesheet.",
+      FORBIDDEN:
+        "Solo el manager del proyecto puede aprobar en nombre del gerente externo.",
+      NOT_FOUND: "La tarea de aprobación ya no existe.",
+      APPROVAL_STEP_NOT_EXTERNAL:
+        "Este paso no corresponde a un gerente externo.",
+      APPROVAL_STEP_NOT_CURRENT: "Este paso ya no es el vigente del timesheet.",
+      APPROVAL_STEP_RESOLVED: "Esta tarea ya fue resuelta.",
+      TIMESHEET_NOT_IN_REVIEW: "El timesheet ya no está en revisión.",
+      NO_APPROVER_AVAILABLE:
+        "El siguiente aprobador del proyecto no tiene a quién notificar; revisa la configuración.",
+      NETWORK_ERROR:
+        "No pudimos contactar al servidor. Inténtalo de nuevo en un momento.",
+      fallback: "No se pudo aprobar la tarea. Inténtalo de nuevo.",
+    },
+  },
+  notifications: {
+    eyebrow: "Notificaciones",
+    title: "Mis notificaciones",
+    seeAll: "Ver todas",
+    markAll: "Marcar todas como leídas",
+    markRead: "Marcar como leída",
+    unread: "Sin leer",
+    unreadCount: (count: number) =>
+      count === 1
+        ? "1 notificación sin leer"
+        : `${count} notificaciones sin leer`,
+    filters: {
+      all: "Todas",
+      unread: "Sin leer",
+      read: "Leídas",
+    },
+    kinds: {
+      REVIEW_REQUESTED: "Revisión solicitada",
+      APPROVED: "Aprobado",
+      REJECTED: "Rechazado",
+      REMINDER: "Recordatorio",
+      TASK_ASSIGNED: "Asignación de proyecto",
+      OTHER: "Aviso",
+    },
+    emptyTitle: "No tienes notificaciones.",
+    emptyBody: "Aquí llegarán los avisos de los timesheets que debes revisar.",
+    loadErrorTitle: "No se pudieron cargar tus notificaciones.",
+    summary: (total: number, page: number, pages: number) =>
+      `${total} notificaciones · página ${page} de ${pages}`,
+    errors: {
+      fallback: "No se pudo actualizar la notificación. Inténtalo de nuevo.",
+    },
   },
   catalog: {
     noAccessTitle: "No tienes acceso a este módulo",
-    noAccessBody: (role: string) =>
-      `La gestión de gerentes y proyectos está reservada a administradores y managers. Tu cuenta es de tipo ${role}.`,
+    noAccessBody: "Tu cuenta no tiene acceso a gerentes y proyectos.",
     filters: {
       search: "Buscar",
       status: "Estado",
@@ -331,9 +634,9 @@ export const es = {
       save: "Guardar cambios",
       saving: "Guardando…",
       managerUser: "Usuario del sistema",
-      managerUserPlaceholder: "Gerente externo (sin cuenta)",
+      managerUserPlaceholder: "Sin cuenta en el sistema",
       managerUserEmpty:
-        "No hay usuarios de manager o finanzas activos; captura los datos del gerente externo.",
+        "No hay usuarios disponibles; captura los datos del gerente.",
       clientName: "Nombre del gerente",
       clientNamePlaceholder: "Nombre comercial",
       contactEmail: "Correo de contacto",
@@ -440,6 +743,8 @@ export const es = {
       eyebrow: "Equipo",
       title: "Equipo del proyecto",
       manage: "Administrar equipo",
+      blocked: (min: number) =>
+        `Configura el flujo de aprobación (mínimo ${min} aprobadores) para poder asignar personas.`,
       back: "Volver al proyecto",
       count: (count: number) =>
         count === 1 ? "1 persona asignada" : `${count} personas asignadas`,
@@ -544,11 +849,10 @@ export const es = {
       saved: "Flujo de aprobación actualizado.",
       reviewSteps: "Revisa los aprobadores marcados.",
       noApprovers: "Este proyecto todavía no tiene aprobadores.",
-      noCandidates:
-        "No hay administradores ni managers activos para nominar como aprobadores.",
+      noCandidates: "No hay personas activas que puedan aprobar horas.",
     },
     errors: {
-      FORBIDDEN: "Tu rol no puede administrar el catálogo.",
+      FORBIDDEN: "No puedes administrar el catálogo.",
       CONFLICT: "Ya existe un registro con esos datos.",
       NOT_FOUND: "El registro ya no existe.",
       UNPROCESSABLE_ENTITY: "Revisa los datos enviados.",
@@ -562,14 +866,17 @@ export const es = {
       companyRequired: "Selecciona una empresa.",
       personRequired: "Selecciona a la persona.",
       assignmentStart: "Indica la fecha de inicio de la asignación.",
+      assignmentCodeLength: (max: number) =>
+        `El ID de asignación admite hasta ${max} caracteres.`,
       payRateRequired: "Indica la tarifa por hora de la asignación.",
       payRateInvalid: "La tarifa admite números con hasta 2 decimales.",
       clientNameRequired: "Escribe el nombre del gerente.",
       managerUserInvalid:
-        "Ese usuario no está activo o ya no tiene un rol de manager o finanzas.",
+        "Ese usuario ya no está activo o no puede ser gerente.",
       clientRequired: "Selecciona un gerente.",
       projectNameRequired: "Escribe el nombre del proyecto.",
       dateOrder: "La fecha de fin no puede ser anterior a la de inicio.",
+      approverWithoutPermission: "Esta persona no puede aprobar horas.",
       approversMin: (min: number) =>
         `El flujo requiere al menos ${min} aprobadores.`,
       approversMax: (max: number) =>
@@ -652,10 +959,14 @@ export const es = {
       edit: "Editar",
       deactivate: "Desactivar",
       reactivate: "Reactivar",
+      delete: "Eliminar",
       active: "Activa",
       inactive: "Inactiva",
       pendingPassword: "Cambio de contraseña pendiente",
     },
+    confirmDelete: (name: string) => `¿Eliminar a ${name} de forma permanente?`,
+    confirmDeleteBody:
+      "Esta acción no se puede deshacer. Solo es posible si la cuenta no tiene historial en el sistema.",
     confirmDeactivate: (name: string) =>
       `¿Desactivar a ${name}? No podrá iniciar sesión hasta que alguien reactive la cuenta.`,
     cannotDeactivateSelf: "No puedes desactivar tu propia cuenta.",
@@ -667,17 +978,15 @@ export const es = {
     summary: (total: number, page: number, totalPages: number) =>
       `${total} ${total === 1 ? "usuario" : "usuarios"} · página ${page} de ${totalPages}`,
     noAccessTitle: "No tienes acceso a este módulo",
-    noAccessBody: (role: string) =>
-      `La gestión de usuarios está reservada a administradores y managers. Tu cuenta es de tipo ${role}.`,
+    noAccessBody: "Tu cuenta no tiene acceso a la gestión de usuarios.",
     noAccessUserTitle: "No tienes acceso a este usuario",
     noAccessUserGeneric: "Tu rol no puede gestionar cuentas con ese rol.",
     cannotHaveProjects: (role: string) =>
       `Las cuentas de tipo ${role} no llevan proyectos asignados.`,
     create: {
       title: "Crear un usuario",
-      noAccessBody: (role: string) =>
-        `La creación de usuarios está reservada a administradores y managers. Tu cuenta es de tipo ${role}.`,
-      rolesSection: "Qué puede hacer cada rol",
+      noAccessBody: "Tu cuenta no puede crear usuarios.",
+      rolesSection: "Roles disponibles",
     },
     edit: {
       title: "Editar usuario",
@@ -701,6 +1010,10 @@ export const es = {
       role: "Rol",
       rolePlaceholder: "Selecciona un rol…",
       roleLockedHint: "No puedes cambiar tu propio rol.",
+      permissionsSection: "Permisos",
+      permissionsHint: "Marca lo que esta persona puede hacer.",
+      permissionsLockedHint: "No puedes cambiar tus propios permisos.",
+      permissionsFixedHint: "Este rol tiene permisos fijos.",
       jobTitle: "Puesto",
       jobTitlePlaceholder: "Consultor senior",
       jobTitleHint: "Opcional.",
@@ -715,6 +1028,9 @@ export const es = {
       inactiveAssignment: "Baja",
       projectStart: "Inicio de la asignación",
       projectEnd: "Fin de la asignación",
+      assignmentCode: "ID asignación",
+      assignmentCodePlaceholder: "",
+      assignmentCodeHint: "Opcional.",
       projectsSection: "Proyectos asignados",
       manageProjects: "Administrar proyectos",
       projectsCount: (count: number) =>
@@ -724,7 +1040,8 @@ export const es = {
       assigning: "Asignando…",
       removeProject: "Quitar",
       noProjects: "Todavía no tiene proyectos asignados.",
-      noProjectsAvailable: "Ya está asignado a todos los proyectos del catálogo.",
+      noProjectsAvailable:
+        "Ya está asignado a todos los proyectos del catálogo.",
       activeTitle: "Cuenta activa",
       activeLockedHint: "No puedes desactivar tu propia cuenta.",
       create: "Crear usuario",
@@ -738,9 +1055,18 @@ export const es = {
       reviewFields: "Revisa los campos marcados.",
     },
     errors: {
-      FORBIDDEN: "Tu rol no puede gestionar usuarios.",
+      USER_STILL_ACTIVE: "Desactiva la cuenta antes de eliminarla.",
+      SELF_DELETION: "No puedes eliminar tu propia cuenta.",
+      USER_HAS_HISTORY:
+        "Este usuario ya tiene historial en el sistema (proyectos, timesheets o aprobaciones), así que solo puede quedar desactivado.",
+      deleted: (name: string) => `${name} se eliminó de forma permanente.`,
+      FORBIDDEN: "No puedes gestionar usuarios.",
       ROLE_NOT_ALLOWED: "Tu rol no puede gestionar usuarios con ese rol.",
       SELF_ROLE_CHANGE: "No puedes cambiar tu propio rol.",
+      SELF_PERMISSIONS_CHANGE: "No puedes cambiar tus propios permisos.",
+      PERMISSION_NOT_GRANTABLE: "No puedes otorgar alguno de los permisos marcados.",
+      PERMISSION_NOT_ALLOWED_FOR_ROLE:
+        "Algunos permisos marcados no aplican para este rol.",
       SELF_DEACTIVATION: "No puedes desactivar tu propia cuenta.",
       NOT_FOUND: "Ese usuario ya no existe.",
       PASSWORD_CHANGE_REQUIRED:
@@ -754,6 +1080,8 @@ export const es = {
       allowedRoles: (roles: string) => ` Puedes asignar: ${roles}.`,
       projectRequired: "Un usuario consultor requiere al menos un proyecto.",
       projectStartRequired: "Indica la fecha de inicio de la asignación.",
+      assignmentCodeLength: (max: number) =>
+        `El ID de asignación admite hasta ${max} caracteres.`,
       payRateRequired: "Indica la tarifa por hora de la asignación.",
       payRateInvalid: "La tarifa admite números con hasta 2 decimales.",
       dateOrder: "La fecha de fin no puede ser anterior a la de inicio.",
@@ -781,12 +1109,156 @@ export const es = {
     },
     FINANCE: {
       name: "Finanzas",
+      description: "Aprueba horas de sus carriles y consulta reportes.",
+    },
+    EXTERNAL_MANAGER: {
+      name: "Manager externo",
       description:
-        "Solo aprueba las horas de los carriles que tiene asignados; no gestiona usuarios ni catálogos.",
+        "Aprueba y consulta las horas de los proyectos donde participa como aprobador.",
     },
     ADMIN: {
       name: "Administrador",
       description: "Acceso total, incluida la gestión de cualquier cuenta.",
+    },
+  },
+  permissions: {
+    TIMESHEETS_SUBMIT: {
+      name: "Registrar horas",
+      description: "Captura y envía sus timesheets semanales.",
+    },
+    TIMESHEETS_APPROVE: {
+      name: "Aprobar horas",
+      description: "Revisa y aprueba timesheets; puede ser aprobador en proyectos.",
+    },
+    CATALOG_MANAGE: {
+      name: "Administrar catálogo",
+      description: "Empresas, gerentes y proyectos.",
+    },
+    USERS_MANAGE: {
+      name: "Administrar usuarios",
+      description: "Crea y edita cuentas y sus permisos.",
+    },
+    REPORTS_VIEW: {
+      name: "Ver reportes",
+      description: "Consulta los reportes de horas por persona.",
+    },
+    PAYROLL_MANAGE: {
+      name: "Administrar nómina y pagos",
+      description:
+        "Condiciones de pago de cada asignación, días festivos y reglas de nómina.",
+    },
+  },
+  payTerms: {
+    section: "Condiciones de pago",
+    summary: (contract: string, divisor: number) => `${contract} · ÷${divisor}`,
+    contractType: "Tipo de contratación",
+    contractTypes: { CONTRACTOR: "Contractor", PAYROLL: "Nómina" },
+    country: "País",
+    hoursDivisor: "Divisor de hora",
+    dailyHours: "Jornada (horas)",
+    overtimeMultiplier: "Horas extra (×)",
+    holidayMultiplier: "Días festivos (×)",
+    payrollRules: "Se aplican las reglas de nómina del país seleccionado.",
+    breakdownTitle: "Desglose del pago",
+    hourlyRate: "Costo por hora",
+    buckets: {
+      REGULAR: "Horas normales",
+      SUNDAY: "Domingo",
+      OVERTIME: "Horas extra",
+      OVERTIME_TRIPLE: "Horas extra triples",
+      HOLIDAY: "Día festivo",
+    },
+    errors: {
+      contractType: "Selecciona un tipo de contratación válido.",
+      country: "Selecciona un país válido.",
+      hoursDivisor: (min: number, max: number) =>
+        `El divisor de hora debe estar entre ${min} y ${max}.`,
+      dailyHours: (min: number, max: number) =>
+        `La jornada debe estar entre ${min} y ${max} horas.`,
+      overtimeMultiplier: (min: number, max: number) =>
+        `El multiplicador de horas extra debe estar entre ${min} y ${max}.`,
+      holidayMultiplier: (min: number, max: number) =>
+        `El multiplicador de días festivos debe estar entre ${min} y ${max}.`,
+      invalid: "Revisa las condiciones de pago.",
+    },
+  },
+  payTermsPage: {
+    eyebrow: "Nómina y pagos",
+    title: "Condiciones de pago",
+    noAccessBody: "Tu cuenta no tiene acceso a nómina y pagos.",
+    search: "Buscar persona",
+    searchPlaceholder: "Nombre",
+    contractType: "Contratación",
+    allContracts: "Todas",
+    status: "Estado",
+    statusActive: "Activas",
+    statusInactive: "Inactivas",
+    statusAll: "Todas",
+    filter: "Filtrar",
+    payRate: "Tarifa",
+    hourlyRate: "Costo por hora",
+    inactive: "Inactiva",
+    save: "Guardar",
+    saved: "Condiciones guardadas.",
+    empty: "No hay asignaciones con estos filtros.",
+    loadError: "No se pudieron cargar las asignaciones.",
+    summary: (total: number, page: number, pages: number) =>
+      `${total} ${total === 1 ? "asignación" : "asignaciones"} · página ${page} de ${pages}`,
+    previous: "Anterior",
+    next: "Siguiente",
+    errors: {
+      FORBIDDEN: "No puedes modificar condiciones de pago.",
+      payRateInvalid: "La tarifa admite números con hasta 2 decimales.",
+      NOT_FOUND: "La asignación ya no existe.",
+      fallback: "No se pudieron guardar las condiciones. Inténtalo de nuevo.",
+    },
+  },
+  payrollRules: {
+    eyebrow: "Nómina y pagos",
+    title: "Reglas de nómina por país",
+    country: "País",
+    notConfigured:
+      "Este país aún no tiene reglas propias; se muestran los valores base.",
+    overtimeMultiplier: "Horas extra (×)",
+    weeklyDoubleOvertimeHours: "Horas extra dobles por semana",
+    weeklyDoubleOvertimeHoursHint:
+      "Después de este límite se aplica el multiplicador de horas extra triples. Déjalo vacío si no aplica.",
+    overtimeTripleMultiplier: "Horas extra triples (×)",
+    holidayMultiplier: "Día festivo trabajado (×)",
+    sundayPremiumPercent: "Prima dominical (%)",
+    save: "Guardar reglas",
+    saving: "Guardando…",
+    saved: "Reglas guardadas.",
+    configuredTitle: "Países configurados",
+    errors: {
+      range: (field: string, min: number, max: number) =>
+        `${field} debe estar entre ${min} y ${max}.`,
+      FORBIDDEN: "No puedes modificar las reglas de nómina.",
+      fallback: "No se pudieron guardar las reglas. Inténtalo de nuevo.",
+    },
+  },
+  holidays: {
+    eyebrow: "Nómina y pagos",
+    title: "Días festivos",
+    year: "Año",
+    country: "País",
+    date: "Fecha",
+    name: "Nombre",
+    namePlaceholder: "Día de la Independencia",
+    add: "Agregar día",
+    adding: "Agregando…",
+    remove: "Quitar",
+    empty: "No hay días festivos registrados para este año.",
+    loadError: "No se pudieron cargar los días festivos.",
+    added: "Día festivo agregado.",
+    removed: "Día festivo quitado.",
+    confirmRemove: (name: string) => `¿Quitar ${name} del calendario?`,
+    errors: {
+      dateRequired: "Indica la fecha.",
+      nameRequired: "Escribe el nombre del día festivo.",
+      CONFLICT: "Ya hay un día festivo en esa fecha.",
+      FORBIDDEN: "No puedes modificar el calendario.",
+      fallback: "No se pudo guardar. Inténtalo de nuevo.",
     },
   },
   fieldErrors: {
@@ -798,19 +1270,24 @@ export const es = {
     fullNameTooLong: "El nombre completo no puede pasar de 150 caracteres.",
     userNameTooShort: "El usuario debe tener al menos 3 caracteres.",
     userNameTooLong: "El usuario no puede pasar de 50 caracteres.",
-    userNamePattern: "Solo se admiten letras, números, punto, guion y guion bajo.",
+    userNamePattern:
+      "Solo se admiten letras, números, punto, guion y guion bajo.",
     emailInvalid: "Escribe un correo valido.",
     emailTooLong: "El correo no puede pasar de 254 caracteres.",
     passwordTooShort: "La contraseña debe tener al menos 8 caracteres.",
-    passwordNeedsLowercase: "La contraseña debe incluir al menos una minúscula.",
-    passwordNeedsUppercase: "La contraseña debe incluir al menos una mayúscula.",
+    passwordNeedsLowercase:
+      "La contraseña debe incluir al menos una minúscula.",
+    passwordNeedsUppercase:
+      "La contraseña debe incluir al menos una mayúscula.",
     passwordNeedsNumber: "La contraseña debe incluir al menos un número.",
     passwordNeedsSymbol: "La contraseña debe incluir al menos un símbolo.",
     roleRequired: "Selecciona un rol.",
     roleTooLong: "Ese código de rol es demasiado largo.",
     jobTitleTooLong: "El puesto no puede pasar de 100 caracteres.",
-    newPasswordTooShort: "La contraseña nueva debe tener al menos 8 caracteres.",
-    newPasswordSameAsCurrent: "La contraseña nueva debe ser distinta a la actual.",
+    newPasswordTooShort:
+      "La contraseña nueva debe tener al menos 8 caracteres.",
+    newPasswordSameAsCurrent:
+      "La contraseña nueva debe ser distinta a la actual.",
   },
 };
 

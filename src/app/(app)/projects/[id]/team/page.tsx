@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { ArrowLeftIcon } from "@/components/icons";
+import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
 import {
   CatalogNoAccess,
   CatalogNotFound,
@@ -10,11 +10,13 @@ import { ProjectTeam } from "@/components/catalog/project-team";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
 import {
+  fetchApprovalWorkflow,
   fetchAssignableUsers,
   fetchProject,
   fetchProjectAssignments,
 } from "@/lib/catalog/queries";
 import { formatProjectDate, isProjectClosed } from "@/lib/catalog/lifecycle";
+import { APPROVERS_MIN } from "@/lib/catalog/types";
 import { canManageCatalog } from "@/lib/users/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,17 +31,18 @@ export default async function ProjectTeamPage({
   const t = await getDictionary();
   const locale = await getLocale();
 
-  if (!canManageCatalog(actor.role.code)) {
-    return <CatalogNoAccess roleCode={actor.role.code} />;
+  if (!canManageCatalog(actor)) {
+    return <CatalogNoAccess />;
   }
 
   const { id } = await params;
   const projectId = Number(id);
   const isValidId = Number.isInteger(projectId) && projectId > 0;
-  const [project, assignments, people] = await Promise.all([
+  const [project, assignments, people, workflow] = await Promise.all([
     isValidId ? fetchProject(projectId) : Promise.resolve(null),
     isValidId ? fetchProjectAssignments(projectId) : Promise.resolve([]),
     fetchAssignableUsers(),
+    isValidId ? fetchApprovalWorkflow(projectId) : Promise.resolve(null),
   ]);
 
   if (!project) {
@@ -54,6 +57,7 @@ export default async function ProjectTeamPage({
   }
 
   const closed = isProjectClosed(project);
+  const workflowReady = workflow?.isComplete ?? false;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -89,11 +93,17 @@ export default async function ProjectTeamPage({
           </p>
         </div>
         <div className="p-5">
+          {workflowReady ? null : (
+            <p className="mb-4 flex gap-2 rounded-lg border border-warn-200 bg-warn-50 p-3.5 text-sm text-warn-700">
+              <AlertIcon className="mt-0.5 size-4 shrink-0" />
+              {t.catalog.team.blocked(workflow?.minApprovers ?? APPROVERS_MIN)}
+            </p>
+          )}
           <ProjectTeam
             projectId={project.id}
             assignments={assignments}
             people={people}
-            locked={closed}
+            locked={closed || !workflowReady}
           />
         </div>
       </section>

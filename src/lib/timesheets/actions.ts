@@ -16,7 +16,7 @@ import {
   type TimesheetFormState,
 } from "./form-state";
 import { isTaskMinutes } from "./rules";
-import type { Timesheet } from "./types";
+import type { SubmissionConfirmation, Timesheet } from "./types";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -36,7 +36,11 @@ function parseDays(raw: string): DraftDayPayload[] {
   if (!Array.isArray(parsed)) return [];
 
   return parsed.flatMap((day) => {
-    if (!isRecord(day) || typeof day.date !== "string" || !ISO_DATE.test(day.date)) {
+    if (
+      !isRecord(day) ||
+      typeof day.date !== "string" ||
+      !ISO_DATE.test(day.date)
+    ) {
       return [];
     }
 
@@ -45,7 +49,9 @@ function parseDays(raw: string): DraftDayPayload[] {
       if (!isRecord(row)) return [];
 
       const minutes = Number(row.minutes);
-      const activity = String(row.activity ?? "").trim().slice(0, 255);
+      const activity = String(row.activity ?? "")
+        .trim()
+        .slice(0, 255);
 
       if (!isTaskMinutes(minutes)) return [];
 
@@ -58,8 +64,7 @@ function parseDays(raw: string): DraftDayPayload[] {
 
 function errorCopy(code: string, t: Dictionary): string | undefined {
   return (t.timesheets.errors as Record<string, unknown>)[code] as
-    | string
-    | undefined;
+    string | undefined;
 }
 
 function detailString(details: unknown, key: string): string | null {
@@ -101,6 +106,8 @@ function toErrorState(
     code,
     issues: readValidationIssues(details).map((issue) => issue.message),
     submissionCode: null,
+    routedTo: null,
+    notifications: null,
   };
 }
 
@@ -111,7 +118,7 @@ export async function saveTimesheetAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canSubmitTimesheets(actor.role.code)) {
+  if (!canSubmitTimesheets(actor)) {
     return {
       ...INITIAL_TIMESHEET_FORM_STATE,
       status: "error",
@@ -177,6 +184,7 @@ export async function saveTimesheetAction(
   }
 
   revalidatePath("/timesheets");
+  revalidatePath("/timesheets/new");
   revalidatePath("/dashboard");
 
   if (intent !== "submit") {
@@ -189,7 +197,7 @@ export async function saveTimesheetAction(
 
   const submitted = await apiRequest<{
     timesheet: Timesheet;
-    confirmation: { submissionCode: string };
+    confirmation: SubmissionConfirmation;
   }>(`/timesheets/${saved.data.timesheet.id}/submit`, {
     method: "POST",
     token,
@@ -200,14 +208,21 @@ export async function saveTimesheetAction(
     return toErrorState(submitted, t, projectStatus);
   }
 
+  const { confirmation } = submitted.data;
+
   revalidatePath("/timesheets");
+  revalidatePath("/timesheets/new");
   revalidatePath("/dashboard");
+  revalidatePath("/reviews");
+  revalidatePath("/notifications");
 
   return {
     ...INITIAL_TIMESHEET_FORM_STATE,
     status: "submitted",
     message: t.timesheets.submittedTitle,
-    submissionCode: submitted.data.confirmation.submissionCode,
+    submissionCode: confirmation.submissionCode,
+    routedTo: confirmation.currentStep,
+    notifications: confirmation.notifications,
   };
 }
 
@@ -218,7 +233,7 @@ export async function discardDraftAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canSubmitTimesheets(actor.role.code)) {
+  if (!canSubmitTimesheets(actor)) {
     return { status: "error", message: t.timesheets.errors.FORBIDDEN };
   }
 
@@ -246,6 +261,7 @@ export async function discardDraftAction(
   }
 
   revalidatePath("/timesheets");
+  revalidatePath("/timesheets/new");
   revalidatePath("/dashboard");
 
   return { status: "success", message: t.timesheets.drafts.discarded };

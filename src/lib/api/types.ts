@@ -1,3 +1,5 @@
+import type { PayTerms } from "@/lib/payroll/pay-terms";
+
 export type Role = {
   id: number;
   code: string;
@@ -13,6 +15,7 @@ export type AuthenticatedUser = {
   lastLoginAt: string | null;
   mustChangePassword: boolean;
   role: Role;
+  permissions: string[];
 };
 
 export type LoginResult = {
@@ -33,6 +36,7 @@ export type UserView = {
   mustChangePassword: boolean;
   lastLoginAt: string | null;
   role: Role;
+  permissions: string[];
 };
 
 export type UserProjectView = {
@@ -42,6 +46,8 @@ export type UserProjectView = {
   startDate: string;
   endDate: string | null;
   isActive: boolean;
+  assignmentCode: string | null;
+  payTerms: PayTerms;
   project: {
     id: number;
     projectName: string;

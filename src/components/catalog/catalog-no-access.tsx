@@ -1,8 +1,7 @@
 import { AlertIcon } from "@/components/icons";
 import { getDictionary } from "@/i18n/server";
-import { roleName } from "@/lib/users/roles";
 
-export async function CatalogNoAccess({ roleCode }: { roleCode: string }) {
+export async function CatalogNoAccess() {
   const t = await getDictionary();
 
   return (
@@ -14,7 +13,7 @@ export async function CatalogNoAccess({ roleCode }: { roleCode: string }) {
             {t.catalog.noAccessTitle}
           </h1>
           <p className="mt-1 text-sm text-ink-muted">
-            {t.catalog.noAccessBody(roleName(roleCode, t))}
+            {t.catalog.noAccessBody}
           </p>
         </div>
       </div>

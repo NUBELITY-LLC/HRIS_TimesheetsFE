@@ -1,5 +1,11 @@
+import Link from "next/link";
+
+import { ChevronRightIcon } from "@/components/icons";
 import { SubmissionsTable } from "@/components/dashboard/submissions-table";
-import { SummaryCards, type SummaryCard } from "@/components/dashboard/summary-cards";
+import {
+  SummaryCards,
+  type SummaryCard,
+} from "@/components/dashboard/summary-cards";
 import { getDictionary } from "@/i18n/server";
 import { formatMinutes } from "@/lib/timesheets/rules";
 import {
@@ -51,23 +57,20 @@ export async function PersonalDashboard() {
       <SubmissionsTable
         title={t.dashboard.recentTitle}
         submissions={submissions}
-        action="soon"
+        action="view"
         empty={{
           title: t.dashboard.emptyTitle,
           body: t.dashboard.emptyBody,
           cta: { href: "/timesheets", label: t.dashboard.emptyCta },
         }}
         headerAction={
-          <span
-            aria-disabled="true"
-            title={t.common.soon}
-            className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted"
+          <Link
+            href="/history"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted"
           >
             {t.dashboard.viewAll}
-            <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase">
-              {t.common.soon}
-            </span>
-          </span>
+            <ChevronRightIcon className="size-3.5" />
+          </Link>
         }
       />
     </>

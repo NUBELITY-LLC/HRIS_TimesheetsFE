@@ -88,7 +88,9 @@ export type UserFetchResult =
 
 export async function fetchUser(id: number): Promise<UserFetchResult> {
   const token = await getSessionToken();
-  const result = await apiRequest<{ user: UserView }>(`/users/${id}`, { token });
+  const result = await apiRequest<{ user: UserView }>(`/users/${id}`, {
+    token,
+  });
 
   if (result.ok) return { ok: true, user: result.data.user };
   if (result.status === 403) {
@@ -97,7 +99,9 @@ export async function fetchUser(id: number): Promise<UserFetchResult> {
   return { ok: false, reason: "not-found" };
 }
 
-export async function fetchUserProjects(id: number): Promise<UserProjectView[]> {
+export async function fetchUserProjects(
+  id: number,
+): Promise<UserProjectView[]> {
   const token = await getSessionToken();
   const result = await apiRequest<{ projects: UserProjectView[] }>(
     `/users/${id}/projects`,

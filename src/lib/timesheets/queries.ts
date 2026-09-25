@@ -1,6 +1,7 @@
 import "server-only";
 
 import { apiRequest } from "@/lib/api/client";
+import type { Pagination } from "@/lib/api/types";
 import { getSessionToken } from "@/lib/auth/session";
 import type {
   Assignment,
@@ -8,7 +9,6 @@ import type {
   TeamSummary,
   TeamTimesheet,
   Timesheet,
-  TimesheetReview,
   TimesheetStatus,
 } from "./types";
 
@@ -26,12 +26,10 @@ export const EMPTY_TEAM_SUMMARY: TeamSummary = {
 };
 
 export type AssignmentsResult =
-  | { ok: true; assignments: Assignment[] }
-  | { ok: false; message: string };
+  { ok: true; assignments: Assignment[] } | { ok: false; message: string };
 
 export type WeekResult =
-  | { ok: true; timesheet: Timesheet | null }
-  | { ok: false; message: string };
+  { ok: true; timesheet: Timesheet | null } | { ok: false; message: string };
 
 export async function fetchAssignments(): Promise<AssignmentsResult> {
   const token = await getSessionToken();
@@ -81,7 +79,7 @@ export async function fetchRecentSubmissions(
   const params = new URLSearchParams({
     page: "1",
     pageSize: String(pageSize),
-    status: "all",
+    status: "sent",
   });
   const result = await apiRequest<Timesheet[]>(
     `/timesheets/mine?${params.toString()}`,
@@ -121,21 +119,84 @@ export async function fetchDrafts(pageSize = 10): Promise<Timesheet[]> {
 }
 
 export async function fetchTeamSummary(): Promise<TeamSummary> {
-  return EMPTY_TEAM_SUMMARY;
+  const token = await getSessionToken();
+  const result = await apiRequest<{ summary: TeamSummary }>(
+    "/timesheets/team/summary",
+    { token },
+  );
+
+  return result.ok ? result.data.summary : EMPTY_TEAM_SUMMARY;
 }
 
-export async function fetchTeamSubmissions(): Promise<TeamTimesheet[]> {
-  return [];
+export async function fetchTeamSubmissions(
+  pageSize = 8,
+): Promise<TeamTimesheet[]> {
+  const token = await getSessionToken();
+  const params = new URLSearchParams({
+    page: "1",
+    pageSize: String(pageSize),
+    status: "all",
+  });
+
+  const result = await apiRequest<TeamTimesheet[]>(
+    `/timesheets/team?${params.toString()}`,
+    { token },
+  );
+
+  return result.ok ? result.data : [];
 }
 
-export async function fetchPendingReviews(): Promise<TeamTimesheet[]> {
-  return [];
+export type HistoryFilters = {
+  page: number;
+  pageSize: number;
+  status: TimesheetStatus | "all";
+};
+
+export const DEFAULT_HISTORY_FILTERS: HistoryFilters = {
+  page: 1,
+  pageSize: 10,
+  status: "all",
+};
+
+export type HistoryResult =
+  | { ok: true; submissions: Timesheet[]; pagination: Pagination }
+  | { ok: false; message: string };
+
+export async function fetchTimesheetHistory(
+  filters: HistoryFilters = DEFAULT_HISTORY_FILTERS,
+): Promise<HistoryResult> {
+  const token = await getSessionToken();
+  const params = new URLSearchParams({
+    page: String(filters.page),
+    pageSize: String(filters.pageSize),
+    status: filters.status,
+  });
+
+  const result = await apiRequest<Timesheet[]>(
+    `/timesheets/mine?${params.toString()}`,
+    { token },
+  );
+
+  if (!result.ok) return { ok: false, message: result.error.message };
+
+  return {
+    ok: true,
+    submissions: result.data,
+    pagination: result.pagination ?? {
+      page: filters.page,
+      pageSize: filters.pageSize,
+      total: result.data.length,
+      totalPages: 1,
+    },
+  };
 }
 
-export async function fetchTimesheetReview(
-  id: string,
-): Promise<TimesheetReview | null> {
-  return REVIEWS.get(id) ?? null;
-}
+export async function fetchMyTimesheet(id: number): Promise<Timesheet | null> {
+  const token = await getSessionToken();
+  const result = await apiRequest<{ timesheet: Timesheet }>(
+    `/timesheets/${id}`,
+    { token },
+  );
 
-const REVIEWS = new Map<string, TimesheetReview>();
+  return result.ok ? result.data.timesheet : null;
+}

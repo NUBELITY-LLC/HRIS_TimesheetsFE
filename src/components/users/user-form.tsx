@@ -11,8 +11,21 @@ import {
   type UserFormState,
   type UserFormValues,
 } from "@/lib/users/form-state";
-import { canHaveProject, requiresProject, type RoleOption } from "@/lib/users/roles";
-import type { ProjectView } from "@/lib/catalog/types";
+import {
+  canHaveProject,
+  defaultPermissionsFor,
+  grantablePermissionCodes,
+  hasFixedPermissions,
+  PERMISSION_CODES,
+  requiresProject,
+  roleName,
+  type RoleOption,
+  type Viewer,
+} from "@/lib/users/roles";
+import {
+  ASSIGNMENT_CODE_MAX,
+  type ProjectView,
+} from "@/lib/catalog/types";
 import { useDictionary } from "@/i18n/provider";
 
 const INPUT_BASE =
@@ -55,32 +68,153 @@ function Field({
 
 type UserFormProps = {
   mode: "create" | "edit";
+  actor: Viewer;
   roles: RoleOption[];
   projects?: ProjectView[];
   defaultValues?: UserFormValues;
   userId?: number;
   canChangeRole?: boolean;
+  canChangePermissions?: boolean;
   canChangeStatus?: boolean;
 };
 
+type PermissionFieldsProps = {
+  actor: Viewer;
+  roleCode: string;
+  initialRoleCode: string;
+  initialPermissions: string[];
+  error?: string;
+  canChange: boolean;
+  isPending: boolean;
+};
+
+function PermissionFields({
+  actor,
+  roleCode,
+  initialRoleCode,
+  initialPermissions,
+  error,
+  canChange,
+  isPending,
+}: PermissionFieldsProps) {
+  const t = useDictionary();
+  const [selection, setSelection] = useState({
+    roleCode: initialRoleCode,
+    permissions: initialPermissions,
+  });
+
+  if (selection.roleCode !== roleCode) {
+    setSelection({
+      roleCode,
+      permissions:
+        roleCode === initialRoleCode
+          ? initialPermissions
+          : defaultPermissionsFor(roleCode),
+    });
+  }
+
+  if (!roleCode) return null;
+
+  const fixed = hasFixedPermissions(roleCode);
+  const editable = canChange && !fixed;
+  const current = roleCode === initialRoleCode ? initialPermissions : [];
+  const grantable = grantablePermissionCodes(actor, roleCode, current);
+  const permissions = fixed
+    ? defaultPermissionsFor(roleCode)
+    : selection.permissions;
+
+  function toggle(code: string, checked: boolean) {
+    setSelection((prev) => ({
+      ...prev,
+      permissions: checked
+        ? [...prev.permissions, code]
+        : prev.permissions.filter((item) => item !== code),
+    }));
+  }
+
+  const hint = fixed
+    ? t.users.form.permissionsFixedHint
+    : canChange
+      ? t.users.form.permissionsHint
+      : t.users.form.permissionsLockedHint;
+
+  return (
+    <fieldset className="space-y-3 rounded-lg border border-line p-4">
+      <legend className="px-1 text-sm font-semibold text-ink">
+        {t.users.form.permissionsSection}
+      </legend>
+      <p className="text-xs text-ink-muted">{hint}</p>
+
+      {editable ? (
+        <>
+          <input type="hidden" name="permissionsEditable" value="1" />
+          {permissions.map((code) => (
+            <input key={code} type="hidden" name="permissions" value={code} />
+          ))}
+        </>
+      ) : null}
+
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {PERMISSION_CODES.map((code) => {
+          const checked = permissions.includes(code);
+          const disabled =
+            isPending || !editable || !grantable.includes(code);
+
+          return (
+            <li key={code}>
+              <label
+                className={`flex h-full items-start gap-3 rounded-lg border border-line p-3 ${
+                  disabled ? "bg-surface-muted opacity-70" : "bg-white"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={disabled}
+                  onChange={(event) => toggle(code, event.target.checked)}
+                  className="mt-0.5 size-4 rounded border-line text-brand-600 focus:ring-brand-100"
+                />
+                <span className="text-sm">
+                  <span className="block font-medium text-ink">
+                    {t.permissions[code].name}
+                  </span>
+                  <span className="block text-xs text-ink-muted">
+                    {t.permissions[code].description}
+                  </span>
+                </span>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+
+      {error ? <p className="text-xs text-danger-600">{error}</p> : null}
+    </fieldset>
+  );
+}
+
 type RoleFieldsProps = {
   ids: { roleCode: string; jobTitle: string };
+  actor: Viewer;
   values: UserFormValues;
   fieldErrors: UserFormState["fieldErrors"];
   roles: RoleOption[];
   projects: ProjectView[];
   canChangeRole: boolean;
+  canChangePermissions: boolean;
   isPending: boolean;
   isCreate: boolean;
 };
 
 function RoleFields({
   ids,
+  actor,
   values,
   fieldErrors,
   roles,
   projects,
   canChangeRole,
+  canChangePermissions,
   isPending,
   isCreate,
 }: RoleFieldsProps) {
@@ -91,6 +225,7 @@ function RoleFields({
     projectPayRate: useId(),
     projectStartDate: useId(),
     projectEndDate: useId(),
+    projectAssignmentCode: useId(),
   };
 
   const showProjects = isCreate && canHaveProject(roleCode);
@@ -120,7 +255,13 @@ function RoleFields({
                 {role.name}
               </option>
             ))}
+            {roleCode && !roles.some((role) => role.code === roleCode) ? (
+              <option value={roleCode}>{roleName(roleCode, t)}</option>
+            ) : null}
           </select>
+          {canChangeRole ? null : (
+            <input type="hidden" name="roleCode" value={roleCode} />
+          )}
         </Field>
 
         <Field
@@ -143,6 +284,16 @@ function RoleFields({
           />
         </Field>
       </div>
+
+      <PermissionFields
+        actor={actor}
+        roleCode={roleCode}
+        initialRoleCode={values.roleCode}
+        initialPermissions={values.permissions}
+        error={fieldErrors.permissions}
+        canChange={canChangePermissions}
+        isPending={isPending}
+      />
 
       {showProjects ? (
         <fieldset className="space-y-5 rounded-lg border border-line p-4">
@@ -228,6 +379,28 @@ function RoleFields({
                 className={inputClass(Boolean(fieldErrors.projectEndDate))}
               />
             </Field>
+
+            <Field
+              id={projectIds.projectAssignmentCode}
+              label={t.users.form.assignmentCode}
+              error={fieldErrors.projectAssignmentCode}
+              hint={t.users.form.assignmentCodeHint}
+            >
+              <input
+                id={projectIds.projectAssignmentCode}
+                name="projectAssignmentCode"
+                type="text"
+                autoComplete="off"
+                maxLength={ASSIGNMENT_CODE_MAX}
+                placeholder={t.users.form.assignmentCodePlaceholder}
+                defaultValue={values.projectAssignmentCode}
+                disabled={isPending}
+                aria-invalid={Boolean(fieldErrors.projectAssignmentCode)}
+                className={inputClass(
+                  Boolean(fieldErrors.projectAssignmentCode),
+                )}
+              />
+            </Field>
           </div>
         </fieldset>
       ) : null}
@@ -237,11 +410,13 @@ function RoleFields({
 
 export function UserForm({
   mode,
+  actor,
   roles,
   projects = [],
   defaultValues,
   userId,
   canChangeRole = true,
+  canChangePermissions = true,
   canChangeStatus = true,
 }: UserFormProps) {
   const t = useDictionary();
@@ -388,11 +563,13 @@ export function UserForm({
 
         <RoleFields
           ids={{ roleCode: ids.roleCode, jobTitle: ids.jobTitle }}
+          actor={actor}
           values={values}
           fieldErrors={fieldErrors}
           roles={roles}
           projects={projects}
           canChangeRole={canChangeRole}
+          canChangePermissions={canChangePermissions}
           isPending={isPending}
           isCreate={isCreate}
         />

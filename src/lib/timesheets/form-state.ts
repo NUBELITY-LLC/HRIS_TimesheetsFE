@@ -1,9 +1,13 @@
+import type { ApprovalStep, SubmissionNotifications } from "./types";
+
 export type TimesheetFormState = {
   status: "idle" | "draft" | "submitted" | "error";
   message: string | null;
   code: string | null;
   issues: string[];
   submissionCode: string | null;
+  routedTo: ApprovalStep | null;
+  notifications: SubmissionNotifications | null;
 };
 
 export const INITIAL_TIMESHEET_FORM_STATE: TimesheetFormState = {
@@ -12,6 +16,8 @@ export const INITIAL_TIMESHEET_FORM_STATE: TimesheetFormState = {
   code: null,
   issues: [],
   submissionCode: null,
+  routedTo: null,
+  notifications: null,
 };
 
 export type DraftActionState = {

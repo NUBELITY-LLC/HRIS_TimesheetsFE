@@ -1,8 +1,12 @@
 import Link from "next/link";
 
 import { SubmissionsTable } from "@/components/dashboard/submissions-table";
-import { SummaryCards, type SummaryCard } from "@/components/dashboard/summary-cards";
+import {
+  SummaryCards,
+  type SummaryCard,
+} from "@/components/dashboard/summary-cards";
 import { getDictionary } from "@/i18n/server";
+import { fetchPendingApprovalIndex } from "@/lib/approvals/queries";
 import { formatMinutes } from "@/lib/timesheets/rules";
 import {
   fetchTeamSubmissions,
@@ -12,9 +16,10 @@ import {
 export async function AdminDashboard() {
   const t = await getDictionary();
 
-  const [summary, submissions] = await Promise.all([
+  const [summary, submissions, pending] = await Promise.all([
     fetchTeamSummary(),
     fetchTeamSubmissions(),
+    fetchPendingApprovalIndex(),
   ]);
 
   const cards: SummaryCard[] = [
@@ -29,7 +34,7 @@ export async function AdminDashboard() {
     {
       key: "pending",
       label: t.dashboard.pendingReviewTitle,
-      value: t.dashboard.pendingValue(summary.pendingReviewCount),
+      value: t.dashboard.pendingValue(pending.total),
       hint: t.dashboard.pendingReviewHint,
       icon: "pending",
       tone: "warn",
@@ -52,6 +57,7 @@ export async function AdminDashboard() {
         submissions={submissions}
         action="review"
         showOwner
+        approvalIdByTimesheet={pending.approvalIdByTimesheet}
         empty={{
           title: t.dashboard.teamEmptyTitle,
           body: t.dashboard.teamEmptyBody,
