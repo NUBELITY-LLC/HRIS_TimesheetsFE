@@ -89,11 +89,9 @@ export async function ApprovalDetailView({
             {approval.submissionCode ?? t.common.none}
           </span>
         </div>
-        {approval.canSeeActivities ? (
-          <div className="mt-3">
-            <ExportLinks basePath={`/reviews/${approval.approvalId}/export`} />
-          </div>
-        ) : null}
+        <div className="mt-3">
+          <ExportLinks basePath={`/reviews/${approval.approvalId}/export`} />
+        </div>
       </div>
 
       <section className="rounded-xl border border-line bg-surface p-5 shadow-sm">
