@@ -7,6 +7,7 @@ import { AlertIcon, SpinnerIcon } from "@/components/icons";
 import { changePasswordAction } from "@/lib/auth/actions";
 import { INITIAL_CHANGE_PASSWORD_STATE } from "@/lib/auth/change-password-state";
 import { useDictionary } from "@/i18n/provider";
+import { submitKeepingValues } from "@/lib/forms/submit";
 
 export function ChangePasswordForm({
   nextPath,
@@ -23,7 +24,7 @@ export function ChangePasswordForm({
   const errorId = useId();
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form onSubmit={submitKeepingValues(formAction)} className="space-y-5" noValidate>
       <input type="hidden" name="next" value={nextPath} />
 
       {state.message ? (

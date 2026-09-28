@@ -12,7 +12,7 @@ import {
   type PayAssignmentFilters,
 } from "@/lib/payroll/pay-terms";
 import { fetchPayAssignments } from "@/lib/payroll/queries";
-import { canManagePayroll } from "@/lib/users/roles";
+import { canManageCatalog, canManagePayroll } from "@/lib/users/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
@@ -159,7 +159,11 @@ export default async function PayTermsPage({
         ) : (
           <ul className="divide-y divide-line">
             {result.assignments.map((assignment) => (
-              <PayTermsRow key={assignment.id} assignment={assignment} />
+              <PayTermsRow
+                key={assignment.id}
+                assignment={assignment}
+                canEditRates={canManagePayroll(actor) || canManageCatalog(actor)}
+              />
             ))}
           </ul>
         )}

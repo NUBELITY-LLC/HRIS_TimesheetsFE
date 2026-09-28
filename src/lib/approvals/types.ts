@@ -4,6 +4,7 @@ import type {
   TimesheetStatus,
 } from "@/lib/timesheets/types";
 import type { PaySummary } from "@/lib/payroll/pay-terms";
+import type { TimesheetAttachment } from "@/lib/timesheets/types";
 
 export type PendingApproval = {
   approvalId: number;
@@ -25,6 +26,7 @@ export type PendingApproval = {
   hourlyRate?: number | null;
   currency?: string;
   amount?: number | null;
+  pay?: PaySummary | null;
   submittedAt: string | null;
   assignmentCode: string | null;
   consultant: { id: number; name: string };
@@ -110,6 +112,7 @@ export type ApprovalAttachment = {
 export type ApprovalTimelineStep = ApprovalStepSummary & {
   status: ApprovalStatus;
   decidedAt: string | null;
+  decidedBy: { id: number; name: string } | null;
   comments: string | null;
 };
 
@@ -148,6 +151,7 @@ export type ApprovalDetail = {
   days: ApprovalDay[];
   steps: ApprovalTimelineStep[];
   attachments: ApprovalAttachment[];
+  timesheetAttachments: TimesheetAttachment[];
 };
 
 export type DecisionKind =

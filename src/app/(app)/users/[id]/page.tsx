@@ -8,6 +8,7 @@ import { UserForm } from "@/components/users/user-form";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
 import { fetchUser, fetchUserProjects } from "@/lib/users/queries";
+import { DEFAULT_CURRENCY, DEFAULT_RATE_PERIOD } from "@/lib/rates/rates";
 import {
   canGrantRole,
   canHaveProject,
@@ -97,6 +98,9 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
               isActive: user.isActive,
               projectId: "",
               projectPayRate: "",
+              projectCurrency: DEFAULT_CURRENCY,
+              projectRatePeriod: DEFAULT_RATE_PERIOD,
+              projectContractType: "CONTRACTOR",
               projectStartDate: "",
               projectEndDate: "",
               projectAssignmentCode: "",

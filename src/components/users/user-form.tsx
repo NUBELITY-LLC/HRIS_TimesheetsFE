@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useActionState, useId, useState } from "react";
 
 import { PasswordField } from "@/components/ui/password-field";
+import { RolesHelp } from "@/components/users/roles-help";
 import { AlertIcon, CheckIcon, SpinnerIcon } from "@/components/icons";
+import {
+  ContractTypeSelect,
+  CurrencySelect,
+  RatePeriodSelect,
+} from "@/components/rates/rate-selects";
 import { createUserAction, updateUserAction } from "@/lib/users/actions";
 import {
   INITIAL_USER_FORM_STATE,
@@ -27,6 +33,9 @@ import {
   type ProjectView,
 } from "@/lib/catalog/types";
 import { useDictionary } from "@/i18n/provider";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
+import { useConfirmedSubmit } from "@/components/ui/use-confirm";
 
 const INPUT_BASE =
   "w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted";
@@ -41,21 +50,26 @@ function inputClass(hasError: boolean) {
 function Field({
   id,
   label,
+  labelAside,
   error,
   hint,
   children,
 }: {
   id: string;
   label: string;
+  labelAside?: React.ReactNode;
   error?: string;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-medium text-ink-soft">
-        {label}
-      </label>
+      <div className="flex items-center gap-1.5">
+        <label htmlFor={id} className="block text-sm font-medium text-ink-soft">
+          {label}
+        </label>
+        {labelAside}
+      </div>
       {children}
       {error ? (
         <p className="text-xs text-danger-600">{error}</p>
@@ -220,9 +234,16 @@ function RoleFields({
 }: RoleFieldsProps) {
   const t = useDictionary();
   const [roleCode, setRoleCode] = useState(values.roleCode);
+  const [projectId, setProjectId] = useState(values.projectId);
+  const selectedProject =
+    projects.find((project) => String(project.id) === projectId) ?? null;
+  const keepTypedDates = projectId === values.projectId;
   const projectIds = {
     projectId: useId(),
     projectPayRate: useId(),
+    projectCurrency: useId(),
+    projectRatePeriod: useId(),
+    projectContractType: useId(),
     projectStartDate: useId(),
     projectEndDate: useId(),
     projectAssignmentCode: useId(),
@@ -237,6 +258,7 @@ function RoleFields({
         <Field
           id={ids.roleCode}
           label={t.users.form.role}
+          labelAside={<RolesHelp roles={roles} />}
           error={fieldErrors.roleCode}
           hint={canChangeRole ? undefined : t.users.form.roleLockedHint}
         >
@@ -309,7 +331,8 @@ function RoleFields({
             <select
               id={projectIds.projectId}
               name="projectId"
-              defaultValue={values.projectId}
+              value={projectId}
+              onChange={(event) => setProjectId(event.target.value)}
               disabled={isPending}
               aria-invalid={Boolean(fieldErrors.projectId)}
               className={inputClass(Boolean(fieldErrors.projectId))}
@@ -341,10 +364,44 @@ function RoleFields({
                 inputMode="decimal"
                 autoComplete="off"
                 maxLength={13}
+                placeholder="0"
                 defaultValue={values.projectPayRate}
                 disabled={isPending}
                 aria-invalid={Boolean(fieldErrors.projectPayRate)}
                 className={inputClass(Boolean(fieldErrors.projectPayRate))}
+              />
+            </Field>
+
+            <Field id={projectIds.projectCurrency} label={t.rates.currency}>
+              <CurrencySelect
+                id={projectIds.projectCurrency}
+                name="projectCurrency"
+                defaultValue={values.projectCurrency}
+                disabled={isPending}
+                className={inputClass(false)}
+              />
+            </Field>
+
+            <Field id={projectIds.projectRatePeriod} label={t.rates.period}>
+              <RatePeriodSelect
+                id={projectIds.projectRatePeriod}
+                name="projectRatePeriod"
+                defaultValue={values.projectRatePeriod}
+                disabled={isPending}
+                className={inputClass(false)}
+              />
+            </Field>
+
+            <Field
+              id={projectIds.projectContractType}
+              label={t.payTerms.contractType}
+            >
+              <ContractTypeSelect
+                id={projectIds.projectContractType}
+                name="projectContractType"
+                defaultValue={values.projectContractType}
+                disabled={isPending}
+                className={inputClass(false)}
               />
             </Field>
 
@@ -354,10 +411,17 @@ function RoleFields({
               error={fieldErrors.projectStartDate}
             >
               <input
+                key={`start-${projectId}`}
                 id={projectIds.projectStartDate}
                 name="projectStartDate"
                 type="date"
-                defaultValue={values.projectStartDate}
+                defaultValue={
+                  keepTypedDates && values.projectStartDate
+                    ? values.projectStartDate
+                    : (selectedProject?.startDate ?? "")
+                }
+                min={selectedProject?.startDate ?? undefined}
+                max={selectedProject?.endDate ?? undefined}
                 disabled={isPending}
                 aria-invalid={Boolean(fieldErrors.projectStartDate)}
                 className={inputClass(Boolean(fieldErrors.projectStartDate))}
@@ -370,10 +434,17 @@ function RoleFields({
               error={fieldErrors.projectEndDate}
             >
               <input
+                key={`end-${projectId}`}
                 id={projectIds.projectEndDate}
                 name="projectEndDate"
                 type="date"
-                defaultValue={values.projectEndDate}
+                defaultValue={
+                  keepTypedDates && values.projectEndDate
+                    ? values.projectEndDate
+                    : (selectedProject?.endDate ?? "")
+                }
+                min={selectedProject?.startDate ?? undefined}
+                max={selectedProject?.endDate ?? undefined}
                 disabled={isPending}
                 aria-invalid={Boolean(fieldErrors.projectEndDate)}
                 className={inputClass(Boolean(fieldErrors.projectEndDate))}
@@ -429,6 +500,8 @@ export function UserForm({
     isCreate ? createUserAction : updateUserAction,
     initialState,
   );
+  const feedback = useFeedbackSlot();
+  const { guard: confirmGuard, dialog: confirmDialog } = useConfirmedSubmit();
 
   const ids = {
     fullName: useId(),
@@ -445,10 +518,21 @@ export function UserForm({
     : (state.savedUser?.userName ?? "edit");
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form onSubmit={submitKeepingValues(
+        feedback.track(formAction),
+        confirmGuard({
+          title: isCreate
+            ? t.confirmations.createUser.title
+            : t.confirmations.saveUser.title,
+          confirmLabel: isCreate
+            ? t.confirmations.createUser.confirm
+            : t.confirmations.saveUser.confirm,
+        }),
+      )} className="space-y-5" noValidate>
+      {confirmDialog}
       {userId ? <input type="hidden" name="id" value={userId} /> : null}
 
-      {state.status === "success" && state.savedUser ? (
+      {feedback.visible && state.status === "success" && state.savedUser ? (
         <div
           role="status"
           aria-live="polite"
@@ -470,7 +554,7 @@ export function UserForm({
         </div>
       ) : null}
 
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <div
           role="alert"
           aria-live="assertive"

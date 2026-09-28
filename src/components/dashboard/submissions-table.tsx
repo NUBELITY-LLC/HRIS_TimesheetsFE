@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ApprovalProgress } from "@/components/dashboard/approval-progress";
 import { TimesheetStatusBadge } from "@/components/dashboard/timesheet-status-badge";
 import { getDictionary, getLocale } from "@/i18n/server";
+import { decisionSummary } from "@/lib/timesheets/approvals";
 import { formatMinutes } from "@/lib/timesheets/rules";
 import type { Timesheet, TimesheetOwner } from "@/lib/timesheets/types";
 import { formatWeekRange } from "@/lib/timesheets/week";
@@ -131,14 +132,14 @@ export async function SubmissionsTable({
                     </td>
                     <td className="px-5 py-3.5">
                       <TimesheetStatusBadge status={submission.status} />
-                      {rejection?.comments ? (
+                      {rejection ? (
                         <p className="mt-1.5 max-w-56 text-xs text-danger-700">
                           <span className="font-medium">
-                            {t.dashboard.rejectionReason(
-                              rejection.approverName ?? t.common.unknown,
-                            )}
-                          </span>{" "}
-                          {rejection.comments}
+                            {decisionSummary(rejection, t, locale)}
+                          </span>
+                          {rejection.comments
+                            ? `: ${rejection.comments}`
+                            : null}
                         </p>
                       ) : null}
                     </td>
@@ -162,12 +163,19 @@ export async function SubmissionsTable({
                             {t.common.none}
                           </span>
                         )
-                      ) : submission.status === "DRAFT" ? (
+                      ) : submission.status === "DRAFT" ||
+                        submission.status === "REJECTED" ? (
                         <Link
                           href={`/timesheets/new?assignmentId=${submission.assignmentId}&weekStart=${submission.weekStart}`}
-                          className="inline-flex rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted"
+                          className={
+                            submission.status === "REJECTED"
+                              ? "inline-flex rounded-lg bg-danger-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-danger-700"
+                              : "inline-flex rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted"
+                          }
                         >
-                          {t.dashboard.resume}
+                          {submission.status === "REJECTED"
+                            ? t.dashboard.fix
+                            : t.dashboard.resume}
                         </Link>
                       ) : (
                         <Link

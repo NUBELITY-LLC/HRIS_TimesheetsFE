@@ -8,14 +8,13 @@ import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
 import {
   DEFAULT_HISTORY_FILTERS,
-  fetchTimesheetHistory,
-  type HistoryFilters,
+  fetchAllTimesheetHistory,
 } from "@/lib/timesheets/queries";
 import {
   TIMESHEET_STATUSES,
   type TimesheetStatus,
 } from "@/lib/timesheets/types";
-import { fetchDecisionHistory } from "@/lib/approvals/queries";
+import { fetchAllDecisionHistory } from "@/lib/approvals/queries";
 import {
   canReviewTimesheets,
   canSubmitTimesheets,
@@ -35,23 +34,15 @@ function firstParam(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
-function parseFilters(
+function parseStatus(
   params: Record<string, string | string[] | undefined>,
-): HistoryFilters {
-  const page = Number(firstParam(params.page));
+): TimesheetStatus | "all" {
   const status = firstParam(params.status);
 
-  return {
-    ...DEFAULT_HISTORY_FILTERS,
-    page: Number.isInteger(page) && page > 0 ? page : 1,
-    status:
-      STATUS_OPTIONS.find((candidate) => candidate === status) ??
-      DEFAULT_HISTORY_FILTERS.status,
-  };
-}
-
-function href(filters: HistoryFilters, page: number): string {
-  return `/history?tab=submissions&status=${filters.status}&page=${page}`;
+  return (
+    STATUS_OPTIONS.find((candidate) => candidate === status) ??
+    DEFAULT_HISTORY_FILTERS.status
+  );
 }
 
 export default async function HistoryPage({
@@ -82,7 +73,7 @@ export default async function HistoryPage({
   }
 
   const params = await searchParams;
-  const filters = parseFilters(params);
+  const status = parseStatus(params);
   const tab =
     firstParam(params.tab) === "decisions" || !submits
       ? "decisions"
@@ -90,10 +81,10 @@ export default async function HistoryPage({
 
   const [result, decisions] = await Promise.all([
     tab === "submissions" && submits
-      ? fetchTimesheetHistory(filters)
+      ? fetchAllTimesheetHistory(status)
       : Promise.resolve(null),
     tab === "decisions" && reviews
-      ? fetchDecisionHistory({ page: filters.page, pageSize: filters.pageSize })
+      ? fetchAllDecisionHistory()
       : Promise.resolve(null),
   ]);
 
@@ -121,7 +112,7 @@ export default async function HistoryPage({
           {(["submissions", "decisions"] as const).map((option) => (
             <Link
               key={option}
-              href={`/history?tab=${option}&page=1`}
+              href={`/history?tab=${option}`}
               aria-current={tab === option ? "page" : undefined}
               className={`flex-1 rounded-md px-3 py-1.5 text-center text-xs font-semibold transition-colors ${
                 tab === option
@@ -140,13 +131,13 @@ export default async function HistoryPage({
           className="flex flex-wrap gap-2"
           aria-label={t.history.filterLabel}
         >
-          {STATUS_OPTIONS.map((status) => {
-            const active = status === filters.status;
+          {STATUS_OPTIONS.map((option) => {
+            const active = option === status;
 
             return (
               <Link
-                key={status}
-                href={`/history?tab=submissions&status=${status}&page=1`}
+                key={option}
+                href={`/history?tab=submissions&status=${option}`}
                 aria-current={active ? "page" : undefined}
                 className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                   active
@@ -154,9 +145,9 @@ export default async function HistoryPage({
                     : "border-line bg-surface text-ink-soft hover:bg-surface-muted"
                 }`}
               >
-                {status === "all"
+                {option === "all"
                   ? t.history.filterAll
-                  : t.timesheetStatus[status]}
+                  : t.timesheetStatus[option]}
               </Link>
             );
           })}
@@ -173,33 +164,9 @@ export default async function HistoryPage({
                 body: t.history.decisions.emptyBody,
               }}
             />
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <p className="text-ink-muted">
-                {t.history.decisions.summary(
-                  decisions.pagination.total,
-                  decisions.pagination.page,
-                  Math.max(decisions.pagination.totalPages, 1),
-                )}
-              </p>
-              <div className="flex gap-2">
-                {decisions.pagination.page > 1 ? (
-                  <Link
-                    href={`/history?tab=decisions&page=${decisions.pagination.page - 1}`}
-                    className="rounded-lg border border-line px-3 py-2 font-medium text-ink-soft transition-colors hover:bg-surface-muted"
-                  >
-                    {t.common.previous}
-                  </Link>
-                ) : null}
-                {decisions.pagination.page < decisions.pagination.totalPages ? (
-                  <Link
-                    href={`/history?tab=decisions&page=${decisions.pagination.page + 1}`}
-                    className="rounded-lg border border-line px-3 py-2 font-medium text-ink-soft transition-colors hover:bg-surface-muted"
-                  >
-                    {t.common.next}
-                  </Link>
-                ) : null}
-              </div>
-            </div>
+            <p className="text-sm text-ink-muted">
+              {t.history.decisions.summary(decisions.decisions.length)}
+            </p>
           </>
         ) : (
           <div className="flex gap-3 rounded-xl border border-danger-200 bg-danger-50 p-5">
@@ -221,33 +188,9 @@ export default async function HistoryPage({
             }}
           />
 
-          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-            <p className="text-ink-muted">
-              {t.history.summary(
-                result.pagination.total,
-                result.pagination.page,
-                Math.max(result.pagination.totalPages, 1),
-              )}
-            </p>
-            <div className="flex gap-2">
-              {result.pagination.page > 1 ? (
-                <Link
-                  href={href(filters, result.pagination.page - 1)}
-                  className="rounded-lg border border-line px-3 py-2 font-medium text-ink-soft transition-colors hover:bg-surface-muted"
-                >
-                  {t.common.previous}
-                </Link>
-              ) : null}
-              {result.pagination.page < result.pagination.totalPages ? (
-                <Link
-                  href={href(filters, result.pagination.page + 1)}
-                  className="rounded-lg border border-line px-3 py-2 font-medium text-ink-soft transition-colors hover:bg-surface-muted"
-                >
-                  {t.common.next}
-                </Link>
-              ) : null}
-            </div>
-          </div>
+          <p className="text-sm text-ink-muted">
+            {t.history.summary(result.submissions.length)}
+          </p>
         </>
       ) : (
         <div className="flex gap-3 rounded-xl border border-danger-200 bg-danger-50 p-5">

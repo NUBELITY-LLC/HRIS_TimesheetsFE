@@ -11,6 +11,9 @@ import {
   type PayrollRules,
   type PayrollRulesField,
 } from "@/lib/payroll/pay-terms";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
+import { useConfirmedSubmit } from "@/components/ui/use-confirm";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink tabular-nums transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted";
@@ -37,15 +40,25 @@ export function PayrollRulesForm({ rules }: { rules: PayrollRules }) {
     savePayrollRulesAction,
     INITIAL_PAYROLL_RULES_FORM_STATE,
   );
+  const feedback = useFeedbackSlot();
+  const { guard: confirmGuard, dialog: confirmDialog } = useConfirmedSubmit();
   const baseId = useId();
 
   return (
     <form
       key={state.values ? JSON.stringify(state.values) : "saved"}
-      action={formAction}
+      onSubmit={submitKeepingValues(
+        feedback.track(formAction),
+        confirmGuard({
+          title: t.confirmations.savePayrollRules.title,
+          body: t.confirmations.savePayrollRules.body,
+          confirmLabel: t.confirmations.savePayrollRules.confirm,
+        }),
+      )}
       className="space-y-5"
       noValidate
     >
+      {confirmDialog}
       <input type="hidden" name="countryCode" value={rules.countryCode} />
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -76,7 +89,7 @@ export function PayrollRulesForm({ rules }: { rules: PayrollRules }) {
         ))}
       </div>
 
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <p
           role="alert"
           className="flex items-center gap-2 text-sm text-danger-700"
@@ -86,7 +99,7 @@ export function PayrollRulesForm({ rules }: { rules: PayrollRules }) {
         </p>
       ) : null}
 
-      {state.status === "success" && state.message ? (
+      {feedback.visible && state.status === "success" && state.message ? (
         <p className="flex items-center gap-2 text-sm text-success-700">
           <CheckIcon className="size-4 shrink-0" />
           {state.message}

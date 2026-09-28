@@ -16,6 +16,7 @@ import { isProjectClosed, projectLifecycleLabel } from "@/lib/catalog/lifecycle"
 import { formatDayAndMonth, fromISODate } from "@/lib/timesheets/week";
 import { canManageCatalog } from "@/lib/users/roles";
 import type { Locale } from "@/i18n/config";
+import { CreatedNotice } from "@/components/catalog/created-notice";
 
 const PROJECT_STATUS_FILTERS: ProjectStatusFilter[] = ["ACTIVE", "CLOSED", "all"];
 
@@ -66,7 +67,10 @@ export default async function ProjectsPage({
     return <CatalogNoAccess />;
   }
 
-  const filters = parseFilters(await searchParams);
+  const params = await searchParams;
+  const filters = parseFilters(params);
+  const created = firstParam(params.created);
+  const createdId = Number(firstParam(params.createdId));
   const [result, clients] = await Promise.all([
     fetchProjects(filters),
     fetchActiveClients(),
@@ -89,6 +93,20 @@ export default async function ProjectsPage({
           {t.catalog.projects.newProject}
         </Link>
       </header>
+
+      {created ? (
+        <CreatedNotice
+          message={t.catalog.projects.createdBanner(created)}
+          action={
+            Number.isInteger(createdId) && createdId > 0
+              ? {
+                  href: `/projects/${createdId}`,
+                  label: t.catalog.projects.configureFlow,
+                }
+              : undefined
+          }
+        />
+      ) : null}
 
       <form
         action="/projects"

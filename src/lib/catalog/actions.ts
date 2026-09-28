@@ -8,10 +8,12 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { apiRequest, type ApiResult } from "@/lib/api/client";
 import { readValidationIssues } from "@/lib/api/types";
 import { getSessionToken, requireUser } from "@/lib/auth/session";
+import { readRateTerms } from "@/lib/rates/rates";
 import {
   APPROVER_ROLE_CODES,
   canBeManagerClient,
   canManageCatalog,
+  canManagePayroll,
 } from "@/lib/users/roles";
 import { fetchUser } from "@/lib/users/queries";
 import type { ApproverType } from "@/lib/timesheets/types";
@@ -213,6 +215,10 @@ export async function saveCompanyAction(
 
   const company = result.data.company;
 
+  if (!id) {
+    redirect(`/companies?created=${encodeURIComponent(company.tradeName)}`);
+  }
+
   return {
     status: "success",
     message: null,
@@ -331,6 +337,10 @@ export async function saveClientAction(
 
   const client = result.data.client;
 
+  if (!id) {
+    redirect(`/managers?created=${encodeURIComponent(client.clientName)}`);
+  }
+
   return {
     status: "success",
     message: null,
@@ -434,7 +444,11 @@ export async function saveProjectAction(
 
   const project = result.data.project;
 
-  if (!id) redirect(`/projects/${project.id}?created=1`);
+  if (!id) {
+    redirect(
+      `/projects?created=${encodeURIComponent(project.projectName)}&createdId=${project.id}`,
+    );
+  }
 
   return {
     status: "success",
@@ -622,10 +636,13 @@ export async function saveApprovalStepsAction(
   if (!result.ok) {
     if (result.status === 401) redirect("/login?reason=session_expired");
 
+    const code = detailCode(result.error.details);
     const message =
-      detailCode(result.error.details) === "APPROVER_WITHOUT_PERMISSION"
+      code === "APPROVER_WITHOUT_PERMISSION"
         ? t.catalog.errors.approverWithoutPermission
-        : (errorCopy(result.error.code, t) ??
+        : code === "PROJECT_MANAGER_LANE_REQUIRED"
+          ? t.catalog.errors.projectManagerLaneRequired
+          : (errorCopy(result.error.code, t) ??
           result.error.message ??
           t.catalog.errors.fallback);
     const errors = stepErrorsFrom(result.error.details, message);
@@ -830,6 +847,7 @@ function assignmentFieldErrors(
 }
 
 function revalidateAssignments(projectId: number, consultantId?: number): void {
+  revalidatePath("/pay-terms");
   revalidatePath(`/projects/${projectId}`);
   revalidatePath(`/projects/${projectId}/team`);
   revalidatePath("/timesheets");
@@ -859,7 +877,7 @@ export async function assignProjectMemberAction(
   const startDate = text(formData, "startDate");
   const endDate = text(formData, "endDate");
   const rawRate = text(formData, "payRate");
-  const rate = rawRate ? parseRate(rawRate) : null;
+  const rate = rawRate ? parseRate(rawRate) : 0;
   const assignmentCode = text(formData, "assignmentCode");
 
   if (!Number.isInteger(projectId) || projectId <= 0) {
@@ -876,8 +894,7 @@ export async function assignProjectMemberAction(
     fieldErrors.consultantId = t.catalog.errors.personRequired;
   }
   if (!startDate) fieldErrors.startDate = t.catalog.errors.assignmentStart;
-  if (!rawRate) fieldErrors.payRate = t.catalog.errors.payRateRequired;
-  else if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
+  if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
   if (startDate && endDate && endDate < startDate) {
     fieldErrors.endDate = t.catalog.errors.dateOrder;
   }
@@ -903,6 +920,7 @@ export async function assignProjectMemberAction(
       body: {
         consultantId,
         payRate: rate,
+        ...readRateTerms(formData),
         startDate,
         ...(endDate ? { endDate } : {}),
         ...(assignmentCode ? { assignmentCode } : {}),
@@ -968,13 +986,12 @@ export async function updateProjectAssignmentAction(
   const startDate = text(formData, "startDate");
   const endDate = text(formData, "endDate");
   const rawRate = text(formData, "payRate");
-  const rate = rawRate ? parseRate(rawRate) : null;
+  const rate = rawRate ? parseRate(rawRate) : 0;
   const assignmentCode = text(formData, "assignmentCode");
 
   const fieldErrors: Partial<Record<AssignmentFormField, string>> = {};
 
-  if (!rawRate) fieldErrors.payRate = t.catalog.errors.payRateRequired;
-  else if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
+  if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
   if (!startDate) fieldErrors.startDate = t.catalog.errors.assignmentStart;
   if (startDate && endDate && endDate < startDate) {
     fieldErrors.endDate = t.catalog.errors.dateOrder;
@@ -1000,6 +1017,7 @@ export async function updateProjectAssignmentAction(
       token,
       body: {
         payRate: rate,
+        ...readRateTerms(formData),
         startDate,
         endDate: endDate || null,
         assignmentCode: assignmentCode || null,
@@ -1074,4 +1092,116 @@ export async function removeProjectAssignmentAction(
   revalidateAssignments(projectId, consultantId);
 
   return { status: "success", message: t.catalog.team.removed };
+}
+
+export async function addRateChangeAction(
+  _prevState: AssignmentRowState,
+  formData: FormData,
+): Promise<AssignmentRowState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  const viaPayroll = canManagePayroll(actor);
+
+  if (!viaPayroll && !canManageCatalog(actor)) {
+    return { status: "error", message: t.catalog.errors.FORBIDDEN };
+  }
+
+  const projectId = Number(formData.get("projectId"));
+  const assignmentId = Number(formData.get("assignmentId"));
+  const consultantId = Number(formData.get("consultantId"));
+  const effectiveFrom = text(formData, "effectiveFrom");
+  const rawRate = text(formData, "payRate");
+  const rate = rawRate ? parseRate(rawRate) : 0;
+  const { ratePeriod } = readRateTerms(formData);
+
+  if (
+    !Number.isInteger(projectId) ||
+    projectId <= 0 ||
+    !Number.isInteger(assignmentId) ||
+    assignmentId <= 0
+  ) {
+    return { status: "error", message: t.catalog.errors.fallback };
+  }
+
+  if (!effectiveFrom) {
+    return { status: "error", message: t.catalog.rates.effectiveFromRequired };
+  }
+
+  if (rate === null) {
+    return { status: "error", message: t.catalog.errors.payRateInvalid };
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ assignment: ProjectAssignmentView }>(
+    viaPayroll
+      ? `/payroll/assignments/${assignmentId}/rates`
+      : `/projects/${projectId}/assignments/${assignmentId}/rates`,
+    {
+      method: "POST",
+      token,
+      body: { effectiveFrom, payRate: rate, ...(ratePeriod ? { ratePeriod } : {}) },
+    },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+    return {
+      status: "error",
+      message:
+        errorCopy(result.error.code, t) ??
+        result.error.message ??
+        t.catalog.errors.fallback,
+    };
+  }
+
+  revalidateAssignments(projectId, consultantId);
+
+  return { status: "success", message: t.catalog.rates.saved };
+}
+
+export async function removeRateChangeAction(
+  _prevState: AssignmentRowState,
+  formData: FormData,
+): Promise<AssignmentRowState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  const viaPayroll = canManagePayroll(actor);
+
+  if (!viaPayroll && !canManageCatalog(actor)) {
+    return { status: "error", message: t.catalog.errors.FORBIDDEN };
+  }
+
+  const projectId = Number(formData.get("projectId"));
+  const assignmentId = Number(formData.get("assignmentId"));
+  const rateId = Number(formData.get("rateId"));
+  const consultantId = Number(formData.get("consultantId"));
+
+  if (![projectId, assignmentId, rateId].every((id) => Number.isInteger(id) && id > 0)) {
+    return { status: "error", message: t.catalog.errors.fallback };
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ assignment: ProjectAssignmentView }>(
+    viaPayroll
+      ? `/payroll/assignments/${assignmentId}/rates/${rateId}`
+      : `/projects/${projectId}/assignments/${assignmentId}/rates/${rateId}`,
+    { method: "DELETE", token },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+    return {
+      status: "error",
+      message:
+        errorCopy(result.error.code, t) ??
+        result.error.message ??
+        t.catalog.errors.fallback,
+    };
+  }
+
+  revalidateAssignments(projectId, consultantId);
+
+  return { status: "success", message: t.catalog.rates.removed };
 }

@@ -1,5 +1,6 @@
 import { getDictionary, getLocale } from "@/i18n/server";
 import { formatMoney } from "@/lib/format/money";
+import { formatRateRange } from "@/lib/payroll/rate-spans";
 import { formatMinutes } from "@/lib/timesheets/rules";
 import type { HoursReport } from "@/lib/reports/types";
 
@@ -9,9 +10,13 @@ export async function PayoutPanel({ report }: { report: HoursReport }) {
   const d = t.reports.detail;
 
   const single = report.totals.length === 1 ? report.totals[0] : null;
-  const hours = report.totalMinutes / 60;
-  const hourlyRate =
-    single && hours ? Number((single.amount / hours).toFixed(2)) : null;
+  const hourlyRates = single
+    ? report.days.flatMap((day) =>
+        day.entries
+          .filter((entry) => entry.minutes > 0)
+          .map((entry) => entry.hourlyRate),
+      )
+    : [];
 
   return (
     <section className="overflow-hidden rounded-xl border border-line bg-navy-900 text-white shadow-sm">
@@ -53,7 +58,7 @@ export async function PayoutPanel({ report }: { report: HoursReport }) {
               {d.hourCost}
             </dt>
             <dd className="mt-1 text-lg font-semibold tabular-nums">
-              {formatMoney(hourlyRate, single?.currency ?? null, locale)}
+              {formatRateRange(hourlyRates, single?.currency ?? null, locale)}
             </dd>
           </div>
         </dl>

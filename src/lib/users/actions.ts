@@ -12,6 +12,14 @@ import {
 } from "@/lib/api/types";
 import { passwordPolicyError } from "@/lib/auth/password-policy";
 import { ASSIGNMENT_CODE_MAX } from "@/lib/catalog/types";
+import {
+  DEFAULT_CURRENCY,
+  DEFAULT_RATE_PERIOD,
+  readContractType,
+  readCurrency,
+  readRatePeriod,
+  readRateTerms,
+} from "@/lib/rates/rates";
 import { getSessionToken, requireUser } from "@/lib/auth/session";
 import { getDictionary } from "@/i18n/server";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -74,6 +82,12 @@ function readValues(formData: FormData): UserFormValues {
     isActive: formData.get("isActive") !== null,
     projectId: String(formData.get("projectId") ?? "").trim(),
     projectPayRate: String(formData.get("projectPayRate") ?? "").trim(),
+    projectCurrency:
+      readCurrency(formData.get("projectCurrency")) ?? DEFAULT_CURRENCY,
+    projectRatePeriod:
+      readRatePeriod(formData.get("projectRatePeriod")) ?? DEFAULT_RATE_PERIOD,
+    projectContractType:
+      readContractType(formData.get("projectContractType")) ?? "CONTRACTOR",
     projectStartDate: String(formData.get("projectStartDate") ?? "").trim(),
     projectEndDate: String(formData.get("projectEndDate") ?? "").trim(),
     projectAssignmentCode: String(
@@ -220,7 +234,7 @@ export async function createUserAction(
   const needsProject = requiresProject(values.roleCode);
   const wantsProject =
     canHaveProject(values.roleCode) && Boolean(values.projectId);
-  const rate = values.projectPayRate ? parseRate(values.projectPayRate) : null;
+  const rate = values.projectPayRate ? parseRate(values.projectPayRate) : 0;
 
   if (needsProject && !values.projectId) {
     fieldErrors.projectId = t.users.errors.projectRequired;
@@ -230,9 +244,6 @@ export async function createUserAction(
   }
   if ((needsProject || wantsProject) && !values.projectStartDate) {
     fieldErrors.projectStartDate = t.users.errors.projectStartRequired;
-  }
-  if ((needsProject || wantsProject) && rate === null) {
-    fieldErrors.projectPayRate ??= t.users.errors.payRateRequired;
   }
   if (
     values.projectStartDate &&
@@ -263,6 +274,9 @@ export async function createUserAction(
           {
             projectId: Number(values.projectId),
             payRate: rate,
+            currency: values.projectCurrency,
+            ratePeriod: values.projectRatePeriod,
+            contractType: values.projectContractType,
             startDate: values.projectStartDate,
             ...(values.projectEndDate
               ? { endDate: values.projectEndDate }
@@ -394,6 +408,9 @@ export async function updateUserAction(
       isActive: saved.isActive,
       projectId: "",
       projectPayRate: "",
+      projectCurrency: DEFAULT_CURRENCY,
+      projectRatePeriod: DEFAULT_RATE_PERIOD,
+      projectContractType: "CONTRACTOR",
       projectStartDate: "",
       projectEndDate: "",
       projectAssignmentCode: "",
@@ -500,7 +517,7 @@ export async function assignUserProjectAction(
   const startDate = String(formData.get("startDate") ?? "").trim();
   const endDate = String(formData.get("endDate") ?? "").trim();
   const rawRate = String(formData.get("payRate") ?? "").trim();
-  const rate = rawRate ? parseRate(rawRate) : null;
+  const rate = rawRate ? parseRate(rawRate) : 0;
   const assignmentCode = String(formData.get("assignmentCode") ?? "").trim();
 
   const fieldErrors: UserProjectFormState["fieldErrors"] = {};
@@ -509,8 +526,7 @@ export async function assignUserProjectAction(
     fieldErrors.projectId = t.users.errors.projectRequired;
   }
   if (!startDate) fieldErrors.startDate = t.users.errors.projectStartRequired;
-  if (!rawRate) fieldErrors.payRate = t.users.errors.payRateRequired;
-  else if (rate === null) fieldErrors.payRate = t.users.errors.payRateInvalid;
+  if (rate === null) fieldErrors.payRate = t.users.errors.payRateInvalid;
   if (startDate && endDate && endDate < startDate) {
     fieldErrors.endDate = t.users.errors.dateOrder;
   }
@@ -544,6 +560,7 @@ export async function assignUserProjectAction(
       body: {
         projectId,
         payRate: rate,
+        ...readRateTerms(formData),
         startDate,
         ...(endDate ? { endDate } : {}),
         ...(assignmentCode ? { assignmentCode } : {}),
@@ -672,13 +689,12 @@ export async function updateUserAssignmentAction(
   const rawRate = String(formData.get("payRate") ?? "").trim();
   const startDate = String(formData.get("startDate") ?? "").trim();
   const endDate = String(formData.get("endDate") ?? "").trim();
-  const rate = rawRate ? parseRate(rawRate) : null;
+  const rate = rawRate ? parseRate(rawRate) : 0;
   const assignmentCode = String(formData.get("assignmentCode") ?? "").trim();
 
   const fieldErrors: UserProjectFormState["fieldErrors"] = {};
 
-  if (!rawRate) fieldErrors.payRate = t.users.errors.payRateRequired;
-  else if (rate === null) fieldErrors.payRate = t.users.errors.payRateInvalid;
+  if (rate === null) fieldErrors.payRate = t.users.errors.payRateInvalid;
   if (!startDate) fieldErrors.startDate = t.users.errors.projectStartRequired;
   if (startDate && endDate && endDate < startDate) {
     fieldErrors.endDate = t.users.errors.dateOrder;
@@ -704,6 +720,7 @@ export async function updateUserAssignmentAction(
       token,
       body: {
         payRate: rate,
+        ...readRateTerms(formData),
         startDate,
         endDate: endDate || null,
         assignmentCode: assignmentCode || null,

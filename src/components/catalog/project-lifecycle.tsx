@@ -12,6 +12,8 @@ import {
   INITIAL_PROJECT_LIFECYCLE_STATE,
   type ProjectLifecycleFormState,
 } from "@/lib/catalog/form-state";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
 const DIALOG_CLASS =
   "m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-0 text-ink shadow-xl backdrop:bg-ink/40";
@@ -19,8 +21,16 @@ const DIALOG_CLASS =
 const SECONDARY_BUTTON_CLASS =
   "rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:bg-surface-muted disabled:opacity-60";
 
-function Feedback({ state }: { state: ProjectLifecycleFormState }) {
+function Feedback({
+  state,
+  visible,
+}: {
+  state: ProjectLifecycleFormState;
+  visible: boolean;
+}) {
   const t = useDictionary();
+
+  if (!visible) return null;
 
   if (state.status === "error" && state.message) {
     return (
@@ -83,6 +93,7 @@ function CloseProject({
     closeProjectAction,
     INITIAL_PROJECT_LIFECYCLE_STATE,
   );
+  const feedback = useFeedbackSlot();
 
   useEffect(() => {
     if (state.status === "success") dialogRef.current?.close();
@@ -92,7 +103,7 @@ function CloseProject({
     <div className="space-y-3">
       <p className="text-sm text-ink-muted">{t.catalog.lifecycle.activeHint}</p>
 
-      <Feedback state={state} />
+      <Feedback state={state} visible={feedback.visible} />
 
       <button
         type="button"
@@ -103,7 +114,7 @@ function CloseProject({
       </button>
 
       <dialog ref={dialogRef} className={DIALOG_CLASS}>
-        <form action={formAction} className="space-y-4 p-5" noValidate>
+        <form onSubmit={submitKeepingValues(feedback.track(formAction))} className="space-y-4 p-5" noValidate>
           <input type="hidden" name="projectId" value={projectId} />
 
           <h2 className="text-base font-semibold text-ink">
@@ -154,7 +165,7 @@ function CloseProject({
             )}
           </div>
 
-          {state.status === "error" && state.message ? (
+          {feedback.visible && state.status === "error" && state.message ? (
             <p role="alert" className="flex gap-2 text-sm text-danger-700">
               <AlertIcon className="mt-0.5 size-4 shrink-0" />
               {state.message}
@@ -200,6 +211,7 @@ function ReopenProject({
     reopenProjectAction,
     INITIAL_PROJECT_LIFECYCLE_STATE,
   );
+  const feedback = useFeedbackSlot();
 
   useEffect(() => {
     if (state.status === "success") dialogRef.current?.close();
@@ -211,7 +223,7 @@ function ReopenProject({
         {t.catalog.lifecycle.closedHint(endDate)}
       </p>
 
-      <Feedback state={state} />
+      <Feedback state={state} visible={feedback.visible} />
 
       <button
         type="button"
@@ -223,7 +235,7 @@ function ReopenProject({
       </button>
 
       <dialog ref={dialogRef} className={DIALOG_CLASS}>
-        <form action={formAction} className="space-y-4 p-5">
+        <form onSubmit={submitKeepingValues(feedback.track(formAction))} className="space-y-4 p-5">
           <input type="hidden" name="projectId" value={projectId} />
 
           <h2 className="text-base font-semibold text-ink">
@@ -239,7 +251,7 @@ function ReopenProject({
             {t.catalog.lifecycle.reopenAssignmentsWarning}
           </p>
 
-          {state.status === "error" && state.message ? (
+          {feedback.visible && state.status === "error" && state.message ? (
             <p role="alert" className="flex gap-2 text-sm text-danger-700">
               <AlertIcon className="mt-0.5 size-4 shrink-0" />
               {state.message}

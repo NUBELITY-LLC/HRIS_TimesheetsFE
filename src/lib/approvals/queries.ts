@@ -1,6 +1,7 @@
 import "server-only";
 
 import { apiRequest } from "@/lib/api/client";
+import { fetchAllPages } from "@/lib/api/all-pages";
 import type { Pagination } from "@/lib/api/types";
 import { getSessionToken } from "@/lib/auth/session";
 import type {
@@ -162,4 +163,44 @@ export async function fetchDecisionHistory(
       totalPages: 1,
     },
   };
+}
+
+export async function fetchAllPendingApprovals(): Promise<
+  { ok: true; approvals: PendingApproval[] } | { ok: false; message: string }
+> {
+  const result = await fetchAllPages(async (page, pageSize) => {
+    const response = await fetchPendingApprovals({ page, pageSize });
+    return response.ok
+      ? { ok: true, items: response.approvals, pagination: response.pagination }
+      : response;
+  });
+
+  return result.ok ? { ok: true, approvals: result.items } : result;
+}
+
+export async function fetchAllDecisionHistory(): Promise<
+  | { ok: true; decisions: ApprovalDecisionHistory[] }
+  | { ok: false; message: string }
+> {
+  const result = await fetchAllPages(async (page, pageSize) => {
+    const response = await fetchDecisionHistory({ page, pageSize });
+    return response.ok
+      ? { ok: true, items: response.decisions, pagination: response.pagination }
+      : response;
+  });
+
+  return result.ok ? { ok: true, decisions: result.items } : result;
+}
+
+export async function fetchTimesheetEvidenceLink(
+  approvalId: number,
+  attachmentId: number,
+): Promise<string | null> {
+  const token = await getSessionToken();
+  const result = await apiRequest<{ evidence: { url: string } }>(
+    `/approvals/${approvalId}/timesheet-attachments/${attachmentId}`,
+    { token },
+  );
+
+  return result.ok ? result.data.evidence.url : null;
 }

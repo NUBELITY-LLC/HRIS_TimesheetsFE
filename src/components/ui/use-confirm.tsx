@@ -51,22 +51,36 @@ export function useConfirmedSubmit() {
   const confirmed = useRef(false);
 
   const guard = useCallback(
-    (options: ConfirmOptions | null) =>
+    (
+      options:
+        | ConfirmOptions
+        | null
+        | ((submitter: HTMLElement | null) => ConfirmOptions | null),
+    ) =>
       (event: React.FormEvent<HTMLFormElement>) => {
-        if (options === null) return;
-
         if (confirmed.current) {
           confirmed.current = false;
           return;
         }
 
+        const submitter = (event.nativeEvent as SubmitEvent).submitter;
+        const resolved =
+          typeof options === "function" ? options(submitter) : options;
+
+        if (resolved === null) return;
+
         const form = event.currentTarget;
         event.preventDefault();
 
-        void confirm(options).then((accepted) => {
+        void confirm(resolved).then((accepted) => {
           if (!accepted) return;
           confirmed.current = true;
-          form.requestSubmit();
+          form.requestSubmit(
+            submitter instanceof HTMLButtonElement ||
+              submitter instanceof HTMLInputElement
+              ? submitter
+              : undefined,
+          );
         });
       },
     [confirm],

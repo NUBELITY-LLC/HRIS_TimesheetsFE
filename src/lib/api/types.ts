@@ -1,4 +1,6 @@
 import type { PayTerms } from "@/lib/payroll/pay-terms";
+import type { RatePeriod } from "@/lib/rates/rates";
+import type { RateChangeView } from "@/lib/catalog/types";
 
 export type Role = {
   id: number;
@@ -42,6 +44,8 @@ export type UserView = {
 export type UserProjectView = {
   assignmentId: number;
   payRate: number;
+  ratePeriod: RatePeriod;
+  rateChanges: RateChangeView[];
   currency: string;
   startDate: string;
   endDate: string | null;

@@ -103,6 +103,8 @@ export default async function ProjectTeamPage({
             projectId={project.id}
             assignments={assignments}
             people={people}
+            projectStartDate={project.startDate}
+            projectEndDate={project.endDate}
             locked={closed || !workflowReady}
           />
         </div>

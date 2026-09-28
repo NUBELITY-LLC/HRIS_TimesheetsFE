@@ -13,12 +13,14 @@ import {
   fetchTeamSummary,
 } from "@/lib/timesheets/queries";
 
+const DASHBOARD_TEAM_ROWS = 3;
+
 export async function AdminDashboard() {
   const t = await getDictionary();
 
   const [summary, submissions, pending] = await Promise.all([
     fetchTeamSummary(),
-    fetchTeamSubmissions(),
+    fetchTeamSubmissions(DASHBOARD_TEAM_ROWS),
     fetchPendingApprovalIndex(),
   ]);
 

@@ -57,6 +57,7 @@ export type ApprovalStep = {
   approverRoleCode: string | null;
   status: ApprovalStatus;
   decidedAt: string | null;
+  decidedBy: { id: number; name: string } | null;
   comments: string | null;
 };
 
@@ -126,7 +127,19 @@ export type Timesheet = {
   project: { id: number; name: string; code: string | null } | null;
   days?: TimesheetDay[];
   approvals?: ApprovalStep[];
+  attachments?: TimesheetAttachment[];
 };
+
+export type TimesheetAttachment = {
+  id: number;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedBy: { id: number; name: string | null };
+  uploadedAt: string;
+};
+
+export const TIMESHEET_EVIDENCE_MAX = 5;
 
 export type TimesheetOwner = {
   fullName: string;

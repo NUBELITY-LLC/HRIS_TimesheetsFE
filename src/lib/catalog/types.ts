@@ -1,5 +1,6 @@
 import type { ApproverType } from "@/lib/timesheets/types";
 import type { PayTerms } from "@/lib/payroll/pay-terms";
+import type { RatePeriod } from "@/lib/rates/rates";
 
 export type CompanyView = {
   id: number;
@@ -44,13 +45,22 @@ export type ProjectAssignmentView = {
   id: number;
   projectId: number;
   payRate: number;
+  ratePeriod: RatePeriod;
   currency: string;
   startDate: string;
   endDate: string | null;
   isActive: boolean;
   assignmentCode: string | null;
   payTerms: PayTerms;
+  rateChanges: RateChangeView[];
   consultant: PersonView | null;
+};
+
+export type RateChangeView = {
+  id: number;
+  effectiveFrom: string;
+  payRate: number;
+  ratePeriod: RatePeriod;
 };
 
 export type CloseProjectResult = {

@@ -1,4 +1,5 @@
 import type { PendingApproval } from "./types";
+import { hourlyRatesOf } from "@/lib/payroll/rate-spans";
 
 export type ConsultantGroup = {
   consultantId: number;
@@ -6,7 +7,7 @@ export type ConsultantGroup = {
   currency: string | null;
   totalMinutes: number;
   totalAmount: number | null;
-  hourlyRate: number | null;
+  hourlyRates: number[];
   approvals: PendingApproval[];
 };
 
@@ -32,7 +33,7 @@ export function groupByConsultant(
         currency: approval.currency ?? null,
         totalMinutes: 0,
         totalAmount: null,
-        hourlyRate: null,
+        hourlyRates: [],
         approvals: [],
       };
       groups.set(approval.consultant.id, group);
@@ -46,15 +47,8 @@ export function groupByConsultant(
         ((group.totalAmount ?? 0) + amount).toFixed(2),
       );
     }
+    group.hourlyRates.push(...hourlyRatesOf(approval.pay, approval.hourlyRate));
     group.approvals.push(approval);
-  }
-
-  for (const group of groups.values()) {
-    const hours = group.totalMinutes / 60;
-    group.hourlyRate =
-      hours && group.totalAmount !== null
-        ? Number((group.totalAmount / hours).toFixed(2))
-        : null;
   }
 
   return [...groups.values()];

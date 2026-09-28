@@ -1,3 +1,10 @@
+import type { ContractType } from "@/lib/payroll/pay-terms";
+import {
+  DEFAULT_CURRENCY,
+  DEFAULT_RATE_PERIOD,
+  type RatePeriod,
+} from "@/lib/rates/rates";
+
 export type UserFormField =
   | "fullName"
   | "userName"
@@ -22,6 +29,9 @@ export type UserFormValues = {
   isActive: boolean;
   projectId: string;
   projectPayRate: string;
+  projectCurrency: string;
+  projectRatePeriod: RatePeriod;
+  projectContractType: ContractType;
   projectStartDate: string;
   projectEndDate: string;
   projectAssignmentCode: string;
@@ -51,6 +61,9 @@ export const EMPTY_USER_FORM_VALUES: UserFormValues = {
   isActive: true,
   projectId: "",
   projectPayRate: "",
+  projectCurrency: DEFAULT_CURRENCY,
+  projectRatePeriod: DEFAULT_RATE_PERIOD,
+  projectContractType: "CONTRACTOR",
   projectStartDate: "",
   projectEndDate: "",
   projectAssignmentCode: "",

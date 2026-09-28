@@ -66,20 +66,6 @@ export default async function NewUserPage() {
           />
         </div>
       </section>
-
-      <section className="rounded-xl border border-line bg-surface p-5">
-        <h2 className="text-sm font-semibold text-ink">
-          {t.users.create.rolesSection}
-        </h2>
-        <dl className="mt-3 space-y-2.5">
-          {roles.map((role) => (
-            <div key={role.code} className="text-sm">
-              <dt className="font-medium text-ink">{role.name}</dt>
-              <dd className="text-ink-muted">{role.description}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
     </div>
   );
 }

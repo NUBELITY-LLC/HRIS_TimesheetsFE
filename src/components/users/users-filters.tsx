@@ -1,12 +1,18 @@
 import { SearchIcon } from "@/components/icons";
 import { getDictionary } from "@/i18n/server";
-import { roleCatalog } from "@/lib/users/roles";
+import { visibleRoleCatalog } from "@/lib/users/roles";
 import type { UserListFilters } from "@/lib/users/queries";
 
 const SELECT_CLASS =
   "rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none";
 
-export async function UsersFilters({ filters }: { filters: UserListFilters }) {
+export async function UsersFilters({
+  filters,
+  actorRoleCode,
+}: {
+  filters: UserListFilters;
+  actorRoleCode: string;
+}) {
   const t = await getDictionary();
   const f = t.users.filters;
 
@@ -45,7 +51,7 @@ export async function UsersFilters({ filters }: { filters: UserListFilters }) {
           className={SELECT_CLASS}
         >
           <option value="">{f.allRoles}</option>
-          {roleCatalog(t).map((role) => (
+          {visibleRoleCatalog(actorRoleCode, t).map((role) => (
             <option key={role.code} value={role.code}>
               {role.name}
             </option>

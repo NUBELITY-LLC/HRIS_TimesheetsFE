@@ -18,7 +18,20 @@ import {
   type ApproveOnBehalfState,
   type DecideApprovalState,
 } from "./form-state";
+import { fetchPendingApprovalIndex } from "./queries";
 import type { ApprovalDecision, ExternalApproval, RejectTarget } from "./types";
+
+async function continueIfNextIsMine(
+  timesheetId: number,
+  decidedApprovalId: number,
+): Promise<void> {
+  const { approvalIdByTimesheet } = await fetchPendingApprovalIndex();
+  const nextApprovalId = approvalIdByTimesheet.get(timesheetId);
+
+  if (nextApprovalId && nextApprovalId !== decidedApprovalId) {
+    redirect(`/reviews/${nextApprovalId}?continued=1`);
+  }
+}
 
 function errorCopy(code: string, t: Dictionary): string | undefined {
   return (t.approvals.errors as Record<string, unknown>)[code] as
@@ -79,6 +92,10 @@ export async function approveOnBehalfAction(
   revalidatePath("/reviews");
   revalidatePath("/dashboard");
   revalidatePath("/notifications");
+
+  if (!approval.completed) {
+    await continueIfNextIsMine(approval.timesheetId, approvalId);
+  }
 
   return {
     ...INITIAL_APPROVE_ON_BEHALF_STATE,
@@ -206,9 +223,18 @@ export async function decideApprovalAction(
   revalidatePath("/dashboard");
   revalidatePath("/notifications");
 
+  const decision = result.data.approval;
+
+  if (
+    decision.outcome === "ADVANCED" ||
+    decision.outcome === "RETURNED_TO_PREVIOUS"
+  ) {
+    await continueIfNextIsMine(decision.timesheetId, approvalId);
+  }
+
   return {
     ...INITIAL_DECIDE_APPROVAL_STATE,
     status: "success",
-    message: decisionMessage(result.data.approval, t),
+    message: decisionMessage(decision, t),
   };
 }

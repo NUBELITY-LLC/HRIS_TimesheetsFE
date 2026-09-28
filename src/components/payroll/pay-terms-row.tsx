@@ -1,9 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { AlertIcon, CheckIcon, SpinnerIcon } from "@/components/icons";
 import { PayTermsFields } from "@/components/payroll/pay-terms-fields";
+import { RateHistory } from "@/components/catalog/rate-history";
+import { RatePeriodSelect } from "@/components/rates/rate-selects";
+import { useConfirmedSubmit } from "@/components/ui/use-confirm";
 import { useDictionary, useLocale } from "@/i18n/provider";
 import { formatRate } from "@/lib/format/money";
 import { updatePayTermsAction } from "@/lib/payroll/actions";
@@ -11,14 +14,32 @@ import {
   INITIAL_PAY_TERMS_ROW_STATE,
   type PayAssignment,
 } from "@/lib/payroll/pay-terms";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
-export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
+export function PayTermsRow({
+  assignment,
+  canEditRates,
+}: {
+  assignment: PayAssignment;
+  canEditRates: boolean;
+}) {
   const t = useDictionary();
   const locale = useLocale();
   const [state, formAction, isPending] = useActionState(
     updatePayTermsAction,
     INITIAL_PAY_TERMS_ROW_STATE,
   );
+  const feedback = useFeedbackSlot();
+  const { guard, dialog } = useConfirmedSubmit();
+  const [dirty, setDirty] = useState(false);
+  const [period, setPeriod] = useState(assignment.ratePeriod);
+  const [seenState, setSeenState] = useState(state);
+
+  if (state !== seenState) {
+    setSeenState(state);
+    if (state.status === "success") setDirty(false);
+  }
 
   return (
     <li className="space-y-3 px-5 py-4">
@@ -33,6 +54,7 @@ export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
             )}
           </p>
           <p className="text-xs text-ink-muted">
+            {assignment.company ? `${assignment.company.name} · ` : ""}
             {assignment.project?.name ?? t.common.unknown}
             {assignment.client ? ` · ${assignment.client.name}` : ""}
             {assignment.assignmentCode ? ` · ${assignment.assignmentCode}` : ""}
@@ -52,10 +74,28 @@ export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
 
       <form
         key={state.savedAt ?? 0}
-        action={formAction}
+        onSubmit={submitKeepingValues(
+          feedback.track(formAction),
+          guard({
+            title: t.confirmations.savePayTerms.title,
+            body: t.confirmations.savePayTerms.body,
+            confirmLabel: t.confirmations.savePayTerms.confirm,
+          }),
+        )}
+        onChange={(event) => {
+          setDirty(true);
+          const target = event.target;
+          if (
+            target instanceof HTMLSelectElement &&
+            target.name === "ratePeriod"
+          ) {
+            setPeriod(target.value as PayAssignment["ratePeriod"]);
+          }
+        }}
         className="space-y-2"
         noValidate
       >
+        {dialog}
         <input type="hidden" name="assignmentId" value={assignment.id} />
         <div className="flex items-end gap-2">
           <div className="w-40 space-y-1">
@@ -63,7 +103,9 @@ export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
               htmlFor={`pay-rate-${assignment.id}`}
               className="block text-xs font-medium text-ink-soft"
             >
-              {t.payTermsPage.payRate}
+              {assignment.rateChanges.length
+                ? t.catalog.rates.initial
+                : t.payTermsPage.payRate}
             </label>
             <input
               id={`pay-rate-${assignment.id}`}
@@ -79,14 +121,29 @@ export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
           <span className="pb-2 text-xs text-ink-muted">
             {assignment.currency}
           </span>
+          <div className="space-y-1">
+            <label
+              htmlFor={`pay-period-${assignment.id}`}
+              className="block text-xs font-medium text-ink-soft"
+            >
+              {t.rates.period}
+            </label>
+            <RatePeriodSelect
+              id={`pay-period-${assignment.id}`}
+              defaultValue={assignment.ratePeriod}
+              disabled={isPending}
+              className="w-36 rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted"
+            />
+          </div>
         </div>
         <PayTermsFields
           defaults={assignment.payTerms}
           disabled={isPending}
           collapsible
+          ratePeriod={period}
         />
         <div className="flex flex-wrap items-center justify-end gap-3">
-          {state.status === "error" && state.message ? (
+          {feedback.visible && state.status === "error" && state.message ? (
             <p
               role="alert"
               className="flex items-center gap-2 text-xs text-danger-700"
@@ -95,7 +152,7 @@ export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
               {state.message}
             </p>
           ) : null}
-          {state.status === "success" && state.message ? (
+          {feedback.visible && state.status === "success" && state.message ? (
             <p className="flex items-center gap-2 text-xs text-success-700">
               <CheckIcon className="size-3.5 shrink-0" />
               {state.message}
@@ -104,15 +161,38 @@ export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
           <button
             type="submit"
             disabled={isPending}
-            className="flex items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:bg-surface-muted disabled:opacity-60"
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold text-white transition-colors disabled:opacity-60 ${
+              dirty
+                ? "animate-save-pulse bg-brand-600 hover:bg-brand-700"
+                : "bg-brand-600/80 hover:bg-brand-700"
+            }`}
           >
             {isPending ? (
               <SpinnerIcon className="size-3.5 animate-spin" />
-            ) : null}
+            ) : (
+              <CheckIcon className="size-3.5" />
+            )}
             {t.payTermsPage.save}
           </button>
         </div>
       </form>
+
+      {assignment.project ? (
+        <div className="border-t border-line pt-3">
+          <RateHistory
+            projectId={assignment.project.id}
+            assignmentId={assignment.id}
+            consultantId={assignment.consultant?.id ?? null}
+            startDate={assignment.startDate}
+            endDate={assignment.endDate}
+            currency={assignment.currency}
+            payRate={assignment.payRate}
+            ratePeriod={assignment.ratePeriod}
+            rateChanges={assignment.rateChanges}
+            editable={canEditRates && assignment.isActive}
+          />
+        </div>
+      ) : null}
     </li>
   );
 }

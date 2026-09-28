@@ -10,6 +10,11 @@ import {
   SpinnerIcon,
   TrashIcon,
 } from "@/components/icons";
+import {
+  ContractTypeSelect,
+  CurrencySelect,
+  RatePeriodSelect,
+} from "@/components/rates/rate-selects";
 import { useDictionary } from "@/i18n/provider";
 import {
   assignProjectMemberAction,
@@ -26,6 +31,10 @@ import {
   type ProjectAssignmentView,
 } from "@/lib/catalog/types";
 import { roleName } from "@/lib/users/roles";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
+import { useConfirmedSubmit } from "@/components/ui/use-confirm";
+import { RateHistory } from "@/components/catalog/rate-history";
 
 const INPUT_BASE =
   "rounded-lg border bg-white px-3 py-2 text-sm text-ink transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted disabled:text-ink-muted";
@@ -63,9 +72,23 @@ function RemoveMember({
     removeProjectAssignmentAction,
     INITIAL_ASSIGNMENT_ROW_STATE,
   );
+  const feedback = useFeedbackSlot();
+  const { guard, dialog } = useConfirmedSubmit();
 
   return (
-    <form action={formAction} className="relative">
+    <form
+      onSubmit={submitKeepingValues(
+        feedback.track(formAction),
+        guard({
+          title: t.confirmations.removeAssignment.title,
+          body: t.confirmations.removeAssignment.body,
+          confirmLabel: t.confirmations.removeAssignment.confirm,
+          tone: "danger",
+        }),
+      )}
+      className="relative"
+    >
+      {dialog}
       <input type="hidden" name="projectId" value={projectId} />
       <input type="hidden" name="assignmentId" value={assignmentId} />
       {consultantId ? (
@@ -84,7 +107,7 @@ function RemoveMember({
           <TrashIcon className="size-4" />
         )}
       </button>
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <p className="absolute top-full right-0 mt-1 text-xs whitespace-nowrap text-danger-600">
           {state.message}
         </p>
@@ -93,18 +116,24 @@ function RemoveMember({
   );
 }
 
+type ProjectBounds = { start: string | null; end: string | null };
+
 function MemberRow({
   projectId,
   assignment,
+  bounds,
 }: {
   projectId: number;
   assignment: ProjectAssignmentView;
+  bounds: ProjectBounds;
 }) {
   const t = useDictionary();
   const [state, formAction, isPending] = useActionState(
     updateProjectAssignmentAction,
     INITIAL_ASSIGNMENT_FORM_STATE,
   );
+  const feedback = useFeedbackSlot();
+  const { guard, dialog } = useConfirmedSubmit();
 
   const ids = {
     assignmentCode: useId(),
@@ -117,6 +146,9 @@ function MemberRow({
   const [draft, setDraft] = useState<{
     assignmentCode: string;
     payRate: string;
+    currency: string;
+    ratePeriod: string;
+    contractType: string;
     startDate: string;
     endDate: string;
   } | null>(null);
@@ -124,6 +156,9 @@ function MemberRow({
   const isDirty =
     draft !== null &&
     (!sameRate(draft.payRate, assignment.payRate) ||
+      draft.currency !== assignment.currency ||
+      draft.ratePeriod !== assignment.ratePeriod ||
+      draft.contractType !== assignment.payTerms.contractType ||
       draft.startDate !== assignment.startDate ||
       draft.endDate !== (assignment.endDate ?? "") ||
       draft.assignmentCode !== (assignment.assignmentCode ?? ""));
@@ -133,6 +168,9 @@ function MemberRow({
     setDraft({
       assignmentCode: String(data.get("assignmentCode") ?? ""),
       payRate: String(data.get("payRate") ?? ""),
+      currency: String(data.get("currency") ?? ""),
+      ratePeriod: String(data.get("ratePeriod") ?? ""),
+      contractType: String(data.get("contractType") ?? ""),
       startDate: String(data.get("startDate") ?? ""),
       endDate: String(data.get("endDate") ?? ""),
     });
@@ -154,8 +192,24 @@ function MemberRow({
         </div>
 
         <div className="flex items-end gap-2">
+          {dialog}
           <form
-            action={formAction}
+            onSubmit={submitKeepingValues(
+              feedback.track(formAction),
+              guard((submitter) =>
+                submitter instanceof HTMLButtonElement &&
+                submitter.value === "reactivate"
+                  ? {
+                      title: t.confirmations.reactivateAssignment.title,
+                      confirmLabel: t.confirmations.reactivateAssignment.confirm,
+                    }
+                  : {
+                      title: t.confirmations.saveAssignment.title,
+                      body: t.confirmations.saveAssignment.body,
+                      confirmLabel: t.confirmations.saveAssignment.confirm,
+                    },
+              ),
+            )}
             onChange={handleChange}
             className="flex flex-wrap items-end gap-2"
             noValidate
@@ -191,7 +245,9 @@ function MemberRow({
 
             <div className="space-y-1">
               <label htmlFor={ids.payRate} className={LABEL_CLASS}>
-                {t.users.form.payRate}
+                {assignment.rateChanges.length
+                  ? t.catalog.rates.initial
+                  : t.users.form.payRate}
               </label>
               <div className="flex items-center gap-1.5">
                 <input
@@ -204,9 +260,22 @@ function MemberRow({
                   disabled={isPending}
                   className={`tabular-nums ${inputClass(Boolean(fieldErrors.payRate), "w-24")}`}
                 />
-                <span className="text-xs text-ink-muted">
-                  {assignment.currency}
-                </span>
+                <CurrencySelect
+                  compact
+                  defaultValue={assignment.currency}
+                  disabled={isPending}
+                  className={inputClass(false, "w-24")}
+                />
+                <RatePeriodSelect
+                  defaultValue={assignment.ratePeriod}
+                  disabled={isPending}
+                  className={inputClass(false, "w-28")}
+                />
+                <ContractTypeSelect
+                  defaultValue={assignment.payTerms.contractType}
+                  disabled={isPending}
+                  className={inputClass(false, "w-32")}
+                />
               </div>
             </div>
 
@@ -219,6 +288,8 @@ function MemberRow({
                 name="startDate"
                 type="date"
                 defaultValue={assignment.startDate}
+                min={bounds.start ?? undefined}
+                max={bounds.end ?? undefined}
                 disabled={isPending}
                 className={inputClass(Boolean(fieldErrors.startDate), "w-40")}
               />
@@ -233,6 +304,8 @@ function MemberRow({
                 name="endDate"
                 type="date"
                 defaultValue={assignment.endDate ?? ""}
+                min={bounds.start ?? undefined}
+                max={bounds.end ?? undefined}
                 disabled={isPending}
                 className={inputClass(Boolean(fieldErrors.endDate), "w-40")}
               />
@@ -283,7 +356,7 @@ function MemberRow({
         </div>
       </div>
 
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <p
           role="alert"
           className="flex items-center gap-2 text-xs text-danger-700"
@@ -293,7 +366,7 @@ function MemberRow({
         </p>
       ) : null}
 
-      {state.status === "success" && state.message ? (
+      {feedback.visible && state.status === "success" && state.message ? (
         <p className="flex items-center gap-2 text-xs text-success-700">
           <CheckIcon className="size-3.5 shrink-0" />
           {state.message}
@@ -312,6 +385,19 @@ function MemberRow({
             {error}
           </p>
         ))}
+
+      <RateHistory
+        projectId={projectId}
+        assignmentId={assignment.id}
+        consultantId={assignment.consultant?.id ?? null}
+        startDate={assignment.startDate}
+        endDate={assignment.endDate}
+        currency={assignment.currency}
+        payRate={assignment.payRate}
+        ratePeriod={assignment.ratePeriod}
+        rateChanges={assignment.rateChanges}
+        editable={assignment.isActive}
+      />
     </div>
   );
 }
@@ -320,11 +406,15 @@ export function ProjectTeam({
   projectId,
   assignments,
   people,
+  projectStartDate,
+  projectEndDate,
   locked = false,
 }: {
   projectId: number;
   assignments: ProjectAssignmentView[];
   people: PersonView[];
+  projectStartDate: string | null;
+  projectEndDate: string | null;
   locked?: boolean;
 }) {
   const t = useDictionary();
@@ -332,6 +422,19 @@ export function ProjectTeam({
     assignProjectMemberAction,
     INITIAL_ASSIGNMENT_FORM_STATE,
   );
+  const feedback = useFeedbackSlot();
+  const { guard, dialog } = useConfirmedSubmit();
+  const [seenState, setSeenState] = useState(state);
+  const [formKey, setFormKey] = useState(0);
+  const bounds: ProjectBounds = {
+    start: projectStartDate,
+    end: projectEndDate,
+  };
+
+  if (state !== seenState) {
+    setSeenState(state);
+    if (state.status === "success") setFormKey((current) => current + 1);
+  }
 
   const ids = {
     consultantId: useId(),
@@ -361,6 +464,7 @@ export function ProjectTeam({
               key={assignment.id}
               projectId={projectId}
               assignment={assignment}
+              bounds={bounds}
             />
           ))}
         </div>
@@ -368,20 +472,28 @@ export function ProjectTeam({
 
       {locked ? null : (
         <form
-          action={formAction}
+          key={formKey}
+          onSubmit={submitKeepingValues(
+            feedback.track(formAction),
+            guard({
+              title: t.confirmations.assignMember.title,
+              confirmLabel: t.confirmations.assignMember.confirm,
+            }),
+          )}
           className="space-y-4 rounded-lg border border-line p-4"
           noValidate
         >
+          {dialog}
           <input type="hidden" name="projectId" value={projectId} />
 
-          {state.status === "success" && state.message ? (
+          {feedback.visible && state.status === "success" && state.message ? (
             <p className="flex items-center gap-2 text-sm text-success-700">
               <CheckIcon className="size-4 shrink-0" />
               {state.message}
             </p>
           ) : null}
 
-          {state.status === "error" && state.message ? (
+          {feedback.visible && state.status === "error" && state.message ? (
             <p
               role="alert"
               className="flex items-center gap-2 text-sm text-danger-700"
@@ -437,6 +549,9 @@ export function ProjectTeam({
                 id={ids.startDate}
                 name="startDate"
                 type="date"
+                defaultValue={bounds.start ?? ""}
+                min={bounds.start ?? undefined}
+                max={bounds.end ?? undefined}
                 disabled={disabled}
                 className={inputClass(Boolean(fieldErrors.startDate))}
               />
@@ -458,6 +573,9 @@ export function ProjectTeam({
                 id={ids.endDate}
                 name="endDate"
                 type="date"
+                defaultValue={bounds.end ?? ""}
+                min={bounds.start ?? undefined}
+                max={bounds.end ?? undefined}
                 disabled={disabled}
                 className={inputClass(Boolean(fieldErrors.endDate))}
               />
@@ -466,22 +584,37 @@ export function ProjectTeam({
               ) : null}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 sm:col-span-2">
               <label
                 htmlFor={ids.payRate}
                 className="block text-xs font-medium text-ink-soft"
               >
                 {t.users.form.assignmentRate}
               </label>
-              <input
-                id={ids.payRate}
-                name="payRate"
-                type="text"
-                inputMode="decimal"
-                maxLength={13}
-                disabled={disabled}
-                className={inputClass(Boolean(fieldErrors.payRate))}
-              />
+              <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+                <input
+                  id={ids.payRate}
+                  name="payRate"
+                  type="text"
+                  inputMode="decimal"
+                  maxLength={13}
+                  placeholder="0"
+                  disabled={disabled}
+                  className={`tabular-nums ${inputClass(Boolean(fieldErrors.payRate), "min-w-0 flex-1")}`}
+                />
+                <CurrencySelect
+                  disabled={disabled}
+                  className={inputClass(false, "w-full sm:w-52")}
+                />
+                <RatePeriodSelect
+                  disabled={disabled}
+                  className={inputClass(false, "w-full sm:w-36")}
+                />
+                <ContractTypeSelect
+                  disabled={disabled}
+                  className={inputClass(false, "w-full sm:w-36")}
+                />
+              </div>
               {fieldErrors.payRate ? (
                 <p className="text-xs text-danger-600">{fieldErrors.payRate}</p>
               ) : null}

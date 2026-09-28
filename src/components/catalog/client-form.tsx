@@ -14,6 +14,9 @@ import {
 } from "@/lib/catalog/form-state";
 import type { CompanyView, PersonView } from "@/lib/catalog/types";
 import { roleName } from "@/lib/users/roles";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
+import { useConfirmedSubmit } from "@/components/ui/use-confirm";
 
 const INPUT_BASE =
   "w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none";
@@ -215,6 +218,8 @@ export function ClientForm({
     ...INITIAL_CLIENT_FORM_STATE,
     values: defaultValues,
   });
+  const feedback = useFeedbackSlot();
+  const { guard: confirmGuard, dialog: confirmDialog } = useConfirmedSubmit();
 
   const { fieldErrors, values } = state;
   const isCreate = mode === "create";
@@ -223,10 +228,21 @@ export function ClientForm({
     isCreate && state.status === "success" ? EMPTY_CLIENT_FORM_VALUES : values;
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form onSubmit={submitKeepingValues(
+        feedback.track(formAction),
+        confirmGuard({
+          title: isCreate
+            ? t.confirmations.createClient.title
+            : t.confirmations.saveClient.title,
+          confirmLabel: isCreate
+            ? t.confirmations.createClient.confirm
+            : t.confirmations.saveClient.confirm,
+        }),
+      )} className="space-y-5" noValidate>
+      {confirmDialog}
       {clientId ? <input type="hidden" name="id" value={clientId} /> : null}
 
-      {state.status === "success" && state.savedName ? (
+      {feedback.visible && state.status === "success" && state.savedName ? (
         <div
           role="status"
           aria-live="polite"
@@ -249,7 +265,7 @@ export function ClientForm({
         </div>
       ) : null}
 
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <div
           role="alert"
           aria-live="assertive"

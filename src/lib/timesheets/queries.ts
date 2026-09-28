@@ -1,6 +1,7 @@
 import "server-only";
 
 import { apiRequest } from "@/lib/api/client";
+import { fetchAllPages } from "@/lib/api/all-pages";
 import type { Pagination } from "@/lib/api/types";
 import { getSessionToken } from "@/lib/auth/session";
 import type {
@@ -199,4 +200,30 @@ export async function fetchMyTimesheet(id: number): Promise<Timesheet | null> {
   );
 
   return result.ok ? result.data.timesheet : null;
+}
+
+export async function fetchAllTimesheetHistory(
+  status: HistoryFilters["status"],
+): Promise<{ ok: true; submissions: Timesheet[] } | { ok: false; message: string }> {
+  const result = await fetchAllPages(async (page, pageSize) => {
+    const response = await fetchTimesheetHistory({ page, pageSize, status });
+    return response.ok
+      ? { ok: true, items: response.submissions, pagination: response.pagination }
+      : response;
+  });
+
+  return result.ok ? { ok: true, submissions: result.items } : result;
+}
+
+export async function fetchOwnEvidenceLink(
+  timesheetId: number,
+  attachmentId: number,
+): Promise<string | null> {
+  const token = await getSessionToken();
+  const result = await apiRequest<{ evidence: { url: string } }>(
+    `/timesheets/${timesheetId}/attachments/${attachmentId}`,
+    { token },
+  );
+
+  return result.ok ? result.data.evidence.url : null;
 }
