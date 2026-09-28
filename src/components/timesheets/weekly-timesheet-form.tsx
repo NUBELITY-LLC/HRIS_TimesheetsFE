@@ -391,12 +391,30 @@ export function WeeklyTimesheetForm({
     if (submitter instanceof HTMLButtonElement && submitter.name === "intent") {
       data.set("intent", submitter.value);
     }
-    setPendingIntent(data.get("intent") === "submit" ? "submit" : "draft");
+    const intent = data.get("intent") === "submit" ? "submit" : "draft";
 
     data.delete("evidence");
     for (const file of evidenceFiles) data.append("evidence", file, file.name);
 
-    startTransition(() => feedback.track(formAction)(data));
+    const dispatch = () => {
+      setPendingIntent(intent);
+      startTransition(() => feedback.track(formAction)(data));
+    };
+
+    if (intent !== "submit") {
+      dispatch();
+      return;
+    }
+
+    const wasDirty = dirty;
+    void confirm({
+      title: t.confirmations.submitTimesheet.title,
+      body: t.confirmations.submitTimesheet.body,
+      confirmLabel: t.confirmations.submitTimesheet.confirm,
+    }).then((accepted) => {
+      if (accepted) dispatch();
+      else setDirty(wasDirty);
+    });
   }
 
   function guard(intent: "draft" | "submit") {

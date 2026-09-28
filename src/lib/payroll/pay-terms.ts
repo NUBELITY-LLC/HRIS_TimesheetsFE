@@ -1,6 +1,7 @@
 import type { Dictionary } from "@/i18n/dictionaries";
 import { COUNTRY_CODES, type CountryCode } from "./countries";
 import type { RatePeriod } from "@/lib/rates/rates";
+import type { RateChangeView } from "@/lib/catalog/types";
 
 export const CONTRACT_TYPES = ["CONTRACTOR", "PAYROLL"] as const;
 export type ContractType = (typeof CONTRACT_TYPES)[number];
@@ -22,13 +23,17 @@ export type PayLine = {
   minutes: number;
   hours: number;
   multiplier: number;
+  hourlyRate?: number;
   amount: number;
 };
+
+export type PayRateSpan = { from: string; hourlyRate: number };
 
 export type PaySummary = {
   contractType: ContractType;
   countryCode: CountryCode;
   hourlyRate: number;
+  rates?: PayRateSpan[];
   minutes: number;
   hours: number;
   amount: number;
@@ -163,6 +168,7 @@ export type PayAssignment = {
   assignmentCode: string | null;
   payRate: number;
   ratePeriod: RatePeriod;
+  rateChanges: RateChangeView[];
   currency: string;
   hourlyRate: number;
   payTerms: PayTerms;

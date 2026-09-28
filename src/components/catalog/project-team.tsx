@@ -33,6 +33,8 @@ import {
 import { roleName } from "@/lib/users/roles";
 import { submitKeepingValues } from "@/lib/forms/submit";
 import { useFeedbackSlot } from "@/components/ui/feedback-scope";
+import { useConfirmedSubmit } from "@/components/ui/use-confirm";
+import { RateHistory } from "@/components/catalog/rate-history";
 
 const INPUT_BASE =
   "rounded-lg border bg-white px-3 py-2 text-sm text-ink transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted disabled:text-ink-muted";
@@ -71,9 +73,22 @@ function RemoveMember({
     INITIAL_ASSIGNMENT_ROW_STATE,
   );
   const feedback = useFeedbackSlot();
+  const { guard, dialog } = useConfirmedSubmit();
 
   return (
-    <form onSubmit={submitKeepingValues(feedback.track(formAction))} className="relative">
+    <form
+      onSubmit={submitKeepingValues(
+        feedback.track(formAction),
+        guard({
+          title: t.confirmations.removeAssignment.title,
+          body: t.confirmations.removeAssignment.body,
+          confirmLabel: t.confirmations.removeAssignment.confirm,
+          tone: "danger",
+        }),
+      )}
+      className="relative"
+    >
+      {dialog}
       <input type="hidden" name="projectId" value={projectId} />
       <input type="hidden" name="assignmentId" value={assignmentId} />
       {consultantId ? (
@@ -118,6 +133,7 @@ function MemberRow({
     INITIAL_ASSIGNMENT_FORM_STATE,
   );
   const feedback = useFeedbackSlot();
+  const { guard, dialog } = useConfirmedSubmit();
 
   const ids = {
     assignmentCode: useId(),
@@ -176,8 +192,24 @@ function MemberRow({
         </div>
 
         <div className="flex items-end gap-2">
+          {dialog}
           <form
-            onSubmit={submitKeepingValues(feedback.track(formAction))}
+            onSubmit={submitKeepingValues(
+              feedback.track(formAction),
+              guard((submitter) =>
+                submitter instanceof HTMLButtonElement &&
+                submitter.value === "reactivate"
+                  ? {
+                      title: t.confirmations.reactivateAssignment.title,
+                      confirmLabel: t.confirmations.reactivateAssignment.confirm,
+                    }
+                  : {
+                      title: t.confirmations.saveAssignment.title,
+                      body: t.confirmations.saveAssignment.body,
+                      confirmLabel: t.confirmations.saveAssignment.confirm,
+                    },
+              ),
+            )}
             onChange={handleChange}
             className="flex flex-wrap items-end gap-2"
             noValidate
@@ -213,7 +245,9 @@ function MemberRow({
 
             <div className="space-y-1">
               <label htmlFor={ids.payRate} className={LABEL_CLASS}>
-                {t.users.form.payRate}
+                {assignment.rateChanges.length
+                  ? t.catalog.rates.initial
+                  : t.users.form.payRate}
               </label>
               <div className="flex items-center gap-1.5">
                 <input
@@ -351,6 +385,19 @@ function MemberRow({
             {error}
           </p>
         ))}
+
+      <RateHistory
+        projectId={projectId}
+        assignmentId={assignment.id}
+        consultantId={assignment.consultant?.id ?? null}
+        startDate={assignment.startDate}
+        endDate={assignment.endDate}
+        currency={assignment.currency}
+        payRate={assignment.payRate}
+        ratePeriod={assignment.ratePeriod}
+        rateChanges={assignment.rateChanges}
+        editable={assignment.isActive}
+      />
     </div>
   );
 }
@@ -376,6 +423,7 @@ export function ProjectTeam({
     INITIAL_ASSIGNMENT_FORM_STATE,
   );
   const feedback = useFeedbackSlot();
+  const { guard, dialog } = useConfirmedSubmit();
   const [seenState, setSeenState] = useState(state);
   const [formKey, setFormKey] = useState(0);
   const bounds: ProjectBounds = {
@@ -425,10 +473,17 @@ export function ProjectTeam({
       {locked ? null : (
         <form
           key={formKey}
-          onSubmit={submitKeepingValues(feedback.track(formAction))}
+          onSubmit={submitKeepingValues(
+            feedback.track(formAction),
+            guard({
+              title: t.confirmations.assignMember.title,
+              confirmLabel: t.confirmations.assignMember.confirm,
+            }),
+          )}
           className="space-y-4 rounded-lg border border-line p-4"
           noValidate
         >
+          {dialog}
           <input type="hidden" name="projectId" value={projectId} />
 
           {feedback.visible && state.status === "success" && state.message ? (

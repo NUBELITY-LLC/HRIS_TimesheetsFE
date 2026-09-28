@@ -28,6 +28,8 @@ import type {
 import type { ApproverType } from "@/lib/timesheets/types";
 import { APPROVER_ROLE_CODES, roleName } from "@/lib/users/roles";
 import { useFeedbackSlot } from "@/components/ui/feedback-scope";
+import { useConfirmedSubmit } from "@/components/ui/use-confirm";
+import { submitKeepingValues } from "@/lib/forms/submit";
 
 const APPROVER_TYPES: ApproverType[] = ["CLIENT_EMAIL", "USER", "ROLE"];
 
@@ -73,6 +75,7 @@ export function ApprovalStepsForm({
     INITIAL_APPROVAL_STEPS_FORM_STATE,
   );
   const feedback = useFeedbackSlot();
+  const { guard: confirmGuard, dialog: confirmDialog } = useConfirmedSubmit();
 
   const projectManagerId = projectManager ? String(projectManager.id) : null;
 
@@ -197,7 +200,15 @@ export function ApprovalStepsForm({
   const isComplete = rows.length >= minApprovers && rows.length <= maxApprovers;
 
   return (
-    <form action={feedback.track(formAction)} className="space-y-5" noValidate>
+    <form onSubmit={submitKeepingValues(
+        feedback.track(formAction),
+        confirmGuard({
+          title: t.confirmations.saveFlow.title,
+          body: t.confirmations.saveFlow.body,
+          confirmLabel: t.confirmations.saveFlow.confirm,
+        }),
+      )} className="space-y-5" noValidate>
+      {confirmDialog}
       <input type="hidden" name="projectId" value={projectId} />
       <input type="hidden" name="stepCount" value={rows.length} />
       {projectClientId ? (

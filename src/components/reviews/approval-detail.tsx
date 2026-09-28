@@ -18,7 +18,7 @@ import { PayBreakdown } from "@/components/payroll/pay-breakdown";
 import { getDictionary, getLocale } from "@/i18n/server";
 import type { Locale } from "@/i18n/config";
 import type { ApprovalDetail } from "@/lib/approvals/types";
-import { formatMoney, formatRate } from "@/lib/format/money";
+import { formatMoney } from "@/lib/format/money";
 import {
   approvalChipState,
   approvalStepLabel,
@@ -34,6 +34,7 @@ import {
   fromISODate,
 } from "@/lib/timesheets/week";
 import { ExportLinks } from "@/components/timesheets/export-links";
+import { formatHourlyRates, hourlyRatesOf } from "@/lib/payroll/rate-spans";
 
 const CHIP_STYLES: Record<string, string> = {
   approved: "border-success-200 bg-success-50 text-success-800",
@@ -213,7 +214,11 @@ export async function ApprovalDetailView({
               {approval.amount !== null ? (
                 <>
                   <Field label={t.reviews.detail.hourCost}>
-                    {formatRate(approval.hourlyRate, approval.currency, locale)}
+                    {formatHourlyRates(
+                      hourlyRatesOf(approval.pay, approval.hourlyRate),
+                      approval.currency,
+                      locale,
+                    )}
                   </Field>
                   <Field label={t.reviews.detail.amount}>
                     <span className="text-brand-600">
@@ -328,8 +333,8 @@ export async function ApprovalDetailView({
                       {t.reviews.detail.hourCost}
                     </dt>
                     <dd className="mt-1 text-lg font-semibold tabular-nums">
-                      {formatRate(
-                        approval.hourlyRate,
+                      {formatHourlyRates(
+                        hourlyRatesOf(approval.pay, approval.hourlyRate),
                         approval.currency,
                         locale,
                       )}

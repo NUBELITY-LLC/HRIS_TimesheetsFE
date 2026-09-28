@@ -26,6 +26,7 @@ export type PendingApproval = {
   hourlyRate?: number | null;
   currency?: string;
   amount?: number | null;
+  pay?: PaySummary | null;
   submittedAt: string | null;
   assignmentCode: string | null;
   consultant: { id: number; name: string };

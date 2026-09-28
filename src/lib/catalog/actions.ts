@@ -846,6 +846,7 @@ function assignmentFieldErrors(
 }
 
 function revalidateAssignments(projectId: number, consultantId?: number): void {
+  revalidatePath("/pay-terms");
   revalidatePath(`/projects/${projectId}`);
   revalidatePath(`/projects/${projectId}/team`);
   revalidatePath("/timesheets");
@@ -1090,4 +1091,108 @@ export async function removeProjectAssignmentAction(
   revalidateAssignments(projectId, consultantId);
 
   return { status: "success", message: t.catalog.team.removed };
+}
+
+export async function addRateChangeAction(
+  _prevState: AssignmentRowState,
+  formData: FormData,
+): Promise<AssignmentRowState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (!canManageCatalog(actor)) {
+    return { status: "error", message: t.catalog.errors.FORBIDDEN };
+  }
+
+  const projectId = Number(formData.get("projectId"));
+  const assignmentId = Number(formData.get("assignmentId"));
+  const consultantId = Number(formData.get("consultantId"));
+  const effectiveFrom = text(formData, "effectiveFrom");
+  const rawRate = text(formData, "payRate");
+  const rate = rawRate ? parseRate(rawRate) : 0;
+  const { ratePeriod } = readRateTerms(formData);
+
+  if (
+    !Number.isInteger(projectId) ||
+    projectId <= 0 ||
+    !Number.isInteger(assignmentId) ||
+    assignmentId <= 0
+  ) {
+    return { status: "error", message: t.catalog.errors.fallback };
+  }
+
+  if (!effectiveFrom) {
+    return { status: "error", message: t.catalog.rates.effectiveFromRequired };
+  }
+
+  if (rate === null) {
+    return { status: "error", message: t.catalog.errors.payRateInvalid };
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ assignment: ProjectAssignmentView }>(
+    `/projects/${projectId}/assignments/${assignmentId}/rates`,
+    {
+      method: "POST",
+      token,
+      body: { effectiveFrom, payRate: rate, ...(ratePeriod ? { ratePeriod } : {}) },
+    },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+    return {
+      status: "error",
+      message:
+        errorCopy(result.error.code, t) ??
+        result.error.message ??
+        t.catalog.errors.fallback,
+    };
+  }
+
+  revalidateAssignments(projectId, consultantId);
+
+  return { status: "success", message: t.catalog.rates.saved };
+}
+
+export async function removeRateChangeAction(
+  _prevState: AssignmentRowState,
+  formData: FormData,
+): Promise<AssignmentRowState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (!canManageCatalog(actor)) {
+    return { status: "error", message: t.catalog.errors.FORBIDDEN };
+  }
+
+  const projectId = Number(formData.get("projectId"));
+  const assignmentId = Number(formData.get("assignmentId"));
+  const rateId = Number(formData.get("rateId"));
+  const consultantId = Number(formData.get("consultantId"));
+
+  if (![projectId, assignmentId, rateId].every((id) => Number.isInteger(id) && id > 0)) {
+    return { status: "error", message: t.catalog.errors.fallback };
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ assignment: ProjectAssignmentView }>(
+    `/projects/${projectId}/assignments/${assignmentId}/rates/${rateId}`,
+    { method: "DELETE", token },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+    return {
+      status: "error",
+      message:
+        errorCopy(result.error.code, t) ??
+        result.error.message ??
+        t.catalog.errors.fallback,
+    };
+  }
+
+  revalidateAssignments(projectId, consultantId);
+
+  return { status: "success", message: t.catalog.rates.removed };
 }

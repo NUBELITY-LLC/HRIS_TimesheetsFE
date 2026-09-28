@@ -3,6 +3,7 @@ import { formatMoney, formatRate } from "@/lib/format/money";
 import { countryName } from "@/lib/payroll/countries";
 import type { PaySummary } from "@/lib/payroll/pay-terms";
 import { formatMinutes } from "@/lib/timesheets/rules";
+import { formatHourlyRates, hourlyRatesOf } from "@/lib/payroll/rate-spans";
 
 export async function PayBreakdown({
   pay,
@@ -13,6 +14,7 @@ export async function PayBreakdown({
 }) {
   const t = await getDictionary();
   const locale = await getLocale();
+  const mixedRates = hourlyRatesOf(pay, pay.hourlyRate).length > 1;
 
   return (
     <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
@@ -23,15 +25,20 @@ export async function PayBreakdown({
         <p className="text-xs text-ink-muted">
           {t.payTerms.contractTypes[pay.contractType]} ·{" "}
           {countryName(pay.countryCode, locale)} · {t.payTerms.hourlyRate}{" "}
-          {formatRate(pay.hourlyRate, currency, locale)}
+          {formatHourlyRates(hourlyRatesOf(pay, pay.hourlyRate), currency, locale)}
         </p>
       </div>
       <table className="w-full border-collapse text-sm">
         <tbody className="divide-y divide-line">
           {pay.lines.map((line) => (
-            <tr key={`${line.bucket}-${line.multiplier}`}>
+            <tr key={`${line.bucket}-${line.multiplier}-${line.hourlyRate ?? ""}`}>
               <td className="px-5 py-2.5 text-ink">
                 {t.payTerms.buckets[line.bucket]}
+                {mixedRates && line.hourlyRate !== undefined ? (
+                  <span className="ml-2 text-xs text-ink-muted">
+                    {t.payTerms.atRate(formatRate(line.hourlyRate, currency, locale))}
+                  </span>
+                ) : null}
               </td>
               <td className="px-5 py-2.5 text-right text-ink-soft tabular-nums">
                 {formatMinutes(line.minutes)}

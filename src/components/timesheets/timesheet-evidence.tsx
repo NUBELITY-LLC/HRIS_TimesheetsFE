@@ -10,6 +10,7 @@ import {
   SpinnerIcon,
   TrashIcon,
 } from "@/components/icons";
+import { useConfirm } from "@/components/ui/use-confirm";
 import { useDictionary } from "@/i18n/provider";
 import { EVIDENCE_ACCEPT } from "@/lib/approvals/form-state";
 import { removeTimesheetEvidenceAction } from "@/lib/timesheets/actions";
@@ -41,6 +42,7 @@ export function TimesheetEvidence({
   const [problem, setProblem] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [isRemoving, startRemoving] = useTransition();
+  const { confirm, dialog } = useConfirm();
 
   const total = attachments.length + files.length;
   const full = total >= TIMESHEET_EVIDENCE_MAX;
@@ -74,8 +76,15 @@ export function TimesheetEvidence({
     onFilesChange(files.filter((_, position) => position !== index));
   }
 
-  function removeSaved(attachmentId: number) {
+  async function removeSaved(attachmentId: number) {
     if (!timesheetId) return;
+
+    const accepted = await confirm({
+      title: t.confirmations.removeEvidence.title,
+      confirmLabel: t.confirmations.removeEvidence.confirm,
+      tone: "danger",
+    });
+    if (!accepted) return;
 
     setRemovingId(attachmentId);
     startRemoving(async () => {
@@ -91,6 +100,7 @@ export function TimesheetEvidence({
 
   return (
     <div className="space-y-3 border-t border-line px-5 py-4">
+      {dialog}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
@@ -160,7 +170,7 @@ export function TimesheetEvidence({
               {editable ? (
                 <button
                   type="button"
-                  onClick={() => removeSaved(attachment.id)}
+                  onClick={() => void removeSaved(attachment.id)}
                   disabled={disabled || isRemoving}
                   title={t.timesheets.evidence.remove}
                   aria-label={t.timesheets.evidence.remove}

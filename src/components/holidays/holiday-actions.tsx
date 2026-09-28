@@ -39,14 +39,22 @@ export function AddHolidayForm({
   );
   const feedback = useFeedbackSlot();
   const ids = { date: useId(), name: useId() };
+  const { guard: confirmGuard, dialog: confirmDialog } = useConfirmedSubmit();
   const { fieldErrors } = state;
 
   return (
     <form
-      onSubmit={submitKeepingValues(feedback.track(formAction))}
+      onSubmit={submitKeepingValues(
+        feedback.track(formAction),
+        confirmGuard({
+          title: t.confirmations.addHoliday.title,
+          confirmLabel: t.confirmations.addHoliday.confirm,
+        }),
+      )}
       className="space-y-3 rounded-xl border border-line bg-surface p-4"
       noValidate
     >
+      {confirmDialog}
       <input type="hidden" name="countryCode" value={countryCode} />
       <div key={state.savedAt ?? 0} className="flex flex-wrap items-end gap-3">
         <div className="w-44 space-y-1.5">

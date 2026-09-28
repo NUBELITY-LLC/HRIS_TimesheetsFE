@@ -52,7 +52,15 @@ export type ProjectAssignmentView = {
   isActive: boolean;
   assignmentCode: string | null;
   payTerms: PayTerms;
+  rateChanges: RateChangeView[];
   consultant: PersonView | null;
+};
+
+export type RateChangeView = {
+  id: number;
+  effectiveFrom: string;
+  payRate: number;
+  ratePeriod: RatePeriod;
 };
 
 export type CloseProjectResult = {

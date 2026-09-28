@@ -35,6 +35,7 @@ import {
 import { useDictionary } from "@/i18n/provider";
 import { submitKeepingValues } from "@/lib/forms/submit";
 import { useFeedbackSlot } from "@/components/ui/feedback-scope";
+import { useConfirmedSubmit } from "@/components/ui/use-confirm";
 
 const INPUT_BASE =
   "w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted";
@@ -500,6 +501,7 @@ export function UserForm({
     initialState,
   );
   const feedback = useFeedbackSlot();
+  const { guard: confirmGuard, dialog: confirmDialog } = useConfirmedSubmit();
 
   const ids = {
     fullName: useId(),
@@ -516,7 +518,18 @@ export function UserForm({
     : (state.savedUser?.userName ?? "edit");
 
   return (
-    <form onSubmit={submitKeepingValues(feedback.track(formAction))} className="space-y-5" noValidate>
+    <form onSubmit={submitKeepingValues(
+        feedback.track(formAction),
+        confirmGuard({
+          title: isCreate
+            ? t.confirmations.createUser.title
+            : t.confirmations.saveUser.title,
+          confirmLabel: isCreate
+            ? t.confirmations.createUser.confirm
+            : t.confirmations.saveUser.confirm,
+        }),
+      )} className="space-y-5" noValidate>
+      {confirmDialog}
       {userId ? <input type="hidden" name="id" value={userId} /> : null}
 
       {feedback.visible && state.status === "success" && state.savedUser ? (

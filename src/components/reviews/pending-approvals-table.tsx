@@ -14,6 +14,11 @@ import {
 } from "@/lib/timesheets/approvals";
 import { formatMinutes } from "@/lib/timesheets/rules";
 import { formatWeekRange } from "@/lib/timesheets/week";
+import {
+  formatHourlyRates,
+  formatRateRange,
+  hourlyRatesOf,
+} from "@/lib/payroll/rate-spans";
 
 export async function PendingApprovalsTable({
   title,
@@ -95,8 +100,8 @@ export async function PendingApprovalsTable({
                     {showCosts ? (
                       <>
                         <td className="px-5 py-3 text-right font-medium text-ink-muted tabular-nums">
-                          {formatMoney(
-                            group.hourlyRate,
+                          {formatRateRange(
+                            group.hourlyRates,
                             group.currency,
                             locale,
                           )}
@@ -144,8 +149,8 @@ export async function PendingApprovalsTable({
                       {showCosts ? (
                         <>
                           <td className="px-5 py-3 text-right text-ink-muted tabular-nums">
-                            {formatMoney(
-                              approval.hourlyRate,
+                            {formatHourlyRates(
+                              hourlyRatesOf(approval.pay, approval.hourlyRate),
                               approval.currency,
                               locale,
                             )}
