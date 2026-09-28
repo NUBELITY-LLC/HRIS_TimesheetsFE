@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { AlertIcon, CheckIcon, SpinnerIcon } from "@/components/icons";
 import { PayTermsFields } from "@/components/payroll/pay-terms-fields";
 import { RateHistory } from "@/components/catalog/rate-history";
+import { RatePeriodSelect } from "@/components/rates/rate-selects";
 import { useConfirmedSubmit } from "@/components/ui/use-confirm";
 import { useDictionary, useLocale } from "@/i18n/provider";
 import { formatRate } from "@/lib/format/money";
@@ -32,6 +33,7 @@ export function PayTermsRow({
   const feedback = useFeedbackSlot();
   const { guard, dialog } = useConfirmedSubmit();
   const [dirty, setDirty] = useState(false);
+  const [period, setPeriod] = useState(assignment.ratePeriod);
   const [seenState, setSeenState] = useState(state);
 
   if (state !== seenState) {
@@ -52,6 +54,7 @@ export function PayTermsRow({
             )}
           </p>
           <p className="text-xs text-ink-muted">
+            {assignment.company ? `${assignment.company.name} · ` : ""}
             {assignment.project?.name ?? t.common.unknown}
             {assignment.client ? ` · ${assignment.client.name}` : ""}
             {assignment.assignmentCode ? ` · ${assignment.assignmentCode}` : ""}
@@ -79,7 +82,16 @@ export function PayTermsRow({
             confirmLabel: t.confirmations.savePayTerms.confirm,
           }),
         )}
-        onChange={() => setDirty(true)}
+        onChange={(event) => {
+          setDirty(true);
+          const target = event.target;
+          if (
+            target instanceof HTMLSelectElement &&
+            target.name === "ratePeriod"
+          ) {
+            setPeriod(target.value as PayAssignment["ratePeriod"]);
+          }
+        }}
         className="space-y-2"
         noValidate
       >
@@ -107,14 +119,28 @@ export function PayTermsRow({
             />
           </div>
           <span className="pb-2 text-xs text-ink-muted">
-            {assignment.currency} {t.rates.per[assignment.ratePeriod]}
+            {assignment.currency}
           </span>
+          <div className="space-y-1">
+            <label
+              htmlFor={`pay-period-${assignment.id}`}
+              className="block text-xs font-medium text-ink-soft"
+            >
+              {t.rates.period}
+            </label>
+            <RatePeriodSelect
+              id={`pay-period-${assignment.id}`}
+              defaultValue={assignment.ratePeriod}
+              disabled={isPending}
+              className="w-36 rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted"
+            />
+          </div>
         </div>
         <PayTermsFields
           defaults={assignment.payTerms}
           disabled={isPending}
           collapsible
-          ratePeriod={assignment.ratePeriod}
+          ratePeriod={period}
         />
         <div className="flex flex-wrap items-center justify-end gap-3">
           {feedback.visible && state.status === "error" && state.message ? (

@@ -162,7 +162,7 @@ export default async function PayTermsPage({
               <PayTermsRow
                 key={assignment.id}
                 assignment={assignment}
-                canEditRates={canManageCatalog(actor)}
+                canEditRates={canManagePayroll(actor) || canManageCatalog(actor)}
               />
             ))}
           </ul>

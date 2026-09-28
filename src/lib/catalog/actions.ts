@@ -13,6 +13,7 @@ import {
   APPROVER_ROLE_CODES,
   canBeManagerClient,
   canManageCatalog,
+  canManagePayroll,
 } from "@/lib/users/roles";
 import { fetchUser } from "@/lib/users/queries";
 import type { ApproverType } from "@/lib/timesheets/types";
@@ -1100,7 +1101,9 @@ export async function addRateChangeAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageCatalog(actor)) {
+  const viaPayroll = canManagePayroll(actor);
+
+  if (!viaPayroll && !canManageCatalog(actor)) {
     return { status: "error", message: t.catalog.errors.FORBIDDEN };
   }
 
@@ -1131,7 +1134,9 @@ export async function addRateChangeAction(
 
   const token = await getSessionToken();
   const result = await apiRequest<{ assignment: ProjectAssignmentView }>(
-    `/projects/${projectId}/assignments/${assignmentId}/rates`,
+    viaPayroll
+      ? `/payroll/assignments/${assignmentId}/rates`
+      : `/projects/${projectId}/assignments/${assignmentId}/rates`,
     {
       method: "POST",
       token,
@@ -1162,7 +1167,9 @@ export async function removeRateChangeAction(
   const t = await getDictionary();
   const actor = await requireUser();
 
-  if (!canManageCatalog(actor)) {
+  const viaPayroll = canManagePayroll(actor);
+
+  if (!viaPayroll && !canManageCatalog(actor)) {
     return { status: "error", message: t.catalog.errors.FORBIDDEN };
   }
 
@@ -1177,7 +1184,9 @@ export async function removeRateChangeAction(
 
   const token = await getSessionToken();
   const result = await apiRequest<{ assignment: ProjectAssignmentView }>(
-    `/projects/${projectId}/assignments/${assignmentId}/rates/${rateId}`,
+    viaPayroll
+      ? `/payroll/assignments/${assignmentId}/rates/${rateId}`
+      : `/projects/${projectId}/assignments/${assignmentId}/rates/${rateId}`,
     { method: "DELETE", token },
   );
 

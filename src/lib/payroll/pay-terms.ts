@@ -175,6 +175,7 @@ export type PayAssignment = {
   consultant: { id: number; name: string; email: string } | null;
   project: { id: number; name: string; code: string | null } | null;
   client: { id: number; name: string } | null;
+  company: { id: number; name: string } | null;
 };
 
 export type PayAssignmentFilters = {

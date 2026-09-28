@@ -14,6 +14,7 @@ import {
   type PayrollRulesFormState,
   type PayTermsRowState,
 } from "./pay-terms";
+import { readRateTerms } from "@/lib/rates/rates";
 
 const NUMBER = /^\d{1,3}([.,]\d{1,2})?$/;
 const MONEY = /^\d{1,10}([.,]\d{1,2})?$/;
@@ -139,11 +140,17 @@ export async function updatePayTermsAction(
     return { status: "error", message: copy.payRateInvalid, savedAt: null };
   }
 
+  const { ratePeriod } = readRateTerms(formData);
+
   const token = await getSessionToken();
   const result = await apiRequest(`/payroll/assignments/${id}`, {
     method: "PATCH",
     token,
-    body: { ...terms, payRate: Number(rawRate.replace(",", ".")) },
+    body: {
+      ...terms,
+      payRate: Number(rawRate.replace(",", ".")),
+      ...(ratePeriod ? { ratePeriod } : {}),
+    },
   });
 
   if (!result.ok) {
