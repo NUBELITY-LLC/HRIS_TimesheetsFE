@@ -11,6 +11,8 @@ import {
 import { INITIAL_ROW_ACTION_STATE } from "@/lib/users/form-state";
 import { useConfirmedSubmit } from "@/components/ui/use-confirm";
 import { useDictionary } from "@/i18n/provider";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
 type UserStatusActionsProps = {
   userId: number;
@@ -68,12 +70,12 @@ function StatusButton({
     isActive ? deactivateUserAction : reactivateUserAction,
     INITIAL_ROW_ACTION_STATE,
   );
+  const feedback = useFeedbackSlot();
   const { guard, dialog } = useConfirmedSubmit();
 
   return (
     <form
-      action={formAction}
-      onSubmit={guard(
+      onSubmit={submitKeepingValues(feedback.track(formAction), guard(
         isActive
           ? {
               title: t.users.confirmDeactivate(fullName),
@@ -81,7 +83,7 @@ function StatusButton({
               tone: "danger",
             }
           : null,
-      )}
+      ))}
     >
       {dialog}
       <input type="hidden" name="id" value={userId} />
@@ -120,17 +122,17 @@ function DeleteButton({
     deleteUserAction,
     INITIAL_ROW_ACTION_STATE,
   );
+  const feedback = useFeedbackSlot();
   const { guard, dialog } = useConfirmedSubmit();
 
   return (
     <form
-      action={formAction}
-      onSubmit={guard({
+      onSubmit={submitKeepingValues(feedback.track(formAction), guard({
         title: t.users.confirmDelete(fullName),
         body: t.users.confirmDeleteBody,
         confirmLabel: t.users.table.delete,
         tone: "danger",
-      })}
+      }))}
     >
       {dialog}
       <input type="hidden" name="id" value={userId} />

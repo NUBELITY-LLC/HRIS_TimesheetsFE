@@ -15,6 +15,7 @@ import {
   type DraftDayPayload,
   type TimesheetFormState,
 } from "./form-state";
+import { evidenceIssue } from "./evidence";
 import { isTaskMinutes } from "./rules";
 import type { SubmissionConfirmation, Timesheet } from "./types";
 
@@ -111,6 +112,44 @@ function toErrorState(
   };
 }
 
+function readEvidenceFiles(formData: FormData): File[] {
+  return formData
+    .getAll("evidence")
+    .filter((item): item is File => item instanceof File && item.size > 0);
+}
+
+async function uploadEvidenceFiles(
+  timesheetId: number,
+  files: File[],
+  token: string | null,
+  t: Dictionary,
+): Promise<TimesheetFormState | null> {
+  for (const file of files) {
+    const payload = new FormData();
+    payload.set("evidence", file, file.name);
+
+    const result = await apiRequest<{ attachment: { id: number } }>(
+      `/timesheets/${timesheetId}/attachments`,
+      { method: "POST", token, body: payload },
+    );
+
+    if (!result.ok) {
+      if (result.status === 401) redirect("/login?reason=session_expired");
+
+      return {
+        ...INITIAL_TIMESHEET_FORM_STATE,
+        status: "error",
+        code: result.error.code,
+        message:
+          errorCopy(result.error.code, t) ??
+          t.timesheets.evidence.uploadFailed(file.name),
+      };
+    }
+  }
+
+  return null;
+}
+
 export async function saveTimesheetAction(
   _prevState: TimesheetFormState,
   formData: FormData,
@@ -132,6 +171,18 @@ export async function saveTimesheetAction(
   const weekStart = String(formData.get("weekStart") ?? "");
   const projectStatus = String(formData.get("projectStatus") ?? "");
   const days = parseDays(String(formData.get("days") ?? "[]"));
+  const evidence = readEvidenceFiles(formData);
+  const evidenceProblem = evidence
+    .map((file) => evidenceIssue(file, t))
+    .find((issue): issue is string => issue !== null);
+
+  if (evidenceProblem) {
+    return {
+      ...INITIAL_TIMESHEET_FORM_STATE,
+      status: "error",
+      message: evidenceProblem,
+    };
+  }
 
   if (!Number.isInteger(assignmentId) || assignmentId <= 0) {
     return {
@@ -186,6 +237,14 @@ export async function saveTimesheetAction(
   revalidatePath("/timesheets");
   revalidatePath("/timesheets/new");
   revalidatePath("/dashboard");
+
+  const uploadFailure = await uploadEvidenceFiles(
+    saved.data.timesheet.id,
+    evidence,
+    token,
+    t,
+  );
+  if (uploadFailure) return uploadFailure;
 
   if (intent !== "submit") {
     return {
@@ -265,4 +324,39 @@ export async function discardDraftAction(
   revalidatePath("/dashboard");
 
   return { status: "success", message: t.timesheets.drafts.discarded };
+}
+
+export async function removeTimesheetEvidenceAction(
+  timesheetId: number,
+  attachmentId: number,
+): Promise<{ ok: boolean; message: string | null }> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+
+  if (
+    !canSubmitTimesheets(actor) ||
+    !Number.isInteger(timesheetId) ||
+    !Number.isInteger(attachmentId)
+  ) {
+    return { ok: false, message: t.timesheets.evidence.removeFailed };
+  }
+
+  const token = await getSessionToken();
+  const result = await apiRequest<{ removed: boolean }>(
+    `/timesheets/${timesheetId}/attachments/${attachmentId}`,
+    { method: "DELETE", token },
+  );
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+    return {
+      ok: false,
+      message:
+        errorCopy(result.error.code, t) ?? t.timesheets.evidence.removeFailed,
+    };
+  }
+
+  revalidatePath("/timesheets/new");
+
+  return { ok: true, message: null };
 }

@@ -11,6 +11,7 @@ import { INITIAL_DRAFT_ACTION_STATE } from "@/lib/timesheets/form-state";
 import { formatMinutes } from "@/lib/timesheets/rules";
 import type { Timesheet } from "@/lib/timesheets/types";
 import { formatWeekRange } from "@/lib/timesheets/week";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
 function DiscardDraft({
   timesheetId,
@@ -24,11 +25,12 @@ function DiscardDraft({
     discardDraftAction,
     INITIAL_DRAFT_ACTION_STATE,
   );
+  const feedback = useFeedbackSlot();
   const { guard, dialog } = useConfirmedSubmit();
 
   return (
     <form
-      action={formAction}
+      action={feedback.track(formAction)}
       className="relative"
       onSubmit={guard({
         title: t.timesheets.drafts.confirm(weekLabel),
@@ -51,7 +53,7 @@ function DiscardDraft({
           <TrashIcon className="size-4" />
         )}
       </button>
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <p className="absolute top-full right-0 mt-1 text-xs whitespace-nowrap text-danger-600">
           {state.message}
         </p>

@@ -16,6 +16,8 @@ import {
   INITIAL_APPROVE_ON_BEHALF_STATE,
   ON_BEHALF_COMMENTS_MAX,
 } from "@/lib/approvals/form-state";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
 export function ApproveOnBehalfForm({
   approvalId,
@@ -31,6 +33,7 @@ export function ApproveOnBehalfForm({
     approveOnBehalfAction,
     INITIAL_APPROVE_ON_BEHALF_STATE,
   );
+  const feedback = useFeedbackSlot();
   const { guard, dialog } = useConfirmedSubmit();
 
   if (state.status === "success") {
@@ -48,12 +51,11 @@ export function ApproveOnBehalfForm({
 
   return (
     <form
-      action={formAction}
-      onSubmit={guard({
+      onSubmit={submitKeepingValues(feedback.track(formAction), guard({
         title: t.approvals.onBehalf.confirm(approverLabel),
         body: t.approvals.onBehalf.intro,
         confirmLabel: t.approvals.onBehalf.submit,
-      })}
+      }))}
       className="space-y-3"
     >
       {dialog}
@@ -103,7 +105,7 @@ export function ApproveOnBehalfForm({
         </p>
       </div>
 
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <p role="alert" className="text-xs text-danger-600">
           {state.message}
         </p>

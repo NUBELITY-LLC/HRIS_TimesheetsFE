@@ -13,6 +13,7 @@ import {
   type ClientFilters,
 } from "@/lib/catalog/queries";
 import { canManageCatalog } from "@/lib/users/roles";
+import { CreatedNotice } from "@/components/catalog/created-notice";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
@@ -50,7 +51,9 @@ export default async function ClientsPage({
     return <CatalogNoAccess />;
   }
 
-  const filters = parseFilters(await searchParams);
+  const params = await searchParams;
+  const filters = parseFilters(params);
+  const created = firstParam(params.created);
   const [result, companies] = await Promise.all([
     fetchClients(filters),
     fetchActiveCompanies(),
@@ -73,6 +76,10 @@ export default async function ClientsPage({
           {t.catalog.clients.newClient}
         </Link>
       </header>
+
+      {created ? (
+        <CreatedNotice message={t.catalog.clients.createdTitle(created)} />
+      ) : null}
 
       <form
         action="/managers"

@@ -34,7 +34,7 @@ export const en: Dictionary = {
     reviews: "Timesheet reviews",
     notifications: "Notifications",
     companies: "Companies",
-    clients: "Managers",
+    clients: "Project Directors",
     projects: "Projects",
     payTerms: "Pay terms",
     holidays: "Holidays",
@@ -140,6 +140,7 @@ export const en: Dictionary = {
       count === 1 ? "1 approved" : `${count} approved`,
     recentTitle: "Recent timesheet submissions",
     resume: "Resume",
+    fix: "Fix",
     reviewQueueTitle: "Waiting for your review",
     reviewQueueHint: (count: number) =>
       count === 1
@@ -169,7 +170,6 @@ export const en: Dictionary = {
     pendingReviewHint: "Waiting for your decision",
     teamEmptyTitle: "No team timesheets yet.",
     teamEmptyBody: "Once the team submits their hours you will see them here.",
-    rejectionReason: (who: string) => `Rejected by ${who}:`,
     emptyTitle: "No submissions yet.",
     emptyBody: "Submit your weekly hours and they will show up here.",
     emptyCta: "Go to my timesheets",
@@ -266,6 +266,29 @@ export const en: Dictionary = {
     routingEmailSent: "The hours approval request was sent.",
     weekStatus: "Week status",
     lockedTitle: "This week is already in the approval workflow.",
+    export: {
+      label: "Download log",
+      xlsx: "Excel",
+      pdf: "PDF",
+      savedVersion: "The saved version will be downloaded.",
+    },
+    evidence: {
+      title: "Evidence",
+      optional: "Optional",
+      hint: (max: number) =>
+        `PDF, PNG, JPG or WEBP up to 10 MB. Up to ${max} files per week.`,
+      add: "Add file",
+      pending: "Will be attached when you save",
+      remove: "Remove",
+      removing: "Removing…",
+      empty: "No evidence.",
+      tooLarge: (name: string) => `${name} is larger than 10 MB.`,
+      wrongType: (name: string) => `${name} must be a PDF, PNG, JPG or WEBP.`,
+      limit: (max: number) => `You can attach up to ${max} files.`,
+      uploadFailed: (name: string) =>
+        `Your hours were saved, but ${name} could not be attached. Please try again.`,
+      removeFailed: "The evidence could not be removed. Please try again.",
+    },
     errors: {
       clientRequired: "Select a manager.",
       projectRequired: "Select a project.",
@@ -293,6 +316,10 @@ export const en: Dictionary = {
       projectEndsOn: (date: string) =>
         `This project ends on ${date}: later days cannot be logged.`,
       WEEK_NOT_STARTED: "You cannot submit a future week yet.",
+      EVIDENCE_TOO_LARGE: "The evidence is larger than 10 MB.",
+      EVIDENCE_TYPE_NOT_ALLOWED: "The evidence must be a PDF, PNG, JPG or WEBP.",
+      EVIDENCE_LIMIT: "You already reached the evidence limit for this week.",
+      EVIDENCE_LOCKED: "This week was already submitted and its evidence can't change.",
       NETWORK_ERROR:
         "We could not reach the server. Please try again in a moment.",
       fallback: "Your hours could not be saved. Please try again.",
@@ -317,10 +344,9 @@ export const en: Dictionary = {
     review: "Review",
     detail: {
       eyebrow: "Timesheet review",
+      continuedNotice: (seq: number) => `Step ${seq} is also yours.`,
       activeStage: (seq: number, name: string) =>
         `Step ${seq}: ${name} (active)`,
-      resolvedBy: (approver: string, date: string) =>
-        `Approved by ${approver} on ${date}`,
       infoTitle: "Consultant and project",
       consultant: "Consultant",
       clientProject: "Manager / Project",
@@ -335,13 +361,15 @@ export const en: Dictionary = {
         "This step is not yours to resolve: either you are not its approver, or it was already resolved.",
       evidenceTitle: "Attached evidence",
       evidenceEmpty: "No evidence attached.",
+      consultantEvidenceTitle: "Consultant evidence",
+      consultantEvidenceEmpty: "The consultant did not attach evidence.",
     },
     listTitle: "Pending review",
     taskCount: (count: number) =>
       count === 1 ? "1 task on this page" : `${count} tasks on this page`,
     loadErrorTitle: "We could not load your approval tasks.",
-    summary: (total: number, page: number, pages: number) =>
-      `${total} tasks · page ${page} of ${pages}`,
+    summary: (total: number) =>
+      total === 1 ? "1 task" : `${total} tasks`,
     emptyTitle: "Nothing to review.",
     emptyBody: "Submitted timesheets will show up here.",
     notFoundTitle: "That timesheet is not available.",
@@ -437,8 +465,8 @@ export const en: Dictionary = {
         RETURNED_TO_PREVIOUS: "Sent back a step",
         RETURNED_TO_CONSULTANT: "Sent back to consultant",
       },
-      summary: (total: number, page: number, pages: number) =>
-        `${total} decisions · page ${page} of ${pages}`,
+      summary: (total: number) =>
+        total === 1 ? "1 decision" : `${total} decisions`,
       emptyTitle: "You have not resolved any timesheet yet.",
       emptyBody: "Approvals and returns you make will be recorded here.",
     },
@@ -464,8 +492,8 @@ export const en: Dictionary = {
     filterLabel: "Filter by status",
     filterAll: "All",
     listTitle: "Submissions",
-    summary: (total: number, page: number, pages: number) =>
-      `${total} submissions · page ${page} of ${pages}`,
+    summary: (total: number) =>
+      total === 1 ? "1 submission" : `${total} submissions`,
     emptyTitle: "No submissions yet.",
     emptyBody: "Once you log and submit a week, it will show up here.",
     loadErrorTitle: "We could not load your history.",
@@ -488,6 +516,15 @@ export const en: Dictionary = {
   approvals: {
     client: "Manager",
     step: (seq: number) => `Step ${seq}`,
+    decidedFor: (who: string, step: string) => `${who} on behalf of ${step}`,
+    decisions: {
+      APPROVED: (who: string, date: string) =>
+        `Approved by ${who} on ${date}`,
+      REJECTED_TO_PREVIOUS: (who: string, date: string) =>
+        `Returned to the previous step by ${who} on ${date}`,
+      REJECTED_TO_CONSULTANT: (who: string, date: string) =>
+        `Rejected by ${who} on ${date}`,
+    },
     external: {
       badge: "External manager",
       hint: "Replies by email; has no account in the platform.",
@@ -602,12 +639,12 @@ export const en: Dictionary = {
   },
   catalog: {
     noAccessTitle: "You don't have access to this module",
-    noAccessBody: "Your account doesn't have access to managers and projects.",
+    noAccessBody: "Your account doesn't have access to Project Directors and projects.",
     filters: {
       search: "Search",
       status: "Status",
-      client: "Manager",
-      allClients: "All managers",
+      client: "PD",
+      allClients: "All PDs",
       allCompanies: "All companies",
       company: "Company",
       statusActive: "Active",
@@ -632,17 +669,17 @@ export const en: Dictionary = {
       managerUser: "System user",
       managerUserPlaceholder: "No system account",
       managerUserEmpty:
-        "There are no users available; enter the manager details.",
-      clientName: "Manager name",
+        "There are no users available; enter the Project Director details.",
+      clientName: "Project Director name",
       clientNamePlaceholder: "Trading name",
       contactEmail: "Contact email",
-      contactEmailPlaceholder: "contact@manager.com",
+      contactEmailPlaceholder: "contact@company.com",
       contactEmailHint: "Optional.",
-      activeTitle: "Active manager",
+      activeTitle: "Active Project Director",
       companyActiveTitle: "Active company",
-      clientLabel: "Manager",
-      clientPlaceholder: "Select a manager",
-      clientCompanyEmpty: "That company has no managers on record.",
+      clientLabel: "PD",
+      clientPlaceholder: "Select a PD",
+      clientCompanyEmpty: "That company has no PDs on record.",
       projectName: "Project name",
       projectNamePlaceholder: "Project name",
       code: "Code",
@@ -682,28 +719,28 @@ export const en: Dictionary = {
       noCompaniesTitle: "Create a company first.",
     },
     clients: {
-      eyebrow: "Managers",
-      title: "Manager catalog",
-      newClient: "New manager",
-      searchPlaceholder: "Manager name",
+      eyebrow: "Project Directors",
+      title: "Project Director catalog",
+      newClient: "New Project Director",
+      searchPlaceholder: "Project Director name",
       columns: {
-        name: "Manager",
+        name: "Project Director",
         company: "Company",
         email: "Contact email",
         status: "Status",
       },
       active: "Active",
       inactive: "Inactive",
-      emptyTitle: "No managers match.",
-      emptyBody: "Create the first manager to get started.",
-      loadErrorTitle: "The manager catalog could not be loaded.",
-      createTitle: "Create manager",
-      editTitle: "Edit manager",
-      back: "Back to managers",
+      emptyTitle: "No Project Directors match.",
+      emptyBody: "Create the first Project Director to get started.",
+      loadErrorTitle: "The Project Director catalog could not be loaded.",
+      createTitle: "Create Project Director",
+      editTitle: "Edit Project Director",
+      back: "Back to Project Directors",
       edit: "Edit",
       createdTitle: (name: string) => `${name} was created.`,
       updatedTitle: (name: string) => `${name} was updated.`,
-      notFoundTitle: "That manager does not exist.",
+      notFoundTitle: "That Project Director does not exist.",
       notFoundBody: "It may have been removed from the catalog.",
     },
     projects: {
@@ -713,7 +750,7 @@ export const en: Dictionary = {
       searchPlaceholder: "Name or code",
       columns: {
         name: "Project",
-        client: "Manager",
+        client: "PD",
         manager: "Manager",
         dates: "Dates",
       },
@@ -728,12 +765,13 @@ export const en: Dictionary = {
       updatedTitle: (name: string) => `${name} was updated.`,
       notFoundTitle: "That project does not exist.",
       notFoundBody: "It may have been removed from the catalog.",
-      noClientsTitle: "Create a manager first.",
+      noClientsTitle: "Create a Project Director first.",
       noManager: "No manager",
       since: (date: string) => `Since ${date}`,
       openDates: "No dates",
       createdBanner: (name: string) =>
         `${name} was created. Configure its approval workflow so the team can submit hours.`,
+      configureFlow: "Set up flow",
     },
     team: {
       eyebrow: "Team",
@@ -825,7 +863,9 @@ export const en: Dictionary = {
       clientPlaceholder: "Select a manager",
       clientWithoutEmail: "no contact email",
       clientEmail: (email: string) => `${email} will be notified.`,
-      projectClientLane: "Project manager · required approver",
+      projectClientLane: "Project PD · required approver",
+      projectManagerLane: "Project manager · required approver",
+      projectManagerPending: "Save the flow to include the project manager.",
       projectClientMissingEmail:
         "The project manager has no contact email, so the workflow cannot be saved.",
       manageClients: "Manage managers",
@@ -864,8 +904,9 @@ export const en: Dictionary = {
       assignmentStart: "Enter the assignment start date.",
       assignmentCodeLength: (max: number) =>
         `The assignment ID takes up to ${max} characters.`,
-      payRateRequired: "Enter the hourly rate for the assignment.",
-      payRateInvalid: "The rate accepts numbers with up to 2 decimals.",
+      payRateInvalid: "The cost accepts numbers with up to 2 decimals.",
+      ASSIGNMENT_BEFORE_PROJECT: "The assignment cannot start before the project.",
+      ASSIGNMENT_AFTER_PROJECT: "The assignment cannot end after the project.",
       clientNameRequired: "Enter the manager name.",
       managerUserInvalid:
         "That user is no longer active or can't be a manager.",
@@ -883,6 +924,8 @@ export const en: Dictionary = {
       approverEmailInvalid: "The approver email is not valid.",
       approverClientRequired: "Select the manager who approves.",
       projectClientLaneRequired:
+        "The project manager must be one of the approvers.",
+      projectManagerLaneRequired:
         "The project manager must be one of the approvers.",
       CLIENT_COMPANY_MISMATCH:
         "Only managers from the same company as the project manager can approve.",
@@ -1011,12 +1054,12 @@ export const en: Dictionary = {
       jobTitle: "Job title",
       jobTitlePlaceholder: "Senior Consultant",
       jobTitleHint: "Optional.",
-      projectSection: "Project and rate",
+      projectSection: "Project and cost",
       project: "Project",
       projectPlaceholder: "Select a project…",
       projectNone: "No project",
-      payRate: "Project rate",
-      assignmentRate: "Project rate",
+      payRate: "Resource cost",
+      assignmentRate: "Resource cost",
       saveAssignment: "Save assignment",
       reactivateAssignment: "Reactivate",
       inactiveAssignment: "Inactive",
@@ -1075,8 +1118,9 @@ export const en: Dictionary = {
       projectStartRequired: "Enter the assignment start date.",
       assignmentCodeLength: (max: number) =>
         `The assignment ID takes up to ${max} characters.`,
-      payRateRequired: "Enter the hourly rate for the assignment.",
-      payRateInvalid: "The rate accepts numbers with up to 2 decimals.",
+      payRateInvalid: "The cost accepts numbers with up to 2 decimals.",
+      ASSIGNMENT_BEFORE_PROJECT: "The assignment cannot start before the project.",
+      ASSIGNMENT_AFTER_PROJECT: "The assignment cannot end after the project.",
       dateOrder: "The end date cannot be earlier than the start date.",
       projectAssigned: "Project assigned.",
       assignmentUpdated: "Assignment updated.",
@@ -1089,7 +1133,7 @@ export const en: Dictionary = {
   roles: {
     CONSULTANT: {
       name: "Consultant",
-      description: "Submits weekly timesheets for managers' projects.",
+      description: "Submits weekly timesheets for assigned projects.",
     },
     EMPLOYEE: {
       name: "Employee",
@@ -1124,7 +1168,7 @@ export const en: Dictionary = {
     },
     CATALOG_MANAGE: {
       name: "Manage catalog",
-      description: "Companies, managers and projects.",
+      description: "Companies, Project Directors and projects.",
     },
     USERS_MANAGE: {
       name: "Manage users",
@@ -1139,6 +1183,20 @@ export const en: Dictionary = {
       description: "Pay terms for each assignment, holidays and payroll rules.",
     },
   },
+  rates: {
+    currency: "Currency",
+    period: "Rate",
+    periods: {
+      HOUR: "Hourly",
+      MONTH: "Monthly",
+      YEAR: "Yearly",
+    },
+    per: {
+      HOUR: "/ hour",
+      MONTH: "/ month",
+      YEAR: "/ year",
+    },
+  },
   payTerms: {
     section: "Pay terms",
     summary: (contract: string, divisor: number) => `${contract} · ÷${divisor}`,
@@ -1146,6 +1204,7 @@ export const en: Dictionary = {
     contractTypes: { CONTRACTOR: "Contractor", PAYROLL: "Payroll" },
     country: "Country",
     hoursDivisor: "Hourly divisor",
+    hoursDivisorHourly: "Not used for hourly costs.",
     dailyHours: "Workday (hours)",
     overtimeMultiplier: "Overtime (×)",
     holidayMultiplier: "Holidays (×)",
@@ -1186,7 +1245,7 @@ export const en: Dictionary = {
     statusInactive: "Inactive",
     statusAll: "All",
     filter: "Filter",
-    payRate: "Rate",
+    payRate: "Resource cost",
     hourlyRate: "Hourly cost",
     inactive: "Inactive",
     save: "Save",
@@ -1199,7 +1258,7 @@ export const en: Dictionary = {
     next: "Next",
     errors: {
       FORBIDDEN: "You can't change pay terms.",
-      payRateInvalid: "The rate accepts numbers with up to 2 decimals.",
+      payRateInvalid: "The cost accepts numbers with up to 2 decimals.",
       NOT_FOUND: "That assignment no longer exists.",
       fallback: "We couldn't save the pay terms. Please try again.",
     },

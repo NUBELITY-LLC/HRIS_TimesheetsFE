@@ -16,6 +16,8 @@ import type {
   CompanyView,
   PersonView,
 } from "@/lib/catalog/types";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
 const INPUT_BASE =
   "w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none";
@@ -50,6 +52,7 @@ export function ProjectForm({
     ...INITIAL_PROJECT_FORM_STATE,
     values: defaultValues,
   });
+  const feedback = useFeedbackSlot();
   const isCreate = mode === "create";
 
   const ids = {
@@ -84,10 +87,10 @@ export function ProjectForm({
   }
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form onSubmit={submitKeepingValues(feedback.track(formAction))} className="space-y-5" noValidate>
       {projectId ? <input type="hidden" name="id" value={projectId} /> : null}
 
-      {state.status === "success" && state.savedName ? (
+      {feedback.visible && state.status === "success" && state.savedName ? (
         <div
           role="status"
           aria-live="polite"
@@ -108,7 +111,7 @@ export function ProjectForm({
         </div>
       ) : null}
 
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <div
           role="alert"
           aria-live="assertive"

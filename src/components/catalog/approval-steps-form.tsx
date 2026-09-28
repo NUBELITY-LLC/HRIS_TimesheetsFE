@@ -27,6 +27,7 @@ import type {
 } from "@/lib/catalog/types";
 import type { ApproverType } from "@/lib/timesheets/types";
 import { APPROVER_ROLE_CODES, roleName } from "@/lib/users/roles";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
 const APPROVER_TYPES: ApproverType[] = ["CLIENT_EMAIL", "USER", "ROLE"];
 
@@ -55,6 +56,7 @@ export function ApprovalStepsForm({
   approvers,
   clients,
   projectClientId,
+  projectManager,
 }: {
   projectId: number;
   steps: ApprovalStepView[];
@@ -63,27 +65,68 @@ export function ApprovalStepsForm({
   approvers: PersonView[];
   clients: ClientView[];
   projectClientId: number | null;
+  projectManager: PersonView | null;
 }) {
   const t = useDictionary();
   const [state, formAction, isPending] = useActionState(
     saveApprovalStepsAction,
     INITIAL_APPROVAL_STEPS_FORM_STATE,
   );
+  const feedback = useFeedbackSlot();
+
+  const projectManagerId = projectManager ? String(projectManager.id) : null;
+
+  function coversProjectManager(row: ApprovalStepDraft): boolean {
+    if (!projectManagerId) return false;
+    if (row.approverType === "USER") return row.userId === projectManagerId;
+    if (row.approverType !== "CLIENT_EMAIL") return false;
+
+    const client = clients.find(
+      (candidate) => String(candidate.id) === row.clientId,
+    );
+    return client?.user ? String(client.user.id) === projectManagerId : false;
+  }
+
+  function withProjectManager(
+    current: ApprovalStepDraft[],
+  ): ApprovalStepDraft[] {
+    if (!projectManagerId || current.some(coversProjectManager)) {
+      return current;
+    }
+
+    return [
+      ...current,
+      {
+        ...emptyApprovalStepDraft("project-manager", "USER"),
+        userId: projectManagerId,
+      },
+    ];
+  }
 
   const nextKey = useRef(0);
   const [rows, setRows] = useState<ApprovalStepDraft[]>(() =>
-    steps.length
-      ? steps.map((step, index) => toApprovalStepDraft(step, `saved-${index}`))
-      : projectClientId
-        ? [
-            emptyApprovalStepDraft(
-              "project-client",
-              "CLIENT_EMAIL",
-              String(projectClientId),
-            ),
-          ]
-        : [],
+    withProjectManager(
+      steps.length
+        ? steps.map((step, index) =>
+            toApprovalStepDraft(step, `saved-${index}`),
+          )
+        : projectClientId
+          ? [
+              emptyApprovalStepDraft(
+                "project-client",
+                "CLIENT_EMAIL",
+                String(projectClientId),
+              ),
+            ]
+          : [],
+    ),
   );
+  const managerPending =
+    steps.length > 0 &&
+    projectManagerId !== null &&
+    !steps
+      .map((step, index) => toApprovalStepDraft(step, `saved-${index}`))
+      .some(coversProjectManager);
   const [syncedAt, setSyncedAt] = useState(0);
 
   if (state.savedAt > syncedAt && state.steps) {
@@ -125,6 +168,10 @@ export function ApprovalStepsForm({
     });
   }
 
+  function isProjectManagerRow(row: ApprovalStepDraft): boolean {
+    return row.approverType === "USER" && row.userId === projectManagerId;
+  }
+
   function isProjectClientRow(row: ApprovalStepDraft): boolean {
     return (
       projectClientId !== null &&
@@ -150,7 +197,7 @@ export function ApprovalStepsForm({
   const isComplete = rows.length >= minApprovers && rows.length <= maxApprovers;
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form action={feedback.track(formAction)} className="space-y-5" noValidate>
       <input type="hidden" name="projectId" value={projectId} />
       <input type="hidden" name="stepCount" value={rows.length} />
       {projectClientId ? (
@@ -176,7 +223,7 @@ export function ApprovalStepsForm({
         </span>
       </div>
 
-      {state.status === "success" && state.message ? (
+      {feedback.visible && state.status === "success" && state.message ? (
         <p
           role="status"
           aria-live="polite"
@@ -187,7 +234,7 @@ export function ApprovalStepsForm({
         </p>
       ) : null}
 
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <p
           role="alert"
           aria-live="assertive"
@@ -213,6 +260,13 @@ export function ApprovalStepsForm({
         </p>
       ) : null}
 
+      {managerPending && state.savedAt === 0 ? (
+        <p className="flex gap-2 rounded-lg border border-warn-200 bg-warn-50 p-3 text-sm text-warn-700">
+          <AlertIcon className="mt-0.5 size-4 shrink-0" />
+          <span>{t.catalog.approvals.projectManagerPending}</span>
+        </p>
+      ) : null}
+
       {rows.length === 0 ? (
         <p className="rounded-lg border border-dashed border-line p-6 text-center text-sm text-ink-muted">
           {t.catalog.approvals.noApprovers}
@@ -221,7 +275,9 @@ export function ApprovalStepsForm({
         <ol className="space-y-3">
           {rows.map((row, index) => {
             const stepError = state.stepErrors[index];
-            const locked = isProjectClientRow(row);
+            const clientLocked = isProjectClientRow(row);
+            const managerLocked = isProjectManagerRow(row);
+            const locked = clientLocked || managerLocked;
 
             return (
               <li
@@ -233,9 +289,14 @@ export function ApprovalStepsForm({
                 <div className="flex items-center justify-between gap-3">
                   <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink">
                     {t.catalog.approvals.stepLabel(index + 1)}
-                    {locked ? (
+                    {clientLocked ? (
                       <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
                         {t.catalog.approvals.projectClientLane}
+                      </span>
+                    ) : null}
+                    {managerLocked ? (
+                      <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                        {t.catalog.approvals.projectManagerLane}
                       </span>
                     ) : null}
                   </p>
@@ -320,9 +381,9 @@ export function ApprovalStepsForm({
                       </label>
                       <select
                         id={`stepUserId-${index}`}
-                        name={`stepUserId-${index}`}
+                        name={locked ? undefined : `stepUserId-${index}`}
                         value={row.userId}
-                        disabled={isPending || approvers.length === 0}
+                        disabled={isPending || locked || approvers.length === 0}
                         onChange={(event) =>
                           updateRow(index, { userId: event.target.value })
                         }
@@ -331,12 +392,28 @@ export function ApprovalStepsForm({
                         <option value="">
                           {t.catalog.approvals.approverPlaceholder}
                         </option>
+                        {managerLocked &&
+                        projectManager &&
+                        !approvers.some(
+                          (approver) => approver.id === projectManager.id,
+                        ) ? (
+                          <option value={projectManager.id}>
+                            {projectManager.fullName}
+                          </option>
+                        ) : null}
                         {approvers.map((approver) => (
                           <option key={approver.id} value={approver.id}>
                             {approver.fullName}
                           </option>
                         ))}
                       </select>
+                      {locked ? (
+                        <input
+                          type="hidden"
+                          name={`stepUserId-${index}`}
+                          value={row.userId}
+                        />
+                      ) : null}
                       {approvers.length === 0 ? (
                         <p className="text-xs text-ink-muted">
                           {t.catalog.approvals.noCandidates}

@@ -13,6 +13,7 @@ import {
   SpinnerIcon,
   UserIcon,
 } from "@/components/icons";
+import { submitKeepingValues } from "@/lib/forms/submit";
 
 const FIELD_BASE =
   "w-full rounded-lg border bg-white py-2.5 pl-10 text-sm text-ink placeholder:text-ink-muted/70 transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted";
@@ -55,7 +56,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
     : null;
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form onSubmit={submitKeepingValues(formAction)} className="space-y-5" noValidate>
       <input type="hidden" name="next" value={nextPath} />
 
       {state.message ? (

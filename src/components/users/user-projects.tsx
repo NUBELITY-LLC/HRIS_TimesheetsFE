@@ -10,6 +10,11 @@ import {
   SpinnerIcon,
   TrashIcon,
 } from "@/components/icons";
+import {
+  ContractTypeSelect,
+  CurrencySelect,
+  RatePeriodSelect,
+} from "@/components/rates/rate-selects";
 import { useDictionary } from "@/i18n/provider";
 import {
   assignUserProjectAction,
@@ -25,6 +30,8 @@ import {
   ASSIGNMENT_CODE_MAX,
   type ProjectView,
 } from "@/lib/catalog/types";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
 const INPUT_BASE =
   "rounded-lg border bg-white px-3 py-2 text-sm text-ink transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted disabled:text-ink-muted";
@@ -60,9 +67,10 @@ function RemoveAssignment({
     removeUserProjectAction,
     INITIAL_ROW_ACTION_STATE,
   );
+  const feedback = useFeedbackSlot();
 
   return (
-    <form action={formAction} className="relative">
+    <form onSubmit={submitKeepingValues(feedback.track(formAction))} className="relative">
       <input type="hidden" name="userId" value={userId} />
       <input type="hidden" name="assignmentId" value={assignmentId} />
       <button
@@ -78,7 +86,7 @@ function RemoveAssignment({
           <TrashIcon className="size-4" />
         )}
       </button>
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <p className="absolute top-full right-0 mt-1 text-xs whitespace-nowrap text-danger-600">
           {state.message}
         </p>
@@ -99,6 +107,7 @@ function AssignmentRow({
     updateUserAssignmentAction,
     INITIAL_USER_PROJECT_FORM_STATE,
   );
+  const feedback = useFeedbackSlot();
 
   const ids = {
     assignmentCode: useId(),
@@ -111,6 +120,9 @@ function AssignmentRow({
   const [draft, setDraft] = useState<{
     assignmentCode: string;
     payRate: string;
+    currency: string;
+    ratePeriod: string;
+    contractType: string;
     startDate: string;
     endDate: string;
   } | null>(null);
@@ -118,6 +130,9 @@ function AssignmentRow({
   const isDirty =
     draft !== null &&
     (!sameRate(draft.payRate, assignment.payRate) ||
+      draft.currency !== assignment.currency ||
+      draft.ratePeriod !== assignment.ratePeriod ||
+      draft.contractType !== assignment.payTerms.contractType ||
       draft.startDate !== assignment.startDate ||
       draft.endDate !== (assignment.endDate ?? "") ||
       draft.assignmentCode !== (assignment.assignmentCode ?? ""));
@@ -127,6 +142,9 @@ function AssignmentRow({
     setDraft({
       assignmentCode: String(data.get("assignmentCode") ?? ""),
       payRate: String(data.get("payRate") ?? ""),
+      currency: String(data.get("currency") ?? ""),
+      ratePeriod: String(data.get("ratePeriod") ?? ""),
+      contractType: String(data.get("contractType") ?? ""),
       startDate: String(data.get("startDate") ?? ""),
       endDate: String(data.get("endDate") ?? ""),
     });
@@ -149,7 +167,7 @@ function AssignmentRow({
 
         <div className="flex items-end gap-2">
           <form
-            action={formAction}
+            onSubmit={submitKeepingValues(feedback.track(formAction))}
             onChange={handleChange}
             className="flex flex-wrap items-end gap-2"
             noValidate
@@ -195,9 +213,22 @@ function AssignmentRow({
                   disabled={isPending}
                   className={`tabular-nums ${inputClass(Boolean(fieldErrors.payRate), "w-24")}`}
                 />
-                <span className="text-xs text-ink-muted">
-                  {assignment.currency}
-                </span>
+                <CurrencySelect
+                  compact
+                  defaultValue={assignment.currency}
+                  disabled={isPending}
+                  className={inputClass(false, "w-24")}
+                />
+                <RatePeriodSelect
+                  defaultValue={assignment.ratePeriod}
+                  disabled={isPending}
+                  className={inputClass(false, "w-28")}
+                />
+                <ContractTypeSelect
+                  defaultValue={assignment.payTerms.contractType}
+                  disabled={isPending}
+                  className={inputClass(false, "w-32")}
+                />
               </div>
             </div>
 
@@ -210,6 +241,8 @@ function AssignmentRow({
                 name="startDate"
                 type="date"
                 defaultValue={assignment.startDate}
+                min={assignment.project?.startDate ?? undefined}
+                max={assignment.project?.endDate ?? undefined}
                 disabled={isPending}
                 className={inputClass(Boolean(fieldErrors.startDate), "w-40")}
               />
@@ -224,6 +257,8 @@ function AssignmentRow({
                 name="endDate"
                 type="date"
                 defaultValue={assignment.endDate ?? ""}
+                min={assignment.project?.startDate ?? undefined}
+                max={assignment.project?.endDate ?? undefined}
                 disabled={isPending}
                 className={inputClass(Boolean(fieldErrors.endDate), "w-40")}
               />
@@ -273,14 +308,14 @@ function AssignmentRow({
         </div>
       </div>
 
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <p role="alert" className="flex items-center gap-2 text-xs text-danger-700">
           <AlertIcon className="size-3.5 shrink-0" />
           {state.message}
         </p>
       ) : null}
 
-      {state.status === "success" && state.message ? (
+      {feedback.visible && state.status === "success" && state.message ? (
         <p className="flex items-center gap-2 text-xs text-success-700">
           <CheckIcon className="size-3.5 shrink-0" />
           {state.message}
@@ -317,6 +352,7 @@ export function UserProjects({
     assignUserProjectAction,
     INITIAL_USER_PROJECT_FORM_STATE,
   );
+  const feedback = useFeedbackSlot();
 
   const ids = {
     projectId: useId(),
@@ -333,6 +369,19 @@ export function UserProjects({
       .filter((id): id is number => typeof id === "number"),
   );
   const available = projects.filter((project) => !assigned.has(project.id));
+  const [selectedId, setSelectedId] = useState("");
+  const [seenState, setSeenState] = useState(state);
+  const [formKey, setFormKey] = useState(0);
+  const selected =
+    available.find((project) => String(project.id) === selectedId) ?? null;
+
+  if (state !== seenState) {
+    setSeenState(state);
+    if (state.status === "success") {
+      setFormKey((current) => current + 1);
+      setSelectedId("");
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -351,20 +400,21 @@ export function UserProjects({
       )}
 
       <form
-        action={formAction}
+        key={formKey}
+        onSubmit={submitKeepingValues(feedback.track(formAction))}
         className="space-y-4 rounded-lg border border-line p-4"
         noValidate
       >
         <input type="hidden" name="userId" value={userId} />
 
-        {state.status === "success" && state.message ? (
+        {feedback.visible && state.status === "success" && state.message ? (
           <p className="flex items-center gap-2 text-sm text-success-700">
             <CheckIcon className="size-4 shrink-0" />
             {state.message}
           </p>
         ) : null}
 
-        {state.status === "error" && state.message ? (
+        {feedback.visible && state.status === "error" && state.message ? (
           <p role="alert" className="flex items-center gap-2 text-sm text-danger-700">
             <AlertIcon className="size-4 shrink-0" />
             {state.message}
@@ -382,6 +432,8 @@ export function UserProjects({
             <select
               id={ids.projectId}
               name="projectId"
+              value={selectedId}
+              onChange={(event) => setSelectedId(event.target.value)}
               disabled={isPending || available.length === 0}
               className={inputClass(Boolean(fieldErrors.projectId))}
             >
@@ -410,9 +462,13 @@ export function UserProjects({
               {t.users.form.projectStart}
             </label>
             <input
+              key={`start-${selectedId}`}
               id={ids.startDate}
               name="startDate"
               type="date"
+              defaultValue={selected?.startDate ?? ""}
+              min={selected?.startDate ?? undefined}
+              max={selected?.endDate ?? undefined}
               disabled={isPending}
               className={inputClass(Boolean(fieldErrors.startDate))}
             />
@@ -429,9 +485,13 @@ export function UserProjects({
               {t.users.form.projectEnd}
             </label>
             <input
+              key={`end-${selectedId}`}
               id={ids.endDate}
               name="endDate"
               type="date"
+              defaultValue={selected?.endDate ?? ""}
+              min={selected?.startDate ?? undefined}
+              max={selected?.endDate ?? undefined}
               disabled={isPending}
               className={inputClass(Boolean(fieldErrors.endDate))}
             />
@@ -440,22 +500,37 @@ export function UserProjects({
             ) : null}
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-2">
             <label
               htmlFor={ids.payRate}
               className="block text-xs font-medium text-ink-soft"
             >
               {t.users.form.assignmentRate}
             </label>
-            <input
-              id={ids.payRate}
-              name="payRate"
-              type="text"
-              inputMode="decimal"
-              maxLength={13}
-              disabled={isPending}
-              className={inputClass(Boolean(fieldErrors.payRate))}
-            />
+            <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+              <input
+                id={ids.payRate}
+                name="payRate"
+                type="text"
+                inputMode="decimal"
+                maxLength={13}
+                placeholder="0"
+                disabled={isPending}
+                className={`tabular-nums ${inputClass(Boolean(fieldErrors.payRate), "min-w-0 flex-1")}`}
+              />
+              <CurrencySelect
+                disabled={isPending}
+                className={inputClass(false, "w-full sm:w-52")}
+              />
+              <RatePeriodSelect
+                disabled={isPending}
+                className={inputClass(false, "w-full sm:w-36")}
+              />
+              <ContractTypeSelect
+                disabled={isPending}
+                className={inputClass(false, "w-full sm:w-36")}
+              />
+            </div>
             {fieldErrors.payRate ? (
               <p className="text-xs text-danger-600">{fieldErrors.payRate}</p>
             ) : null}

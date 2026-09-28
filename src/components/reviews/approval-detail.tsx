@@ -2,11 +2,14 @@ import Link from "next/link";
 
 import {
   ArrowLeftIcon,
+  BanIcon,
   CheckIcon,
   ClockIcon,
   MailIcon,
   PaperclipIcon,
+  RefreshIcon,
 } from "@/components/icons";
+import { DecisionList } from "@/components/dashboard/approval-progress";
 import { TimesheetStatusBadge } from "@/components/dashboard/timesheet-status-badge";
 import { ApproveOnBehalfForm } from "@/components/reviews/approve-on-behalf-form";
 import { DecideApprovalForm } from "@/components/reviews/decide-approval-form";
@@ -15,11 +18,13 @@ import { PayBreakdown } from "@/components/payroll/pay-breakdown";
 import { getDictionary, getLocale } from "@/i18n/server";
 import type { Locale } from "@/i18n/config";
 import type { ApprovalDetail } from "@/lib/approvals/types";
-import { formatDateTime } from "@/lib/format/datetime";
 import { formatMoney, formatRate } from "@/lib/format/money";
 import {
   approvalChipState,
   approvalStepLabel,
+  decidedByOther,
+  decisionSummary,
+  latestDecision,
 } from "@/lib/timesheets/approvals";
 import { formatMinutes } from "@/lib/timesheets/rules";
 import {
@@ -28,6 +33,7 @@ import {
   formatWeekday,
   fromISODate,
 } from "@/lib/timesheets/week";
+import { ExportLinks } from "@/components/timesheets/export-links";
 
 const CHIP_STYLES: Record<string, string> = {
   approved: "border-success-200 bg-success-50 text-success-800",
@@ -36,10 +42,18 @@ const CHIP_STYLES: Record<string, string> = {
   rejected: "border-danger-200 bg-danger-50 text-danger-700",
 };
 
+const DECISION_STYLES: Record<string, string> = {
+  APPROVED: "border-success-200 bg-success-50 text-success-800",
+  REJECTED_TO_PREVIOUS: "border-warn-200 bg-warn-50 text-warn-700",
+  REJECTED_TO_CONSULTANT: "border-danger-200 bg-danger-50 text-danger-700",
+};
+
 export async function ApprovalDetailView({
   approval,
+  continued = false,
 }: {
   approval: ApprovalDetail;
+  continued?: boolean;
 }) {
   const t = await getDictionary();
   const locale = await getLocale();
@@ -48,8 +62,10 @@ export async function ApprovalDetailView({
     (step) => step.seq === approval.currentSeq,
   );
   const nextStep = approval.steps.find((step) => step.seq > approval.seq);
-  const resolved = approval.steps.filter((step) => step.decidedAt !== null);
-  const lastResolved = resolved[resolved.length - 1];
+  const lastResolved = latestDecision(approval.steps);
+  const lastSummary = lastResolved
+    ? decisionSummary(lastResolved, t, locale)
+    : null;
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
@@ -73,6 +89,11 @@ export async function ApprovalDetailView({
             {approval.submissionCode ?? t.common.none}
           </span>
         </div>
+        {approval.canSeeActivities ? (
+          <div className="mt-3">
+            <ExportLinks basePath={`/reviews/${approval.approvalId}/export`} />
+          </div>
+        ) : null}
       </div>
 
       <section className="rounded-xl border border-line bg-surface p-5 shadow-sm">
@@ -99,14 +120,22 @@ export async function ApprovalDetailView({
                   </span>
                 ) : null}
                 <span
+                  title={decisionSummary(step, t, locale) ?? undefined}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${CHIP_STYLES[chip]}`}
                 >
                   {chip === "approved" ? (
                     <CheckIcon className="size-3" />
                   ) : chip === "current" ? (
                     <ClockIcon className="size-3" />
+                  ) : chip === "rejected" ? (
+                    <BanIcon className="size-3" />
                   ) : null}
                   {approvalStepLabel(step, t)}
+                  {step.decidedBy && decidedByOther(step, t) ? (
+                    <span className="font-normal opacity-80">
+                      · {step.decidedBy.name}
+                    </span>
+                  ) : null}
                   {step.approverType === "CLIENT_EMAIL" ? (
                     <MailIcon className="size-3" />
                   ) : null}
@@ -115,19 +144,34 @@ export async function ApprovalDetailView({
             );
           })}
         </ol>
+        <div className="mt-3">
+          <DecisionList steps={approval.steps} />
+        </div>
       </section>
 
-      {lastResolved ? (
-        <p className="flex items-start gap-2 rounded-xl border border-success-200 bg-success-50 p-4 text-sm text-success-800">
-          <CheckIcon className="mt-0.5 size-4 shrink-0" />
+      {continued && (approval.canDecide || approval.canApproveOnBehalf) ? (
+        <p
+          role="status"
+          className="flex items-start gap-2 rounded-xl border border-brand-200 bg-brand-50 p-4 text-sm text-brand-700"
+        >
+          <ClockIcon className="mt-0.5 size-4 shrink-0" />
+          <span>{t.reviews.detail.continuedNotice(approval.seq)}</span>
+        </p>
+      ) : null}
+
+      {lastResolved && lastSummary ? (
+        <p
+          className={`flex items-start gap-2 rounded-xl border p-4 text-sm ${DECISION_STYLES[lastResolved.status]}`}
+        >
+          {lastResolved.status === "APPROVED" ? (
+            <CheckIcon className="mt-0.5 size-4 shrink-0" />
+          ) : lastResolved.status === "REJECTED_TO_PREVIOUS" ? (
+            <RefreshIcon className="mt-0.5 size-4 shrink-0" />
+          ) : (
+            <BanIcon className="mt-0.5 size-4 shrink-0" />
+          )}
           <span>
-            {t.reviews.detail.resolvedBy(
-              approvalStepLabel(lastResolved, t),
-              formatDateTime(lastResolved.decidedAt, locale, {
-                empty: t.common.none,
-                invalid: t.common.unknown,
-              }),
-            )}
+            {lastSummary}
             {lastResolved.comments ? ` — “${lastResolved.comments}”` : ""}
           </span>
         </p>
@@ -341,7 +385,7 @@ export async function ApprovalDetailView({
                 {approval.attachments.map((attachment) => (
                   <li key={attachment.id}>
                     <EvidenceLink
-                      approvalId={approval.approvalId}
+                      href={`/evidence/${approval.approvalId}/${attachment.id}`}
                       attachment={attachment}
                     />
                   </li>
@@ -349,6 +393,31 @@ export async function ApprovalDetailView({
               </ul>
             )}
           </section>
+
+          {approval.canSeeActivities ? (
+            <section className="rounded-xl border border-line bg-surface p-5 shadow-sm">
+              <h2 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+                <PaperclipIcon className="size-4" />
+                {t.reviews.detail.consultantEvidenceTitle}
+              </h2>
+              {approval.timesheetAttachments.length === 0 ? (
+                <p className="mt-2 text-sm text-ink-muted">
+                  {t.reviews.detail.consultantEvidenceEmpty}
+                </p>
+              ) : (
+                <ul className="mt-3 space-y-2">
+                  {approval.timesheetAttachments.map((attachment) => (
+                    <li key={attachment.id}>
+                      <EvidenceLink
+                        href={`/evidence/${approval.approvalId}/timesheet/${attachment.id}`}
+                        attachment={attachment}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : null}
         </div>
       </div>
     </div>

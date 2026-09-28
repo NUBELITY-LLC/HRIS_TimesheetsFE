@@ -32,7 +32,7 @@ export const es = {
     reviews: "Revisión de horas",
     notifications: "Notificaciones",
     companies: "Empresas",
-    clients: "Gerentes",
+    clients: "Directores de proyecto",
     projects: "Proyectos",
     payTerms: "Condiciones de pago",
     holidays: "Días festivos",
@@ -139,6 +139,7 @@ export const es = {
       count === 1 ? "1 aprobado" : `${count} aprobados`,
     recentTitle: "Envíos recientes",
     resume: "Continuar",
+    fix: "Corregir",
     reviewQueueTitle: "Pendientes de tu revisión",
     reviewQueueHint: (count: number) =>
       count === 1
@@ -168,7 +169,6 @@ export const es = {
     pendingReviewHint: "Esperan una decisión tuya",
     teamEmptyTitle: "Aún no hay registros del equipo.",
     teamEmptyBody: "Cuando el equipo envíe sus horas, las verás aquí.",
-    rejectionReason: (who: string) => `Rechazado por ${who}:`,
     emptyTitle: "Aún no tienes envíos.",
     emptyBody: "Envía las horas de tu semana y aparecerán aquí.",
     emptyCta: "Ir a mis horas",
@@ -266,6 +266,29 @@ export const es = {
     routingEmailSent: "Se envió la solicitud de aprobación de horas.",
     weekStatus: "Estado de la semana",
     lockedTitle: "Esta semana ya está en el flujo de aprobación.",
+    export: {
+      label: "Descargar formato",
+      xlsx: "Excel",
+      pdf: "PDF",
+      savedVersion: "Se descargará la versión guardada.",
+    },
+    evidence: {
+      title: "Evidencias",
+      optional: "Opcional",
+      hint: (max: number) =>
+        `PDF, PNG, JPG o WEBP de hasta 10 MB. Máximo ${max} archivos por semana.`,
+      add: "Agregar archivo",
+      pending: "Se adjuntará al guardar",
+      remove: "Quitar",
+      removing: "Quitando…",
+      empty: "Sin evidencias.",
+      tooLarge: (name: string) => `${name} excede los 10 MB.`,
+      wrongType: (name: string) => `${name} debe ser PDF, PNG, JPG o WEBP.`,
+      limit: (max: number) => `Puedes adjuntar como máximo ${max} archivos.`,
+      uploadFailed: (name: string) =>
+        `Tus horas se guardaron, pero no se pudo adjuntar ${name}. Inténtalo de nuevo.`,
+      removeFailed: "No se pudo quitar la evidencia. Inténtalo de nuevo.",
+    },
     errors: {
       clientRequired: "Selecciona un gerente.",
       projectRequired: "Selecciona un proyecto.",
@@ -292,6 +315,10 @@ export const es = {
       projectEndsOn: (date: string) =>
         `El proyecto termina el ${date}: no se pueden capturar días posteriores.`,
       WEEK_NOT_STARTED: "Todavía no puedes enviar una semana futura.",
+      EVIDENCE_TOO_LARGE: "La evidencia excede los 10 MB.",
+      EVIDENCE_TYPE_NOT_ALLOWED: "La evidencia debe ser PDF, PNG, JPG o WEBP.",
+      EVIDENCE_LIMIT: "Ya alcanzaste el máximo de evidencias para esta semana.",
+      EVIDENCE_LOCKED: "La semana ya fue enviada y sus evidencias no admiten cambios.",
       NETWORK_ERROR:
         "No pudimos contactar al servidor. Inténtalo de nuevo en un momento.",
       fallback: "No se pudieron guardar tus horas. Inténtalo de nuevo.",
@@ -316,10 +343,9 @@ export const es = {
     review: "Revisar",
     detail: {
       eyebrow: "Revisión de timesheet",
+      continuedNotice: (seq: number) => `El paso ${seq} también te corresponde.`,
       activeStage: (seq: number, name: string) =>
         `Paso ${seq}: ${name} (activo)`,
-      resolvedBy: (approver: string, date: string) =>
-        `Aprobado por ${approver} el ${date}`,
       infoTitle: "Consultor y proyecto",
       consultant: "Consultor",
       clientProject: "Manager / Proyecto",
@@ -334,13 +360,15 @@ export const es = {
         "Este paso ya no está en tus manos: o no eres su aprobador, o ya fue resuelto.",
       evidenceTitle: "Evidencia adjunta",
       evidenceEmpty: "Sin evidencia adjunta.",
+      consultantEvidenceTitle: "Evidencias del consultor",
+      consultantEvidenceEmpty: "El consultor no adjuntó evidencias.",
     },
     listTitle: "Pendientes de revisión",
     taskCount: (count: number) =>
       count === 1 ? "1 tarea en esta página" : `${count} tareas en esta página`,
     loadErrorTitle: "No se pudieron cargar tus tareas de aprobación.",
-    summary: (total: number, page: number, pages: number) =>
-      `${total} tareas · página ${page} de ${pages}`,
+    summary: (total: number) =>
+      total === 1 ? "1 tarea" : `${total} tareas`,
     emptyTitle: "No hay registros por revisar.",
     emptyBody: "Cuando alguien envíe sus horas, aparecerán aquí.",
     notFoundTitle: "Ese registro no está disponible.",
@@ -436,8 +464,8 @@ export const es = {
         RETURNED_TO_PREVIOUS: "Devuelto al paso previo",
         RETURNED_TO_CONSULTANT: "Devuelto al consultor",
       },
-      summary: (total: number, page: number, pages: number) =>
-        `${total} decisiones · página ${page} de ${pages}`,
+      summary: (total: number) =>
+        total === 1 ? "1 decisión" : `${total} decisiones`,
       emptyTitle: "Todavía no has resuelto ningún timesheet.",
       emptyBody:
         "Cuando apruebes o devuelvas horas, quedarán registradas aquí.",
@@ -464,8 +492,8 @@ export const es = {
     filterLabel: "Filtrar por estado",
     filterAll: "Todos",
     listTitle: "Envíos",
-    summary: (total: number, page: number, pages: number) =>
-      `${total} envíos · página ${page} de ${pages}`,
+    summary: (total: number) =>
+      total === 1 ? "1 envío" : `${total} envíos`,
     emptyTitle: "Todavía no hay envíos.",
     emptyBody: "Cuando captures y envíes una semana, aparecerá aquí.",
     loadErrorTitle: "No se pudo cargar tu historial.",
@@ -488,6 +516,15 @@ export const es = {
   approvals: {
     client: "Gerente",
     step: (seq: number) => `Paso ${seq}`,
+    decidedFor: (who: string, step: string) => `${who} en nombre de ${step}`,
+    decisions: {
+      APPROVED: (who: string, date: string) =>
+        `Aprobado por ${who} el ${date}`,
+      REJECTED_TO_PREVIOUS: (who: string, date: string) =>
+        `Devuelto al paso anterior por ${who} el ${date}`,
+      REJECTED_TO_CONSULTANT: (who: string, date: string) =>
+        `Rechazado por ${who} el ${date}`,
+    },
     external: {
       badge: "Gerente externo",
       hint: "Responde por correo; no tiene cuenta en la plataforma.",
@@ -606,12 +643,12 @@ export const es = {
   },
   catalog: {
     noAccessTitle: "No tienes acceso a este módulo",
-    noAccessBody: "Tu cuenta no tiene acceso a gerentes y proyectos.",
+    noAccessBody: "Tu cuenta no tiene acceso a directores de proyecto y proyectos.",
     filters: {
       search: "Buscar",
       status: "Estado",
-      client: "Gerente",
-      allClients: "Todos los gerentes",
+      client: "PD",
+      allClients: "Todos los PD",
       allCompanies: "Todas las empresas",
       company: "Empresa",
       statusActive: "Activos",
@@ -636,17 +673,17 @@ export const es = {
       managerUser: "Usuario del sistema",
       managerUserPlaceholder: "Sin cuenta en el sistema",
       managerUserEmpty:
-        "No hay usuarios disponibles; captura los datos del gerente.",
-      clientName: "Nombre del gerente",
+        "No hay usuarios disponibles; captura los datos del director de proyecto.",
+      clientName: "Nombre del director de proyecto",
       clientNamePlaceholder: "Nombre comercial",
       contactEmail: "Correo de contacto",
-      contactEmailPlaceholder: "contacto@gerente.com",
+      contactEmailPlaceholder: "contacto@empresa.com",
       contactEmailHint: "Opcional.",
-      activeTitle: "Gerente activo",
+      activeTitle: "Director de proyecto activo",
       companyActiveTitle: "Empresa activa",
-      clientLabel: "Gerente",
-      clientPlaceholder: "Selecciona un gerente",
-      clientCompanyEmpty: "Esa empresa no tiene gerentes registrados.",
+      clientLabel: "PD",
+      clientPlaceholder: "Selecciona un PD",
+      clientCompanyEmpty: "Esa empresa no tiene PD registrados.",
       projectName: "Nombre del proyecto",
       projectNamePlaceholder: "Nombre del proyecto",
       code: "Código",
@@ -686,28 +723,28 @@ export const es = {
       noCompaniesTitle: "Primero crea una empresa.",
     },
     clients: {
-      eyebrow: "Gerentes",
-      title: "Catálogo de gerentes",
-      newClient: "Nuevo gerente",
-      searchPlaceholder: "Nombre del gerente",
+      eyebrow: "Directores de proyecto",
+      title: "Catálogo de directores de proyecto",
+      newClient: "Nuevo director de proyecto",
+      searchPlaceholder: "Nombre del director de proyecto",
       columns: {
-        name: "Gerente",
+        name: "Director de proyecto",
         company: "Empresa",
         email: "Correo de contacto",
         status: "Estado",
       },
       active: "Activo",
       inactive: "Inactivo",
-      emptyTitle: "No hay gerentes que coincidan.",
-      emptyBody: "Crea el primer gerente para empezar.",
-      loadErrorTitle: "No se pudo cargar el catálogo de gerentes.",
-      createTitle: "Crear gerente",
-      editTitle: "Editar gerente",
-      back: "Volver a gerentes",
+      emptyTitle: "No hay directores de proyecto que coincidan.",
+      emptyBody: "Crea el primer director de proyecto para empezar.",
+      loadErrorTitle: "No se pudo cargar el catálogo de directores de proyecto.",
+      createTitle: "Crear director de proyecto",
+      editTitle: "Editar director de proyecto",
+      back: "Volver a directores de proyecto",
       edit: "Editar",
       createdTitle: (name: string) => `${name} se creó.`,
       updatedTitle: (name: string) => `${name} se actualizó.`,
-      notFoundTitle: "Ese gerente no existe.",
+      notFoundTitle: "Ese director de proyecto no existe.",
       notFoundBody: "Puede que se haya eliminado del catálogo.",
     },
     projects: {
@@ -717,7 +754,7 @@ export const es = {
       searchPlaceholder: "Nombre o código",
       columns: {
         name: "Proyecto",
-        client: "Gerente",
+        client: "PD",
         manager: "Manager",
         dates: "Vigencia",
       },
@@ -732,12 +769,13 @@ export const es = {
       updatedTitle: (name: string) => `${name} se actualizó.`,
       notFoundTitle: "Ese proyecto no existe.",
       notFoundBody: "Puede que se haya eliminado del catálogo.",
-      noClientsTitle: "Primero crea un gerente.",
+      noClientsTitle: "Primero crea un director de proyecto.",
       noManager: "Sin manager",
       since: (date: string) => `Desde el ${date}`,
       openDates: "Sin fechas",
       createdBanner: (name: string) =>
         `${name} se creó. Configura su flujo de aprobación para que el equipo pueda enviar horas.`,
+      configureFlow: "Configurar flujo",
     },
     team: {
       eyebrow: "Equipo",
@@ -829,7 +867,9 @@ export const es = {
       clientPlaceholder: "Selecciona un gerente",
       clientWithoutEmail: "sin correo de contacto",
       clientEmail: (email: string) => `Se notificará a ${email}.`,
-      projectClientLane: "Gerente del proyecto · aprobador obligatorio",
+      projectClientLane: "PD del proyecto · aprobador obligatorio",
+      projectManagerLane: "Manager del proyecto · aprobador obligatorio",
+      projectManagerPending: "Guarda el flujo para incluir al manager del proyecto.",
       projectClientMissingEmail:
         "El gerente del proyecto no tiene correo de contacto, así que el flujo no se puede guardar.",
       manageClients: "Administrar gerentes",
@@ -868,8 +908,9 @@ export const es = {
       assignmentStart: "Indica la fecha de inicio de la asignación.",
       assignmentCodeLength: (max: number) =>
         `El ID de asignación admite hasta ${max} caracteres.`,
-      payRateRequired: "Indica la tarifa por hora de la asignación.",
-      payRateInvalid: "La tarifa admite números con hasta 2 decimales.",
+      payRateInvalid: "El costo admite números con hasta 2 decimales.",
+      ASSIGNMENT_BEFORE_PROJECT: "La asignación no puede iniciar antes que el proyecto.",
+      ASSIGNMENT_AFTER_PROJECT: "La asignación no puede terminar después que el proyecto.",
       clientNameRequired: "Escribe el nombre del gerente.",
       managerUserInvalid:
         "Ese usuario ya no está activo o no puede ser gerente.",
@@ -888,6 +929,8 @@ export const es = {
       approverClientRequired: "Selecciona el gerente que aprueba.",
       projectClientLaneRequired:
         "El gerente del proyecto debe ser uno de los aprobadores.",
+      projectManagerLaneRequired:
+        "El manager del proyecto debe ser uno de los aprobadores.",
       CLIENT_COMPANY_MISMATCH:
         "Solo pueden aprobar gerentes de la misma empresa que el gerente del proyecto.",
       CLIENT_WITHOUT_EMAIL:
@@ -1017,12 +1060,12 @@ export const es = {
       jobTitle: "Puesto",
       jobTitlePlaceholder: "Consultor senior",
       jobTitleHint: "Opcional.",
-      projectSection: "Proyecto y tarifa",
+      projectSection: "Proyecto y costo",
       project: "Proyecto",
       projectPlaceholder: "Selecciona un proyecto…",
       projectNone: "Sin proyecto",
-      payRate: "Tarifa del proyecto",
-      assignmentRate: "Tarifa del proyecto",
+      payRate: "Costo del recurso",
+      assignmentRate: "Costo del recurso",
       saveAssignment: "Guardar asignación",
       reactivateAssignment: "Reactivar",
       inactiveAssignment: "Baja",
@@ -1082,8 +1125,9 @@ export const es = {
       projectStartRequired: "Indica la fecha de inicio de la asignación.",
       assignmentCodeLength: (max: number) =>
         `El ID de asignación admite hasta ${max} caracteres.`,
-      payRateRequired: "Indica la tarifa por hora de la asignación.",
-      payRateInvalid: "La tarifa admite números con hasta 2 decimales.",
+      payRateInvalid: "El costo admite números con hasta 2 decimales.",
+      ASSIGNMENT_BEFORE_PROJECT: "La asignación no puede iniciar antes que el proyecto.",
+      ASSIGNMENT_AFTER_PROJECT: "La asignación no puede terminar después que el proyecto.",
       dateOrder: "La fecha de fin no puede ser anterior a la de inicio.",
       projectAssigned: "Proyecto asignado.",
       assignmentUpdated: "Asignación actualizada.",
@@ -1096,12 +1140,12 @@ export const es = {
   roles: {
     CONSULTANT: {
       name: "Consultor",
-      description: "Registra horas semanales en proyectos de gerentes.",
+      description: "Registra horas semanales en proyectos asignados.",
     },
     EMPLOYEE: {
       name: "Empleado",
       description:
-        "Registra horas semanales de trabajo interno y/o proyectos de gerentes.",
+        "Registra horas semanales de trabajo interno y/o proyectos asignados.",
     },
     MANAGER: {
       name: "Manager",
@@ -1132,7 +1176,7 @@ export const es = {
     },
     CATALOG_MANAGE: {
       name: "Administrar catálogo",
-      description: "Empresas, gerentes y proyectos.",
+      description: "Empresas, directores de proyecto y proyectos.",
     },
     USERS_MANAGE: {
       name: "Administrar usuarios",
@@ -1148,6 +1192,20 @@ export const es = {
         "Condiciones de pago de cada asignación, días festivos y reglas de nómina.",
     },
   },
+  rates: {
+    currency: "Moneda",
+    period: "Tarifa",
+    periods: {
+      HOUR: "Por hora",
+      MONTH: "Mensual",
+      YEAR: "Anual",
+    },
+    per: {
+      HOUR: "/ hora",
+      MONTH: "/ mes",
+      YEAR: "/ año",
+    },
+  },
   payTerms: {
     section: "Condiciones de pago",
     summary: (contract: string, divisor: number) => `${contract} · ÷${divisor}`,
@@ -1155,6 +1213,7 @@ export const es = {
     contractTypes: { CONTRACTOR: "Contractor", PAYROLL: "Nómina" },
     country: "País",
     hoursDivisor: "Divisor de hora",
+    hoursDivisorHourly: "No aplica para costo por hora.",
     dailyHours: "Jornada (horas)",
     overtimeMultiplier: "Horas extra (×)",
     holidayMultiplier: "Días festivos (×)",
@@ -1195,7 +1254,7 @@ export const es = {
     statusInactive: "Inactivas",
     statusAll: "Todas",
     filter: "Filtrar",
-    payRate: "Tarifa",
+    payRate: "Costo del recurso",
     hourlyRate: "Costo por hora",
     inactive: "Inactiva",
     save: "Guardar",
@@ -1208,7 +1267,7 @@ export const es = {
     next: "Siguiente",
     errors: {
       FORBIDDEN: "No puedes modificar condiciones de pago.",
-      payRateInvalid: "La tarifa admite números con hasta 2 decimales.",
+      payRateInvalid: "El costo admite números con hasta 2 decimales.",
       NOT_FOUND: "La asignación ya no existe.",
       fallback: "No se pudieron guardar las condiciones. Inténtalo de nuevo.",
     },

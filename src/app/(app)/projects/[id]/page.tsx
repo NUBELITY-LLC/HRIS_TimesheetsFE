@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   ArrowLeftIcon,
   BriefcaseIcon,
-  CheckIcon,
   LockIcon,
 } from "@/components/icons";
 import { ApprovalStepsForm } from "@/components/catalog/approval-steps-form";
@@ -44,7 +43,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function EditProjectPage({
   params,
-  searchParams,
 }: PageProps<"/projects/[id]">) {
   const actor = await requireUser();
   const t = await getDictionary();
@@ -55,7 +53,6 @@ export default async function EditProjectPage({
   }
 
   const { id } = await params;
-  const { created } = await searchParams;
   const projectId = Number(id);
   const isValidId = Number.isInteger(projectId) && projectId > 0;
   const [
@@ -136,16 +133,6 @@ export default async function EditProjectPage({
           {projectLifecycleLabel(project, locale, t)}
         </p>
       </header>
-
-      {created ? (
-        <p
-          role="status"
-          className="flex gap-3 rounded-lg border border-success-200 bg-success-50 p-3.5 text-sm text-success-800"
-        >
-          <CheckIcon className="mt-0.5 size-4 shrink-0" />
-          {t.catalog.projects.createdBanner(project.projectName)}
-        </p>
-      ) : null}
 
       {workflowReady ? (
         <Link
@@ -229,6 +216,7 @@ export default async function EditProjectPage({
               approvers={approvers}
               clients={approverClients}
               projectClientId={projectClientRecord?.id ?? null}
+              projectManager={project.manager}
             />
           )}
         </div>

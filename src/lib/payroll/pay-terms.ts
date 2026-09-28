@@ -1,5 +1,6 @@
 import type { Dictionary } from "@/i18n/dictionaries";
 import { COUNTRY_CODES, type CountryCode } from "./countries";
+import type { RatePeriod } from "@/lib/rates/rates";
 
 export const CONTRACT_TYPES = ["CONTRACTOR", "PAYROLL"] as const;
 export type ContractType = (typeof CONTRACT_TYPES)[number];
@@ -161,6 +162,7 @@ export type PayAssignment = {
   isActive: boolean;
   assignmentCode: string | null;
   payRate: number;
+  ratePeriod: RatePeriod;
   currency: string;
   hourlyRate: number;
   payTerms: PayTerms;

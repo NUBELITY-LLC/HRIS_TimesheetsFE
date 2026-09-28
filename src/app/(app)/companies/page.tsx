@@ -12,6 +12,7 @@ import {
   type CompanyFilters,
 } from "@/lib/catalog/queries";
 import { canManageCatalog } from "@/lib/users/roles";
+import { CreatedNotice } from "@/components/catalog/created-notice";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
@@ -46,7 +47,9 @@ export default async function CompaniesPage({
     return <CatalogNoAccess />;
   }
 
-  const filters = parseFilters(await searchParams);
+  const params = await searchParams;
+  const filters = parseFilters(params);
+  const created = firstParam(params.created);
   const result = await fetchCompanies(filters);
 
   return (
@@ -66,6 +69,10 @@ export default async function CompaniesPage({
           {t.catalog.companies.newCompany}
         </Link>
       </header>
+
+      {created ? (
+        <CreatedNotice message={t.catalog.companies.createdTitle(created)} />
+      ) : null}
 
       <form
         action="/companies"

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { FeedbackScope } from "@/components/ui/feedback-scope";
 import { requireUser } from "@/lib/auth/session";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -15,7 +16,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
         <main className="flex-1 bg-canvas px-5 py-6 lg:px-8 lg:py-8">
-          {children}
+          <FeedbackScope>{children}</FeedbackScope>
         </main>
       </div>
     </div>

@@ -38,6 +38,7 @@ async function Notice({ title, body }: { title: string; body: string }) {
 
 export default async function ReviewDetailPage({
   params,
+  searchParams,
 }: PageProps<"/reviews/[id]">) {
   const actor = await requireUser();
   const t = await getDictionary();
@@ -68,5 +69,9 @@ export default async function ReviewDetailPage({
     );
   }
 
-  return <ApprovalDetailView approval={approval} />;
+  const { continued } = await searchParams;
+
+  return (
+    <ApprovalDetailView approval={approval} continued={continued === "1"} />
+  );
 }

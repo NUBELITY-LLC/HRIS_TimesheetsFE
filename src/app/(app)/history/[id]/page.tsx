@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
+import { AlertIcon, ArrowLeftIcon, PaperclipIcon } from "@/components/icons";
 import { ApprovalProgress } from "@/components/dashboard/approval-progress";
 import { TimesheetStatusBadge } from "@/components/dashboard/timesheet-status-badge";
+import { EvidenceLink } from "@/components/reviews/evidence-link";
 import { getDictionary, getLocale } from "@/i18n/server";
 import type { Locale } from "@/i18n/config";
 import { requireUser } from "@/lib/auth/session";
@@ -16,6 +17,7 @@ import {
   formatWeekday,
   fromISODate,
 } from "@/lib/timesheets/week";
+import { ExportLinks } from "@/components/timesheets/export-links";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getDictionary();
@@ -96,6 +98,9 @@ export default async function HistoryDetailPage({
             {timesheet.submissionCode ?? t.common.none}
           </span>
         </div>
+        <div className="mt-3">
+          <ExportLinks basePath={`/timesheets/${timesheet.id}/export`} />
+        </div>
       </div>
 
       <section className="rounded-xl border border-line bg-surface p-5 shadow-sm">
@@ -145,11 +150,31 @@ export default async function HistoryDetailPage({
               <ApprovalProgress
                 steps={timesheet.approvals}
                 currentSeq={timesheet.currentSeq}
+                detailed
               />
             </div>
           </div>
         ) : null}
       </section>
+
+      {timesheet.attachments?.length ? (
+        <section className="rounded-xl border border-line bg-surface p-5 shadow-sm">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+            <PaperclipIcon className="size-4" />
+            {t.timesheets.evidence.title}
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {timesheet.attachments.map((attachment) => (
+              <li key={attachment.id}>
+                <EvidenceLink
+                  href={`/timesheets/${timesheet.id}/evidence/${attachment.id}`}
+                  attachment={attachment}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
         <h2 className="border-b border-line bg-surface-muted px-5 py-3.5 text-sm font-semibold text-ink">

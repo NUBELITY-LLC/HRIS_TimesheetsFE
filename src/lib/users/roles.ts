@@ -65,6 +65,7 @@ const DELEGATED_MANAGEABLE_ROLES: string[] = [
 const DELEGATED_GRANTABLE_ROLES: string[] = [
   ROLE_CONSULTANT,
   ROLE_EMPLOYEE,
+  ROLE_MANAGER,
   ROLE_FINANCE,
   ROLE_EXTERNAL_MANAGER,
 ];
@@ -217,6 +218,13 @@ export function requiresProject(targetRoleCode: string): boolean {
   return targetRoleCode === ROLE_CONSULTANT;
 }
 
+export function canSeeRole(
+  actorRoleCode: string,
+  targetRoleCode: string,
+): boolean {
+  return actorRoleCode === ROLE_ADMIN || targetRoleCode !== ROLE_ADMIN;
+}
+
 export function canManageRole(
   actorRoleCode: string,
   targetRoleCode: string,
@@ -258,6 +266,11 @@ export function manageableRoles(
   return grantableRoleCodes(actorRoleCode).map((code) => roleOption(code, t));
 }
 
-export function roleCatalog(t: Dictionary): RoleOption[] {
-  return ROLE_CODES.map((code) => roleOption(code, t));
+export function visibleRoleCatalog(
+  actorRoleCode: string,
+  t: Dictionary,
+): RoleOption[] {
+  return ROLE_CODES.filter((code) => canSeeRole(actorRoleCode, code)).map(
+    (code) => roleOption(code, t),
+  );
 }

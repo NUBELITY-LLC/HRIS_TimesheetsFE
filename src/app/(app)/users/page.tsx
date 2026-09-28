@@ -109,7 +109,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/users">) {
         </Link>
       </header>
 
-      <UsersFilters filters={filters} />
+      <UsersFilters filters={filters} actorRoleCode={actor.role.code} />
 
       {!result.ok ? (
         <div className="flex gap-3 rounded-xl border border-danger-200 bg-danger-50 p-5 text-sm text-danger-700">

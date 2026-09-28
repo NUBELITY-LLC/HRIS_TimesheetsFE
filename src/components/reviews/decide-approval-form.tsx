@@ -11,6 +11,8 @@ import {
   EVIDENCE_ACCEPT,
   INITIAL_DECIDE_APPROVAL_STATE,
 } from "@/lib/approvals/form-state";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
 export function DecideApprovalForm({
   approvalId,
@@ -31,6 +33,7 @@ export function DecideApprovalForm({
     decideApprovalAction,
     INITIAL_DECIDE_APPROVAL_STATE,
   );
+  const feedback = useFeedbackSlot();
   const [mode, setMode] = useState<"approve" | "reject">("approve");
   const { guard, dialog } = useConfirmedSubmit();
 
@@ -54,9 +57,8 @@ export function DecideApprovalForm({
 
   return (
     <form
-      action={formAction}
       className="space-y-3"
-      onSubmit={guard(
+      onSubmit={submitKeepingValues(feedback.track(formAction), guard(
         approving
           ? {
               title: t.approvals.decide.confirmApprove(consultantName),
@@ -67,7 +69,7 @@ export function DecideApprovalForm({
               tone: "default",
             }
           : null,
-      )}
+      ))}
     >
       {dialog}
       <input type="hidden" name="approvalId" value={approvalId} />
@@ -191,7 +193,7 @@ export function DecideApprovalForm({
         </p>
       </div>
 
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <p role="alert" className="text-xs text-danger-600">
           {state.message}
         </p>

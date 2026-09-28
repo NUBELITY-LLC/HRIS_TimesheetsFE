@@ -11,6 +11,9 @@ import {
   useTransition,
 } from "react";
 
+import { ExportLinks } from "@/components/timesheets/export-links";
+import { TimesheetEvidence } from "@/components/timesheets/timesheet-evidence";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 import { useConfirm } from "@/components/ui/use-confirm";
 import {
   AlertIcon,
@@ -153,6 +156,7 @@ export function WeeklyTimesheetForm({
     saveTimesheetAction,
     INITIAL_TIMESHEET_FORM_STATE,
   );
+  const feedback = useFeedbackSlot();
   const [isNavigating, startNavigation] = useTransition();
   const { confirm, dialog } = useConfirm();
   const [entries, setEntries] = useState<WeekEntries>(() =>
@@ -160,7 +164,19 @@ export function WeeklyTimesheetForm({
   );
   const [errors, setErrors] = useState<FormErrors>(NO_ERRORS);
   const [dirty, setDirty] = useState(false);
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+  const [pendingIntent, setPendingIntent] = useState<"draft" | "submit">(
+    "draft",
+  );
+  const [seenState, setSeenState] = useState(state);
   const rowCounter = useRef(0);
+
+  if (state !== seenState) {
+    setSeenState(state);
+    if (state.status === "draft" || state.status === "submitted") {
+      setEvidenceFiles([]);
+    }
+  }
 
   const editable = !timesheet || timesheet.editable;
   const busy = isSaving || isNavigating;
@@ -375,8 +391,12 @@ export function WeeklyTimesheetForm({
     if (submitter instanceof HTMLButtonElement && submitter.name === "intent") {
       data.set("intent", submitter.value);
     }
+    setPendingIntent(data.get("intent") === "submit" ? "submit" : "draft");
 
-    startTransition(() => formAction(data));
+    data.delete("evidence");
+    for (const file of evidenceFiles) data.append("evidence", file, file.name);
+
+    startTransition(() => feedback.track(formAction)(data));
   }
 
   function guard(intent: "draft" | "submit") {
@@ -393,8 +413,11 @@ export function WeeklyTimesheetForm({
     };
   }
 
-  const banner =
-    state.status === "error"
+  const banner = !feedback.visible
+    ? errors.form
+      ? { tone: "error" as const, message: errors.form, issues: [] }
+      : null
+    : state.status === "error"
       ? { tone: "error" as const, message: state.message, issues: state.issues }
       : errors.form
         ? { tone: "error" as const, message: errors.form, issues: [] }
@@ -750,6 +773,18 @@ export function WeeklyTimesheetForm({
           })}
         </div>
 
+        <TimesheetEvidence
+          timesheetId={timesheet?.id ?? null}
+          attachments={timesheet?.attachments ?? []}
+          files={evidenceFiles}
+          onFilesChange={(next) => {
+            setEvidenceFiles(next);
+            setDirty(true);
+          }}
+          editable={editable}
+          disabled={busy}
+        />
+
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
           <div className="space-y-1">
             <p className="text-sm text-ink-muted">
@@ -764,6 +799,14 @@ export function WeeklyTimesheetForm({
                 {t.timesheets.unsaved}
               </p>
             ) : null}
+            {timesheet ? (
+              <ExportLinks
+                basePath={`/timesheets/${timesheet.id}/export`}
+                hint={
+                  editable && unsaved ? t.timesheets.export.savedVersion : null
+                }
+              />
+            ) : null}
           </div>
           {editable ? (
             <div className="flex flex-wrap gap-2">
@@ -775,7 +818,9 @@ export function WeeklyTimesheetForm({
                 onClick={guard("draft")}
                 className="rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-surface-muted disabled:opacity-60"
               >
-                {isSaving ? t.timesheets.saving : t.timesheets.saveDraft}
+                {isSaving && pendingIntent === "draft"
+                  ? t.timesheets.saving
+                  : t.timesheets.saveDraft}
               </button>
               <button
                 type="submit"
@@ -785,7 +830,9 @@ export function WeeklyTimesheetForm({
                 onClick={guard("submit")}
                 className="rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
               >
-                {isSaving ? t.timesheets.submitting : t.timesheets.submit}
+                {isSaving && pendingIntent === "submit"
+                  ? t.timesheets.submitting
+                  : t.timesheets.submit}
               </button>
             </div>
           ) : null}

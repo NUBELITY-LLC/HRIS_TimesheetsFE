@@ -11,6 +11,8 @@ import {
   INITIAL_PAY_TERMS_ROW_STATE,
   type PayAssignment,
 } from "@/lib/payroll/pay-terms";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
 export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
   const t = useDictionary();
@@ -19,6 +21,7 @@ export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
     updatePayTermsAction,
     INITIAL_PAY_TERMS_ROW_STATE,
   );
+  const feedback = useFeedbackSlot();
 
   return (
     <li className="space-y-3 px-5 py-4">
@@ -52,7 +55,7 @@ export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
 
       <form
         key={state.savedAt ?? 0}
-        action={formAction}
+        onSubmit={submitKeepingValues(feedback.track(formAction))}
         className="space-y-2"
         noValidate
       >
@@ -77,16 +80,17 @@ export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
             />
           </div>
           <span className="pb-2 text-xs text-ink-muted">
-            {assignment.currency}
+            {assignment.currency} {t.rates.per[assignment.ratePeriod]}
           </span>
         </div>
         <PayTermsFields
           defaults={assignment.payTerms}
           disabled={isPending}
           collapsible
+          ratePeriod={assignment.ratePeriod}
         />
         <div className="flex flex-wrap items-center justify-end gap-3">
-          {state.status === "error" && state.message ? (
+          {feedback.visible && state.status === "error" && state.message ? (
             <p
               role="alert"
               className="flex items-center gap-2 text-xs text-danger-700"
@@ -95,7 +99,7 @@ export function PayTermsRow({ assignment }: { assignment: PayAssignment }) {
               {state.message}
             </p>
           ) : null}
-          {state.status === "success" && state.message ? (
+          {feedback.visible && state.status === "success" && state.message ? (
             <p className="flex items-center gap-2 text-xs text-success-700">
               <CheckIcon className="size-3.5 shrink-0" />
               {state.message}

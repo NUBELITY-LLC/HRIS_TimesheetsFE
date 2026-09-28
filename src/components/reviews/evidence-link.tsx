@@ -1,26 +1,22 @@
 import { DownloadIcon } from "@/components/icons";
 import { getDictionary, getLocale } from "@/i18n/server";
-import type { ApprovalAttachment } from "@/lib/approvals/types";
 import { formatDateTime } from "@/lib/format/datetime";
-
-function formatSize(bytes: number): string {
-  const kb = bytes / 1024;
-  return kb < 1024 ? `${Math.round(kb)} KB` : `${(kb / 1024).toFixed(1)} MB`;
-}
+import { formatFileSize } from "@/lib/timesheets/evidence";
+import type { TimesheetAttachment } from "@/lib/timesheets/types";
 
 export async function EvidenceLink({
-  approvalId,
+  href,
   attachment,
 }: {
-  approvalId: number;
-  attachment: ApprovalAttachment;
+  href: string;
+  attachment: TimesheetAttachment;
 }) {
   const t = await getDictionary();
   const locale = await getLocale();
 
   return (
     <a
-      href={`/evidence/${approvalId}/${attachment.id}`}
+      href={href}
       target="_blank"
       rel="noreferrer"
       className="flex items-start gap-2 rounded-lg border border-line p-2.5 transition-colors hover:bg-surface-muted"
@@ -31,7 +27,7 @@ export async function EvidenceLink({
           {attachment.fileName}
         </span>
         <span className="block text-xs text-ink-muted">
-          {formatSize(attachment.sizeBytes)} ·{" "}
+          {formatFileSize(attachment.sizeBytes)} ·{" "}
           {attachment.uploadedBy.name ?? t.common.unknown} ·{" "}
           {formatDateTime(attachment.uploadedAt, locale, {
             empty: t.common.none,

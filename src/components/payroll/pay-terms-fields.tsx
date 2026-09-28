@@ -10,6 +10,7 @@ import {
   type ContractType,
   type PayTerms,
 } from "@/lib/payroll/pay-terms";
+import type { RatePeriod } from "@/lib/rates/rates";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted disabled:text-ink-muted";
@@ -19,9 +20,11 @@ const LABEL_CLASS = "block text-xs font-medium text-ink-soft";
 function Fields({
   defaults,
   disabled,
+  hourly,
 }: {
   defaults: PayTerms;
   disabled: boolean;
+  hourly: boolean;
 }) {
   const t = useDictionary();
   const locale = useLocale();
@@ -92,9 +95,14 @@ function Fields({
             inputMode="decimal"
             maxLength={7}
             defaultValue={defaults.hoursDivisor}
-            disabled={disabled}
+            disabled={disabled || hourly}
             className={`tabular-nums ${INPUT_CLASS}`}
           />
+          {hourly ? (
+            <p className="text-xs text-ink-muted">
+              {t.payTerms.hoursDivisorHourly}
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-1">
@@ -160,26 +168,29 @@ export function PayTermsFields({
   disabled = false,
   error,
   collapsible = false,
+  ratePeriod,
 }: {
   defaults?: PayTerms;
   disabled?: boolean;
   error?: string;
   collapsible?: boolean;
+  ratePeriod?: RatePeriod;
 }) {
   const t = useDictionary();
+  const hourly = ratePeriod === "HOUR";
+  const contractLabel = t.payTerms.contractTypes[defaults.contractType];
 
   if (collapsible) {
     return (
       <details className="group rounded-lg border border-line px-3 py-2">
         <summary className="cursor-pointer text-xs font-medium text-ink-soft select-none">
           {t.payTerms.section} ·{" "}
-          {t.payTerms.summary(
-            t.payTerms.contractTypes[defaults.contractType],
-            defaults.hoursDivisor,
-          )}
+          {hourly
+            ? contractLabel
+            : t.payTerms.summary(contractLabel, defaults.hoursDivisor)}
         </summary>
         <div className="pt-3 pb-1">
-          <Fields defaults={defaults} disabled={disabled} />
+          <Fields defaults={defaults} disabled={disabled} hourly={hourly} />
         </div>
         {error ? <p className="pb-1 text-xs text-danger-600">{error}</p> : null}
       </details>
@@ -191,7 +202,7 @@ export function PayTermsFields({
       <legend className="px-1 text-sm font-semibold text-ink">
         {t.payTerms.section}
       </legend>
-      <Fields defaults={defaults} disabled={disabled} />
+      <Fields defaults={defaults} disabled={disabled} hourly={hourly} />
       {error ? <p className="text-xs text-danger-600">{error}</p> : null}
     </fieldset>
   );

@@ -13,6 +13,8 @@ import { useConfirmedSubmit } from "@/components/ui/use-confirm";
 import { useDictionary } from "@/i18n/provider";
 import { addHolidayAction, removeHolidayAction } from "@/lib/holidays/actions";
 import { INITIAL_HOLIDAY_FORM_STATE } from "@/lib/holidays/types";
+import { submitKeepingValues } from "@/lib/forms/submit";
+import { useFeedbackSlot } from "@/components/ui/feedback-scope";
 
 const INPUT_CLASS =
   "w-full rounded-lg border bg-white px-3 py-2 text-sm text-ink transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-surface-muted";
@@ -35,12 +37,13 @@ export function AddHolidayForm({
     addHolidayAction,
     INITIAL_HOLIDAY_FORM_STATE,
   );
+  const feedback = useFeedbackSlot();
   const ids = { date: useId(), name: useId() };
   const { fieldErrors } = state;
 
   return (
     <form
-      action={formAction}
+      onSubmit={submitKeepingValues(feedback.track(formAction))}
       className="space-y-3 rounded-xl border border-line bg-surface p-4"
       noValidate
     >
@@ -96,14 +99,14 @@ export function AddHolidayForm({
           </p>
         ))}
 
-      {state.status === "error" && state.message ? (
+      {feedback.visible && state.status === "error" && state.message ? (
         <p role="alert" className="flex items-center gap-2 text-sm text-danger-700">
           <AlertIcon className="size-4 shrink-0" />
           {state.message}
         </p>
       ) : null}
 
-      {state.status === "success" && state.message ? (
+      {feedback.visible && state.status === "success" && state.message ? (
         <p className="flex items-center gap-2 text-sm text-success-700">
           <CheckIcon className="size-4 shrink-0" />
           {state.message}
@@ -119,16 +122,16 @@ export function RemoveHolidayButton({ id, name }: { id: number; name: string }) 
     removeHolidayAction,
     INITIAL_HOLIDAY_FORM_STATE,
   );
+  const feedback = useFeedbackSlot();
   const { guard, dialog } = useConfirmedSubmit();
 
   return (
     <form
-      action={formAction}
-      onSubmit={guard({
+      onSubmit={submitKeepingValues(feedback.track(formAction), guard({
         title: t.holidays.confirmRemove(name),
         confirmLabel: t.holidays.remove,
         tone: "danger",
-      })}
+      }))}
     >
       {dialog}
       <input type="hidden" name="id" value={id} />

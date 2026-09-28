@@ -8,6 +8,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { apiRequest, type ApiResult } from "@/lib/api/client";
 import { readValidationIssues } from "@/lib/api/types";
 import { getSessionToken, requireUser } from "@/lib/auth/session";
+import { readRateTerms } from "@/lib/rates/rates";
 import {
   APPROVER_ROLE_CODES,
   canBeManagerClient,
@@ -213,6 +214,10 @@ export async function saveCompanyAction(
 
   const company = result.data.company;
 
+  if (!id) {
+    redirect(`/companies?created=${encodeURIComponent(company.tradeName)}`);
+  }
+
   return {
     status: "success",
     message: null,
@@ -331,6 +336,10 @@ export async function saveClientAction(
 
   const client = result.data.client;
 
+  if (!id) {
+    redirect(`/managers?created=${encodeURIComponent(client.clientName)}`);
+  }
+
   return {
     status: "success",
     message: null,
@@ -434,7 +443,11 @@ export async function saveProjectAction(
 
   const project = result.data.project;
 
-  if (!id) redirect(`/projects/${project.id}?created=1`);
+  if (!id) {
+    redirect(
+      `/projects?created=${encodeURIComponent(project.projectName)}&createdId=${project.id}`,
+    );
+  }
 
   return {
     status: "success",
@@ -622,10 +635,13 @@ export async function saveApprovalStepsAction(
   if (!result.ok) {
     if (result.status === 401) redirect("/login?reason=session_expired");
 
+    const code = detailCode(result.error.details);
     const message =
-      detailCode(result.error.details) === "APPROVER_WITHOUT_PERMISSION"
+      code === "APPROVER_WITHOUT_PERMISSION"
         ? t.catalog.errors.approverWithoutPermission
-        : (errorCopy(result.error.code, t) ??
+        : code === "PROJECT_MANAGER_LANE_REQUIRED"
+          ? t.catalog.errors.projectManagerLaneRequired
+          : (errorCopy(result.error.code, t) ??
           result.error.message ??
           t.catalog.errors.fallback);
     const errors = stepErrorsFrom(result.error.details, message);
@@ -859,7 +875,7 @@ export async function assignProjectMemberAction(
   const startDate = text(formData, "startDate");
   const endDate = text(formData, "endDate");
   const rawRate = text(formData, "payRate");
-  const rate = rawRate ? parseRate(rawRate) : null;
+  const rate = rawRate ? parseRate(rawRate) : 0;
   const assignmentCode = text(formData, "assignmentCode");
 
   if (!Number.isInteger(projectId) || projectId <= 0) {
@@ -876,8 +892,7 @@ export async function assignProjectMemberAction(
     fieldErrors.consultantId = t.catalog.errors.personRequired;
   }
   if (!startDate) fieldErrors.startDate = t.catalog.errors.assignmentStart;
-  if (!rawRate) fieldErrors.payRate = t.catalog.errors.payRateRequired;
-  else if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
+  if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
   if (startDate && endDate && endDate < startDate) {
     fieldErrors.endDate = t.catalog.errors.dateOrder;
   }
@@ -903,6 +918,7 @@ export async function assignProjectMemberAction(
       body: {
         consultantId,
         payRate: rate,
+        ...readRateTerms(formData),
         startDate,
         ...(endDate ? { endDate } : {}),
         ...(assignmentCode ? { assignmentCode } : {}),
@@ -968,13 +984,12 @@ export async function updateProjectAssignmentAction(
   const startDate = text(formData, "startDate");
   const endDate = text(formData, "endDate");
   const rawRate = text(formData, "payRate");
-  const rate = rawRate ? parseRate(rawRate) : null;
+  const rate = rawRate ? parseRate(rawRate) : 0;
   const assignmentCode = text(formData, "assignmentCode");
 
   const fieldErrors: Partial<Record<AssignmentFormField, string>> = {};
 
-  if (!rawRate) fieldErrors.payRate = t.catalog.errors.payRateRequired;
-  else if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
+  if (rate === null) fieldErrors.payRate = t.catalog.errors.payRateInvalid;
   if (!startDate) fieldErrors.startDate = t.catalog.errors.assignmentStart;
   if (startDate && endDate && endDate < startDate) {
     fieldErrors.endDate = t.catalog.errors.dateOrder;
@@ -1000,6 +1015,7 @@ export async function updateProjectAssignmentAction(
       token,
       body: {
         payRate: rate,
+        ...readRateTerms(formData),
         startDate,
         endDate: endDate || null,
         assignmentCode: assignmentCode || null,
