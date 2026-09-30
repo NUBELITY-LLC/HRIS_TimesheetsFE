@@ -1,11 +1,15 @@
 import { SearchIcon } from "@/components/icons";
+import { ReportScopeSelects } from "@/components/reports/scope-selects";
 import { getDictionary } from "@/i18n/server";
 import type { PeopleFilters } from "@/lib/reports/queries";
+import type { ReportScopes } from "@/lib/reports/types";
 
 export async function ReportPeopleFilters({
   filters,
+  scopes,
 }: {
   filters: PeopleFilters;
+  scopes: ReportScopes;
 }) {
   const t = await getDictionary();
   const p = t.reports.people;
@@ -36,6 +40,8 @@ export async function ReportPeopleFilters({
           />
         </div>
       </div>
+
+      <ReportScopeSelects scopes={scopes} scope={filters} />
 
       <div className="space-y-1.5">
         <label

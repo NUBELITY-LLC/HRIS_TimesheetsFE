@@ -1,5 +1,7 @@
+import { ReportScopeSelects } from "@/components/reports/scope-selects";
 import { getDictionary } from "@/i18n/server";
-import type { ReportRange } from "@/lib/reports/queries";
+import type { ReportRange, ReportScope } from "@/lib/reports/queries";
+import type { ReportScopes } from "@/lib/reports/types";
 
 const FIELD_CLASS =
   "rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none";
@@ -7,9 +9,13 @@ const FIELD_CLASS =
 export async function ReportRangeFilters({
   personId,
   range,
+  scopes,
+  scope,
 }: {
   personId: number;
   range: ReportRange;
+  scopes: ReportScopes;
+  scope: ReportScope;
 }) {
   const t = await getDictionary();
   const d = t.reports.detail;
@@ -49,6 +55,8 @@ export async function ReportRangeFilters({
           className={FIELD_CLASS}
         />
       </div>
+
+      <ReportScopeSelects scopes={scopes} scope={scope} />
 
       <button
         type="submit"

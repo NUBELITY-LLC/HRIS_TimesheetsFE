@@ -2,16 +2,22 @@ import Link from "next/link";
 
 import { ChevronRightIcon } from "@/components/icons";
 import { getDictionary } from "@/i18n/server";
-import type { ReportRange } from "@/lib/reports/queries";
+import {
+  setScopeParams,
+  type ReportRange,
+  type ReportScope,
+} from "@/lib/reports/queries";
 import type { ReportPerson } from "@/lib/reports/types";
 import { roleName } from "@/lib/users/roles";
 
 export async function ReportPeopleTable({
   people,
   range,
+  scope,
 }: {
   people: ReportPerson[];
   range: ReportRange;
+  scope: ReportScope;
 }) {
   const t = await getDictionary();
   const p = t.reports.people;
@@ -21,6 +27,7 @@ export async function ReportPeopleTable({
       from: range.from,
       to: range.to,
     });
+    setScopeParams(params, scope);
 
     return `/reports/${person.id}?${params.toString()}`;
   }

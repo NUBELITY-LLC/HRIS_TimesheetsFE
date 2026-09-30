@@ -8,22 +8,27 @@ const LINK_CLASS =
 
 export function ExportLinks({
   basePath,
+  query,
   hint,
 }: {
   basePath: string;
+  query?: string;
   hint?: string | null;
 }) {
   const t = useDictionary();
+  const suffix = query ? `?${query}` : "";
 
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-ink-muted">{t.timesheets.export.label}</span>
-        <a href={`${basePath}/xlsx`} download className={LINK_CLASS}>
+        <span className="text-xs text-ink-muted">
+          {t.timesheets.export.label}
+        </span>
+        <a href={`${basePath}/xlsx${suffix}`} download className={LINK_CLASS}>
           <DownloadIcon className="size-3.5" />
           {t.timesheets.export.xlsx}
         </a>
-        <a href={`${basePath}/pdf`} download className={LINK_CLASS}>
+        <a href={`${basePath}/pdf${suffix}`} download className={LINK_CLASS}>
           <DownloadIcon className="size-3.5" />
           {t.timesheets.export.pdf}
         </a>
