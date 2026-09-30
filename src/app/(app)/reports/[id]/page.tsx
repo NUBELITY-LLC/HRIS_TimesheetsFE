@@ -9,10 +9,18 @@ import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
 import { HoursReportTable } from "@/components/reports/hours-report";
 import { PayoutPanel } from "@/components/reports/payout-panel";
 import { ReportRangeFilters } from "@/components/reports/range-filters";
+import { ExportLinks } from "@/components/timesheets/export-links";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
-import { fetchHoursReport, type ReportRange } from "@/lib/reports/queries";
+import {
+  fetchHoursReport,
+  fetchReportScopes,
+  setScopeParams,
+  type ReportRange,
+  type ReportScope,
+} from "@/lib/reports/queries";
 import { monthToDate, normalizeRange } from "@/lib/reports/range";
+import { parseScope } from "@/lib/reports/scope";
 import { formatMinutes } from "@/lib/timesheets/rules";
 import { formatDayAndMonth, fromISODate } from "@/lib/timesheets/week";
 import { canViewHoursReports, roleName } from "@/lib/users/roles";
@@ -35,6 +43,11 @@ function parseRange(
     firstParam(params.from) || fallback.from,
     firstParam(params.to) || fallback.to,
   );
+}
+
+function backHref(scope: ReportScope): string {
+  const query = setScopeParams(new URLSearchParams(), scope).toString();
+  return query ? `/reports?${query}` : "/reports";
 }
 
 async function Notice({ title, body }: { title: string; body: string }) {
@@ -82,20 +95,29 @@ export default async function ReportDetailPage({
     return <Notice title={d.notFoundTitle} body={d.notFoundBody} />;
   }
 
-  const range = parseRange(await searchParams);
-  const result = await fetchHoursReport(personId, range);
+  const query = await searchParams;
+  const range = parseRange(query);
+  const scopes = await fetchReportScopes();
+  const scope = parseScope(query, scopes);
+  const back = backHref(scope);
+  const result = await fetchHoursReport(personId, range, scope);
 
   if (!result.ok) {
     return (
       <div className="mx-auto max-w-4xl space-y-5">
         <Link
-          href="/reports"
+          href={back}
           className="flex w-fit items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
         >
           <ArrowLeftIcon className="size-4" />
           {d.back}
         </Link>
-        <ReportRangeFilters personId={personId} range={range} />
+        <ReportRangeFilters
+          personId={personId}
+          range={range}
+          scopes={scopes}
+          scope={scope}
+        />
         <div className="flex gap-3 rounded-xl border border-danger-200 bg-danger-50 p-5">
           <AlertIcon className="mt-0.5 size-5 shrink-0 text-danger-600" />
           <div>
@@ -150,13 +172,22 @@ export default async function ReportDetailPage({
     <div className="mx-auto max-w-6xl space-y-5">
       <div>
         <Link
-          href="/reports"
+          href={back}
           className="flex w-fit items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
         >
           <ArrowLeftIcon className="size-4" />
           {d.back}
         </Link>
-        <p className="mt-3 text-sm text-ink-muted">{d.eyebrow}</p>
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+          <p className="text-sm text-ink-muted">{d.eyebrow}</p>
+          <ExportLinks
+            basePath={`/reports/${personId}/export`}
+            query={setScopeParams(
+              new URLSearchParams({ from: report.from, to: report.to }),
+              scope,
+            ).toString()}
+          />
+        </div>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight text-ink">
             {report.person.fullName}
@@ -170,7 +201,12 @@ export default async function ReportDetailPage({
         </div>
       </div>
 
-      <ReportRangeFilters personId={personId} range={range} />
+      <ReportRangeFilters
+        personId={personId}
+        range={range}
+        scopes={scopes}
+        scope={scope}
+      />
 
       <SummaryCards cards={cards} />
 

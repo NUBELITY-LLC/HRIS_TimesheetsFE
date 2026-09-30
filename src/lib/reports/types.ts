@@ -52,3 +52,75 @@ export type HoursReport = {
   totals: ReportTotal[];
   days: ReportDay[];
 };
+
+export type ScopeCompany = { id: number; name: string };
+
+export type ScopeProject = {
+  id: number;
+  name: string;
+  code: string | null;
+  isClosed: boolean;
+  clientName: string;
+  companyId: number;
+};
+
+export type ReportScopes = {
+  companies: ScopeCompany[];
+  projects: ScopeProject[];
+};
+
+export type CompanyReportPerson = {
+  id: number;
+  fullName: string;
+  jobTitle: string | null;
+  minutes: number;
+  hours: number;
+  workedDays: number;
+  hourlyRates: number[];
+  totals: ReportTotal[];
+};
+
+export type CompanyReportProject = {
+  id: number;
+  name: string;
+  code: string | null;
+  isClosed: boolean;
+  clientName: string;
+  minutes: number;
+  hours: number;
+  totals: ReportTotal[];
+  people: CompanyReportPerson[];
+};
+
+export type CompanyReportDay = {
+  date: string;
+  minutes: number;
+  hours: number;
+  totals: ReportTotal[];
+};
+
+export type CompanyReport = {
+  company: { id: number; name: string };
+  from: string;
+  to: string;
+  rangeDays: number;
+  totalMinutes: number;
+  totalHours: number;
+  peopleCount: number;
+  projectCount: number;
+  totals: ReportTotal[];
+  days: CompanyReportDay[];
+  projects: CompanyReportProject[];
+  people: CompanyReportPerson[];
+  options: CompanyFilterOptions;
+};
+
+export type CompanyFilterOptions = {
+  projects: { id: number; name: string; code: string | null }[];
+  people: { id: number; fullName: string }[];
+};
+
+export type CompanyFilters = {
+  projectId: string | null;
+  userId: string | null;
+};

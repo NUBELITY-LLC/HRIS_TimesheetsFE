@@ -4,17 +4,22 @@ import Link from "next/link";
 import { AlertIcon } from "@/components/icons";
 import { ReportPeopleFilters } from "@/components/reports/people-filters";
 import { ReportPeopleTable } from "@/components/reports/people-table";
+import { ReportTabs } from "@/components/reports/report-tabs";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
 import {
   DEFAULT_PEOPLE_FILTERS,
   PEOPLE_STATUSES,
   fetchReportPeople,
+  fetchReportScopes,
+  setScopeParams,
   type PeopleFilters,
   type PeopleStatus,
   type ReportRange,
 } from "@/lib/reports/queries";
 import { monthToDate, normalizeRange } from "@/lib/reports/range";
+import { parseScope } from "@/lib/reports/scope";
+import type { ReportScopes } from "@/lib/reports/types";
 import { canViewHoursReports } from "@/lib/users/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,12 +33,14 @@ function firstParam(value: string | string[] | undefined): string {
 
 function parseFilters(
   params: Record<string, string | string[] | undefined>,
+  scopes: ReportScopes,
 ): PeopleFilters {
   const page = Number(firstParam(params.page));
   const status = firstParam(params.status) as PeopleStatus;
 
   return {
     ...DEFAULT_PEOPLE_FILTERS,
+    ...parseScope(params, scopes),
     page: Number.isInteger(page) && page > 0 ? page : 1,
     search: firstParam(params.search).slice(0, 100),
     status: PEOPLE_STATUSES.includes(status)
@@ -60,6 +67,7 @@ function pageHref(filters: PeopleFilters, page: number): string {
   });
 
   if (filters.search) params.set("search", filters.search);
+  setScopeParams(params, filters);
 
   return `/reports?${params.toString()}`;
 }
@@ -89,7 +97,8 @@ export default async function ReportsPage({
   }
 
   const params = await searchParams;
-  const filters = parseFilters(params);
+  const scopes = await fetchReportScopes();
+  const filters = parseFilters(params, scopes);
   const range = parseRange(params);
   const result = await fetchReportPeople(filters);
 
@@ -103,11 +112,17 @@ export default async function ReportsPage({
         <p className="mt-1 text-sm text-ink-muted">{t.reports.intro}</p>
       </header>
 
-      <ReportPeopleFilters filters={filters} />
+      <ReportTabs active="people" />
+
+      <ReportPeopleFilters filters={filters} scopes={scopes} />
 
       {result.ok ? (
         <>
-          <ReportPeopleTable people={result.people} range={range} />
+          <ReportPeopleTable
+            people={result.people}
+            range={range}
+            scope={filters}
+          />
 
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
             <p className="text-ink-muted">
