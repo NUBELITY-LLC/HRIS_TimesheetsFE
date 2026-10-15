@@ -9,7 +9,8 @@ import {
   readValidationIssues,
   type LoginResult,
 } from "@/lib/api/types";
-import { getDictionary } from "@/i18n/server";
+import { isLocale } from "@/i18n/config";
+import { getDictionary, storeLocale } from "@/i18n/server";
 import type { Dictionary } from "@/i18n/dictionaries";
 import {
   createSession,
@@ -101,6 +102,10 @@ export async function loginAction(
   }
 
   await createSession(result.data.accessToken, result.data.expiresIn);
+
+  if (isLocale(result.data.user.locale)) {
+    await storeLocale(result.data.user.locale);
+  }
 
   if (result.data.user.mustChangePassword) {
     redirect(`/change-password?next=${encodeURIComponent(nextPath)}`);
