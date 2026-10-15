@@ -38,9 +38,25 @@ export type UserView = {
   jobTitle: string | null;
   isActive: boolean;
   mustChangePassword: boolean;
+  invitationPending: boolean;
+  invitationExpiresAt: string | null;
   lastLoginAt: string | null;
   role: Role;
   permissions: string[];
+};
+
+export type AccountLinkResult = {
+  link: string;
+  expiresAt: string;
+  emailSent: boolean;
+};
+
+export type AccountLinkView = {
+  purpose: "INVITE" | "RESET";
+  fullName: string;
+  userName: string;
+  email: string;
+  expiresAt: string;
 };
 
 export type UserProjectView = {

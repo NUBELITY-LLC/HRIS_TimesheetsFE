@@ -1,0 +1,14 @@
+import type { Metadata } from "next";
+
+import { AccountLinkPage } from "@/components/auth/account-link-page";
+import { getDictionary } from "@/i18n/server";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDictionary();
+  return { title: t.accountLink.invite.title, referrer: "no-referrer" };
+}
+
+export default async function InvitePage({ params }: PageProps<"/invite/[token]">) {
+  const { token } = await params;
+  return <AccountLinkPage purpose="INVITE" token={token} />;
+}

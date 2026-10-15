@@ -47,12 +47,6 @@ export const en: Dictionary = {
   password: {
     show: "Show password",
     hide: "Hide password",
-    generate: "Generate",
-    copy: "Copy",
-    copied: "Copied to your clipboard.",
-    generated: "Generated and copied to your clipboard.",
-    generatedNoCopy: "Generated. Copy it before saving.",
-    copyFailed: "Could not copy. Select the text and copy it manually.",
     rules: {
       length: (min: number) => `At least ${min} characters`,
       lowercase: "One lowercase letter",
@@ -70,11 +64,12 @@ export const en: Dictionary = {
     usernameLabel: "Username or email",
     usernamePlaceholder: "Username",
     passwordLabel: "Password",
+    forgotPassword: "Forgot your password?",
     submit: "Sign in",
     submitting: "Signing in…",
     sessionExpired: "Your session has expired. Please sign in again.",
     adminNote:
-      "Accounts are created by your administrator. Need access or a password reset? Contact the Nubelity admin team.",
+      "If you're having trouble with your account, please contact an administrator.",
     missingFields: "Please complete both fields to continue.",
     usernameRequired: "Enter your username or email.",
     passwordRequired: "Enter your password.",
@@ -122,6 +117,63 @@ export const en: Dictionary = {
       NETWORK_ERROR:
         "We could not reach the server. Please try again in a moment.",
       fallback: "The password could not be updated. Please try again.",
+    },
+  },
+  forgotPassword: {
+    title: "Reset your password",
+    subtitle:
+      "Enter your account email and we'll send you a link to choose a new password.",
+    emailLabel: "Email",
+    emailPlaceholder: "user@nubelity.com",
+    submit: "Send link",
+    submitting: "Sending…",
+    sentTitle: "Check your email",
+    sentBody: (email: string) =>
+      `If ${email} belongs to an active account, you'll receive a link in a few minutes.`,
+    emailRequired: "Enter your email.",
+    emailInvalid: "Enter a valid email.",
+    backToLogin: "Back to sign in",
+    errors: {
+      TOO_MANY_REQUESTS:
+        "You've requested several links already. Wait a few minutes and try again.",
+      NETWORK_ERROR:
+        "We could not reach the server. Please try again in a moment.",
+      fallback: "The request could not be sent. Please try again.",
+    },
+  },
+  accountLink: {
+    invite: {
+      title: "Activate your account",
+      subtitle: (name: string) =>
+        `Hi ${name}, choose the password you'll use to sign in to Nubelity Timesheets.`,
+      submit: "Activate account",
+      submitting: "Activating…",
+      invalidTitle: "This invitation is no longer valid",
+      invalidBody: "Ask an administrator to send you a new one.",
+    },
+    reset: {
+      title: "Choose a new password",
+      subtitle: (name: string) =>
+        `${name}, enter your new password.`,
+      submit: "Save password",
+      submitting: "Saving…",
+      invalidTitle: "This link is no longer valid",
+      invalidBody: "Request a new one to reset your password.",
+      requestNew: "Request a new link",
+    },
+    userLabel: "Username",
+    newLabel: "Password",
+    confirmLabel: "Confirm password",
+    mismatch: "Both passwords must match.",
+    reviewFields: "Please review the highlighted fields.",
+    expires: (date: string) => `This link expires on ${date}.`,
+    backToLogin: "Go to sign in",
+    errors: {
+      TOO_MANY_REQUESTS:
+        "Too many attempts with this link. Wait a few minutes and try again.",
+      NETWORK_ERROR:
+        "We could not reach the server. Please try again in a moment.",
+      fallback: "The password could not be saved. Please try again.",
     },
   },
   dashboard: {
@@ -1100,6 +1152,7 @@ export const en: Dictionary = {
       active: "Active",
       inactive: "Inactive",
       pendingPassword: "Pending password change",
+      invitationPending: "Invitation pending",
     },
     confirmDelete: (name: string) => `Permanently delete ${name}?`,
     confirmDeleteBody:
@@ -1128,6 +1181,33 @@ export const en: Dictionary = {
     edit: {
       title: "Edit user",
       pendingPassword: "pending password change on next sign-in",
+      invitationPending: "invitation pending",
+    },
+    access: {
+      section: "Access",
+      pendingTitle: "Invitation pending",
+      pendingExpires: (date: string) => `The current invitation expires on ${date}.`,
+      pendingExpired: "The invitation expired or hasn't been sent yet.",
+      activeTitle: "Password",
+      activeBody: "Send them a link to choose a new password.",
+      inactiveBody: "Reactivate the account to send an access link.",
+      sendInvitation: "Resend invitation",
+      sendReset: "Send reset link",
+      sending: "Sending…",
+      sentByEmail: (email: string) => `We sent the link to ${email}.`,
+      notSent: "The email could not be sent. Copy the link to share it.",
+      linkLabel: "Access link",
+      linkExpires: (date: string) => `Expires on ${date}.`,
+      copy: "Copy link",
+      copied: "Link copied.",
+      copyFailed: "Could not copy. Select the link and copy it manually.",
+      createdInactive: "The account is inactive.",
+      errors: {
+        INVITATION_ALREADY_ACCEPTED: "This account is already active.",
+        INVITATION_PENDING: "This account hasn't accepted its invitation yet.",
+        USER_INACTIVE: "Reactivate the account before sending a link.",
+        fallback: "The link could not be generated. Please try again.",
+      },
     },
     form: {
       section: "Account details",
@@ -1138,11 +1218,6 @@ export const en: Dictionary = {
       userNameHint: "3–50 characters. Letters, numbers, dot, dash, underscore.",
       email: "Email",
       emailPlaceholder: "user@nubelity.com",
-      temporaryPassword: "Temporary password",
-      temporaryPasswordHint:
-        "The user must change it the first time they sign in.",
-      resetPassword: "Reset password",
-      resetPasswordHint: "Leave blank to keep the current password.",
       role: "Role",
       rolePlaceholder: "Select a role…",
       roleLockedHint: "You cannot change your own role.",
@@ -1185,8 +1260,6 @@ export const en: Dictionary = {
       saving: "Saving…",
       createdTitle: (name: string) => `${name} was created.`,
       updatedTitle: (name: string) => `${name} was updated.`,
-      createdHint:
-        "Share the password through a secure channel; they will be asked to change it on first sign-in.",
       reviewFields: "Please review the highlighted fields.",
     },
     errors: {

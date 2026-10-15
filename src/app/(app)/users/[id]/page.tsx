@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { ArrowLeftIcon, BriefcaseIcon } from "@/components/icons";
 import { NoAccess } from "@/components/users/no-access";
+import { UserAccess } from "@/components/users/user-access";
 import { UserForm } from "@/components/users/user-form";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
@@ -71,7 +72,11 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
         </h1>
         <p className="mt-2 text-sm text-ink-muted">
           {user.userName} · {user.email} · {roleName(user.role.code, t)}
-          {user.mustChangePassword ? ` · ${t.users.edit.pendingPassword}` : ""}
+          {user.invitationPending
+            ? ` · ${t.users.edit.invitationPending}`
+            : user.mustChangePassword
+              ? ` · ${t.users.edit.pendingPassword}`
+              : ""}
         </p>
       </header>
 
@@ -108,6 +113,14 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
           />
         </div>
       </section>
+
+      <UserAccess
+        userId={user.id}
+        email={user.email}
+        isActive={user.isActive}
+        invitationPending={user.invitationPending}
+        invitationExpiresAt={user.invitationExpiresAt}
+      />
 
       {showProjects ? (
         <Link

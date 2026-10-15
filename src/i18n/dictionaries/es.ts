@@ -45,12 +45,6 @@ export const es = {
   password: {
     show: "Mostrar contraseña",
     hide: "Ocultar contraseña",
-    generate: "Generar",
-    copy: "Copiar",
-    copied: "Copiada al portapapeles.",
-    generated: "Generada y copiada al portapapeles.",
-    generatedNoCopy: "Generada. Cópiala antes de guardar.",
-    copyFailed: "No se pudo copiar. Selecciona el texto y cópialo a mano.",
     rules: {
       length: (min: number) => `Al menos ${min} caracteres`,
       lowercase: "Una minúscula",
@@ -68,6 +62,7 @@ export const es = {
     usernameLabel: "Usuario o correo",
     usernamePlaceholder: "Usuario",
     passwordLabel: "Contraseña",
+    forgotPassword: "¿Olvidaste tu contraseña?",
     submit: "Entrar",
     submitting: "Entrando…",
     sessionExpired: "Tu sesión expiró. Vuelve a iniciar sesión.",
@@ -121,6 +116,63 @@ export const es = {
       NETWORK_ERROR:
         "No pudimos contactar al servidor. Inténtalo de nuevo en un momento.",
       fallback: "No se pudo actualizar la contraseña. Inténtalo de nuevo.",
+    },
+  },
+  forgotPassword: {
+    title: "Restablece tu contraseña",
+    subtitle:
+      "Escribe el correo de tu cuenta y te enviaremos un enlace para elegir una contraseña nueva.",
+    emailLabel: "Correo",
+    emailPlaceholder: "usuario@nubelity.com",
+    submit: "Enviar enlace",
+    submitting: "Enviando…",
+    sentTitle: "Revisa tu correo",
+    sentBody: (email: string) =>
+      `Si ${email} pertenece a una cuenta activa, te llegará un enlace en unos minutos.`,
+    emailRequired: "Escribe tu correo.",
+    emailInvalid: "Escribe un correo válido.",
+    backToLogin: "Volver a iniciar sesión",
+    errors: {
+      TOO_MANY_REQUESTS:
+        "Ya pediste varios enlaces. Espera unos minutos e inténtalo de nuevo.",
+      NETWORK_ERROR:
+        "No pudimos contactar al servidor. Inténtalo de nuevo en un momento.",
+      fallback: "No se pudo enviar la solicitud. Inténtalo de nuevo.",
+    },
+  },
+  accountLink: {
+    invite: {
+      title: "Activa tu cuenta",
+      subtitle: (name: string) =>
+        `Hola ${name}, elige la contraseña con la que entrarás a Nubelity Timesheets.`,
+      submit: "Activar cuenta",
+      submitting: "Activando…",
+      invalidTitle: "Esta invitación ya no es válida",
+      invalidBody: "Pide a un administrador que te envíe una nueva.",
+    },
+    reset: {
+      title: "Elige una contraseña nueva",
+      subtitle: (name: string) =>
+        `${name}, escribe tu contraseña nueva.`,
+      submit: "Guardar contraseña",
+      submitting: "Guardando…",
+      invalidTitle: "Este enlace ya no es válido",
+      invalidBody: "Solicita uno nuevo para restablecer tu contraseña.",
+      requestNew: "Solicitar un enlace nuevo",
+    },
+    userLabel: "Usuario",
+    newLabel: "Contraseña",
+    confirmLabel: "Confirma la contraseña",
+    mismatch: "Las dos contraseñas deben coincidir.",
+    reviewFields: "Revisa los campos marcados.",
+    expires: (date: string) => `Este enlace vence el ${date}.`,
+    backToLogin: "Ir a iniciar sesión",
+    errors: {
+      TOO_MANY_REQUESTS:
+        "Demasiados intentos con este enlace. Espera unos minutos e inténtalo de nuevo.",
+      NETWORK_ERROR:
+        "No pudimos contactar al servidor. Inténtalo de nuevo en un momento.",
+      fallback: "No se pudo guardar la contraseña. Inténtalo de nuevo.",
     },
   },
   dashboard: {
@@ -1105,6 +1157,7 @@ export const es = {
       active: "Activa",
       inactive: "Inactiva",
       pendingPassword: "Cambio de contraseña pendiente",
+      invitationPending: "Invitación pendiente",
     },
     confirmDelete: (name: string) => `¿Eliminar a ${name} de forma permanente?`,
     confirmDeleteBody:
@@ -1133,6 +1186,33 @@ export const es = {
     edit: {
       title: "Editar usuario",
       pendingPassword: "cambio de contraseña pendiente en el próximo acceso",
+      invitationPending: "invitación pendiente",
+    },
+    access: {
+      section: "Acceso",
+      pendingTitle: "Invitación pendiente",
+      pendingExpires: (date: string) => `La invitación vigente vence el ${date}.`,
+      pendingExpired: "La invitación venció o aún no se envía.",
+      activeTitle: "Contraseña",
+      activeBody: "Envíale un enlace para que elija una contraseña nueva.",
+      inactiveBody: "Reactiva la cuenta para enviarle un enlace de acceso.",
+      sendInvitation: "Reenviar invitación",
+      sendReset: "Enviar enlace para restablecer",
+      sending: "Enviando…",
+      sentByEmail: (email: string) => `Enviamos el enlace a ${email}.`,
+      notSent: "No se pudo enviar el correo. Copia el enlace para compartirlo.",
+      linkLabel: "Enlace de acceso",
+      linkExpires: (date: string) => `Vence el ${date}.`,
+      copy: "Copiar enlace",
+      copied: "Enlace copiado.",
+      copyFailed: "No se pudo copiar. Selecciona el enlace y cópialo a mano.",
+      createdInactive: "La cuenta quedó inactiva.",
+      errors: {
+        INVITATION_ALREADY_ACCEPTED: "Esta cuenta ya está activa.",
+        INVITATION_PENDING: "Esta cuenta todavía no acepta su invitación.",
+        USER_INACTIVE: "Reactiva la cuenta antes de enviarle un enlace.",
+        fallback: "No se pudo generar el enlace. Inténtalo de nuevo.",
+      },
     },
     form: {
       section: "Datos de la cuenta",
@@ -1144,11 +1224,6 @@ export const es = {
         "De 3 a 50 caracteres. Letras, números, punto, guion y guion bajo.",
       email: "Correo",
       emailPlaceholder: "usuario@nubelity.com",
-      temporaryPassword: "Contraseña temporal",
-      temporaryPasswordHint:
-        "El usuario deberá cambiarla la primera vez que entre.",
-      resetPassword: "Restablecer contraseña",
-      resetPasswordHint: "Déjalo vacio para conservar la contraseña actual.",
       role: "Rol",
       rolePlaceholder: "Selecciona un rol…",
       roleLockedHint: "No puedes cambiar tu propio rol.",
@@ -1192,8 +1267,6 @@ export const es = {
       saving: "Guardando…",
       createdTitle: (name: string) => `${name} se creó correctamente.`,
       updatedTitle: (name: string) => `${name} se actualizó correctamente.`,
-      createdHint:
-        "Comparte la contraseña por un canal seguro; se le pedirá cambiarla al primer acceso.",
       reviewFields: "Revisa los campos marcados.",
     },
     errors: {

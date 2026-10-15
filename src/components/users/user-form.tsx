@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useId, useState } from "react";
 
-import { PasswordField } from "@/components/ui/password-field";
+import { AccessLinkResult } from "@/components/users/access-link-result";
 import { RolesHelp } from "@/components/users/roles-help";
 import { AlertIcon, CheckIcon, SpinnerIcon } from "@/components/icons";
 import {
@@ -533,24 +533,34 @@ export function UserForm({
       {userId ? <input type="hidden" name="id" value={userId} /> : null}
 
       {feedback.visible && state.status === "success" && state.savedUser ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex gap-3 rounded-lg border border-success-200 bg-success-50 p-3.5 text-sm text-success-800"
-        >
-          <CheckIcon className="mt-0.5 size-4 shrink-0" />
-          <div className="space-y-1">
-            <p className="font-medium">
-              {isCreate
-                ? t.users.form.createdTitle(state.savedUser.fullName)
-                : t.users.form.updatedTitle(state.savedUser.fullName)}
-            </p>
-            <p className="text-success-700">
-              {state.savedUser.userName} · {state.savedUser.email} ·{" "}
-              {state.savedUser.roleName}
-              {isCreate ? `. ${t.users.form.createdHint}` : "."}
-            </p>
+        <div className="space-y-3">
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex gap-3 rounded-lg border border-success-200 bg-success-50 p-3.5 text-sm text-success-800"
+          >
+            <CheckIcon className="mt-0.5 size-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-medium">
+                {isCreate
+                  ? t.users.form.createdTitle(state.savedUser.fullName)
+                  : t.users.form.updatedTitle(state.savedUser.fullName)}
+              </p>
+              <p className="text-success-700">
+                {state.savedUser.userName} · {state.savedUser.email} ·{" "}
+                {state.savedUser.roleName}.
+                {isCreate && !state.invitation
+                  ? ` ${t.users.access.createdInactive}`
+                  : ""}
+              </p>
+            </div>
           </div>
+          {isCreate && state.invitation ? (
+            <AccessLinkResult
+              result={state.invitation}
+              email={state.savedUser.email}
+            />
+          ) : null}
         </div>
       ) : null}
 
@@ -626,24 +636,6 @@ export function UserForm({
             />
           </Field>
         </div>
-
-        <PasswordField
-          name="password"
-          label={
-            isCreate
-              ? t.users.form.temporaryPassword
-              : t.users.form.resetPassword
-          }
-          error={fieldErrors.password}
-          hint={
-            isCreate
-              ? t.users.form.temporaryPasswordHint
-              : t.users.form.resetPasswordHint
-          }
-          disabled={isPending}
-          showGenerator
-          showChecklist
-        />
 
         <RoleFields
           ids={{ roleCode: ids.roleCode, jobTitle: ids.jobTitle }}
