@@ -1,3 +1,4 @@
+import type { Locale } from "@/i18n/config";
 import type { PayTerms } from "@/lib/payroll/pay-terms";
 import type { RatePeriod } from "@/lib/rates/rates";
 import type { RateChangeView } from "@/lib/catalog/types";
@@ -16,6 +17,7 @@ export type AuthenticatedUser = {
   jobTitle: string | null;
   lastLoginAt: string | null;
   mustChangePassword: boolean;
+  locale: Locale;
   role: Role;
   permissions: string[];
 };
@@ -36,9 +38,25 @@ export type UserView = {
   jobTitle: string | null;
   isActive: boolean;
   mustChangePassword: boolean;
+  invitationPending: boolean;
+  invitationExpiresAt: string | null;
   lastLoginAt: string | null;
   role: Role;
   permissions: string[];
+};
+
+export type AccountLinkResult = {
+  link: string;
+  expiresAt: string;
+  emailSent: boolean;
+};
+
+export type AccountLinkView = {
+  purpose: "INVITE" | "RESET";
+  fullName: string;
+  userName: string;
+  email: string;
+  expiresAt: string;
 };
 
 export type UserProjectView = {

@@ -14,3 +14,13 @@ export async function getLocale(): Promise<Locale> {
 export async function getDictionary(): Promise<Dictionary> {
   return dictionaries[await getLocale()];
 }
+
+export async function storeLocale(locale: Locale): Promise<void> {
+  const store = await cookies();
+  store.set(LOCALE_COOKIE, locale, {
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+}

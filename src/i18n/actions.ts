@@ -1,9 +1,11 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from "./config";
+import { apiRequest } from "@/lib/api/client";
+import { getSessionToken } from "@/lib/auth/session";
+import { DEFAULT_LOCALE, isLocale } from "./config";
+import { storeLocale } from "./server";
 
 export async function setLocaleAction(
   _prevState: { status: "idle" | "success" },
@@ -12,13 +14,16 @@ export async function setLocaleAction(
   const requested = formData.get("locale");
   const locale = isLocale(requested) ? requested : DEFAULT_LOCALE;
 
-  const store = await cookies();
-  store.set(LOCALE_COOKIE, locale, {
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  const token = await getSessionToken();
+  if (token) {
+    await apiRequest<{ locale: string }>("/auth/me/locale", {
+      method: "PATCH",
+      token,
+      body: { locale },
+    });
+  }
+
+  await storeLocale(locale);
 
   revalidatePath("/", "layout");
 

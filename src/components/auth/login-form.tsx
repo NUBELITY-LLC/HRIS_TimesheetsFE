@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useId, useState } from "react";
 
 import { loginAction } from "@/lib/auth/actions";
@@ -107,12 +108,20 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
       </div>
 
       <div className="space-y-1.5">
-        <label
-          htmlFor={passwordId}
-          className="block text-sm font-medium text-ink-soft"
-        >
-          {t.login.passwordLabel}
-        </label>
+        <div className="flex items-baseline justify-between gap-3">
+          <label
+            htmlFor={passwordId}
+            className="block text-sm font-medium text-ink-soft"
+          >
+            {t.login.passwordLabel}
+          </label>
+          <Link
+            href="/forgot-password"
+            className="text-xs font-medium text-brand-600 transition-colors hover:text-brand-700"
+          >
+            {t.login.forgotPassword}
+          </Link>
+        </div>
         <div className="relative">
           <LockIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
           <input

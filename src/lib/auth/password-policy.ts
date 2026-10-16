@@ -5,8 +5,6 @@ export type PasswordRuleId =
 
 export const MIN_PASSWORD_LENGTH = 8;
 
-const SYMBOLS = "!@#$%^&*()-_=+[]{};:,.?";
-
 export const PASSWORD_RULES: Array<{
   id: PasswordRuleId;
   test: (password: string) => boolean;
@@ -44,48 +42,4 @@ export function passwordPolicyError(
   if (unmet.length === 0) return null;
 
   return t.password.needs(unmet.map((id) => passwordRuleLabel(id, t)));
-}
-
-const UPPERCASE = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-const LOWERCASE = "abcdefghijkmnopqrstuvwxyz";
-const DIGITS = "23456789";
-
-function randomInt(max: number): number {
-  const buffer = new Uint32Array(1);
-  const limit = Math.floor(0xffffffff / max) * max;
-
-  let value = 0xffffffff;
-  while (value >= limit) {
-    crypto.getRandomValues(buffer);
-    value = buffer[0];
-  }
-
-  return value % max;
-}
-
-function pick(alphabet: string): string {
-  return alphabet[randomInt(alphabet.length)];
-}
-
-export function generatePassword(length = 16): string {
-  const size = Math.max(length, MIN_PASSWORD_LENGTH + 4);
-  const alphabet = UPPERCASE + LOWERCASE + DIGITS + SYMBOLS;
-
-  const characters = [
-    pick(UPPERCASE),
-    pick(LOWERCASE),
-    pick(DIGITS),
-    pick(SYMBOLS),
-  ];
-
-  while (characters.length < size) {
-    characters.push(pick(alphabet));
-  }
-
-  for (let i = characters.length - 1; i > 0; i -= 1) {
-    const j = randomInt(i + 1);
-    [characters[i], characters[j]] = [characters[j], characters[i]];
-  }
-
-  return characters.join("");
 }

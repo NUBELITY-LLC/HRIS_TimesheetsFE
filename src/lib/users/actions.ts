@@ -7,10 +7,10 @@ import { apiRequest, type ApiResult } from "@/lib/api/client";
 import { translateFieldMessage } from "@/lib/api/messages";
 import {
   readValidationIssues,
+  type AccountLinkResult,
   type UserProjectView,
   type UserView,
 } from "@/lib/api/types";
-import { passwordPolicyError } from "@/lib/auth/password-policy";
 import { ASSIGNMENT_CODE_MAX } from "@/lib/catalog/types";
 import {
   DEFAULT_CURRENCY,
@@ -35,6 +35,7 @@ import {
 import {
   EMPTY_USER_FORM_VALUES,
   INITIAL_USER_PROJECT_FORM_STATE,
+  type AccessLinkState,
   type RowActionState,
   type UserFormField,
   type UserFormState,
@@ -46,7 +47,6 @@ const FIELD_NAMES: UserFormField[] = [
   "fullName",
   "userName",
   "email",
-  "password",
   "roleCode",
   "permissions",
   "jobTitle",
@@ -225,11 +225,7 @@ export async function createUserAction(
 
   if (!canManageUsers(actor)) return forbiddenState(values, t);
 
-  const password = String(formData.get("password") ?? "");
   const fieldErrors: UserFormState["fieldErrors"] = {};
-  const policyError = passwordPolicyError(password, t);
-
-  if (policyError) fieldErrors.password = policyError;
 
   const needsProject = requiresProject(values.roleCode);
   const wantsProject =
@@ -289,14 +285,16 @@ export async function createUserAction(
       : undefined;
 
   const token = await getSessionToken();
-  const result = await apiRequest<{ user: UserView }>("/users", {
+  const result = await apiRequest<{
+    user: UserView;
+    invitation: AccountLinkResult | null;
+  }>("/users", {
     method: "POST",
     token,
     body: {
       fullName: values.fullName,
       userName: values.userName,
       email: values.email,
-      password,
       roleCode: values.roleCode,
       ...permissionsPayload(formData, values),
       ...(values.jobTitle ? { jobTitle: values.jobTitle } : {}),
@@ -326,6 +324,7 @@ export async function createUserAction(
       email: created.email,
       roleName: roleName(created.role.code, t),
     },
+    invitation: result.data.invitation,
   };
 }
 
@@ -351,22 +350,6 @@ export async function updateUserAction(
     };
   }
 
-  const password = String(formData.get("password") ?? "");
-
-  if (password) {
-    const policyError = passwordPolicyError(password, t);
-    if (policyError) {
-      return {
-        status: "error",
-        message: t.users.form.reviewFields,
-        code: "WEAK_PASSWORD",
-        fieldErrors: { password: policyError },
-        values,
-        savedUser: null,
-      };
-    }
-  }
-
   const token = await getSessionToken();
   const result = await apiRequest<{ user: UserView }>(`/users/${id}`, {
     method: "PATCH",
@@ -379,7 +362,6 @@ export async function updateUserAction(
       ...permissionsPayload(formData, values),
       jobTitle: values.jobTitle || null,
       isActive: values.isActive,
-      ...(password ? { password } : {}),
     },
   });
 
@@ -809,4 +791,49 @@ export async function deleteUserAction(
     status: "success",
     message: t.users.errors.deleted(result.data.deleted.fullName),
   };
+}
+
+export async function sendAccessLinkAction(
+  _prevState: AccessLinkState,
+  formData: FormData,
+): Promise<AccessLinkState> {
+  const t = await getDictionary();
+  const actor = await requireUser();
+  const id = Number(formData.get("id"));
+  const kind = formData.get("kind") === "reset" ? "reset" : "invitation";
+
+  if (!canManageUsers(actor)) {
+    return { status: "error", message: t.users.errors.FORBIDDEN, result: null };
+  }
+  if (!Number.isInteger(id) || id <= 0) {
+    return { status: "error", message: t.users.errors.NOT_FOUND, result: null };
+  }
+
+  const token = await getSessionToken();
+  const path = kind === "reset" ? `/users/${id}/password-reset` : `/users/${id}/invitation`;
+  const result = await apiRequest<{
+    invitation?: AccountLinkResult;
+    reset?: AccountLinkResult;
+  }>(path, { method: "POST", token });
+
+  if (!result.ok) {
+    if (result.status === 401) redirect("/login?reason=session_expired");
+
+    const copy = t.users.access.errors as Record<string, string>;
+    return {
+      status: "error",
+      message:
+        copy[result.error.code] ??
+        errorCopy(result.error.code, t) ??
+        t.users.access.errors.fallback,
+      result: null,
+    };
+  }
+
+  const issued = result.data.invitation ?? result.data.reset ?? null;
+
+  revalidatePath(`/users/${id}`);
+  revalidatePath("/users");
+
+  return { status: issued ? "success" : "error", message: null, result: issued };
 }

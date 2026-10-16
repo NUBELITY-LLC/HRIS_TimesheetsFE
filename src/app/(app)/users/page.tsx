@@ -167,9 +167,11 @@ export default async function UsersPage({ searchParams }: PageProps<"/users">) {
                           <span className="block text-ink-muted">
                             {user.userName} · {user.email}
                           </span>
-                          {user.mustChangePassword ? (
+                          {user.invitationPending || user.mustChangePassword ? (
                             <span className="mt-1 inline-block rounded-full bg-warn-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-warn-700 uppercase">
-                              {t.users.table.pendingPassword}
+                              {user.invitationPending
+                                ? t.users.table.invitationPending
+                                : t.users.table.pendingPassword}
                             </span>
                           ) : null}
                         </td>

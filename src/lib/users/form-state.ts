@@ -1,3 +1,4 @@
+import type { AccountLinkResult } from "@/lib/api/types";
 import type { ContractType } from "@/lib/payroll/pay-terms";
 import {
   DEFAULT_CURRENCY,
@@ -9,7 +10,6 @@ export type UserFormField =
   | "fullName"
   | "userName"
   | "email"
-  | "password"
   | "roleCode"
   | "permissions"
   | "jobTitle"
@@ -49,6 +49,7 @@ export type UserFormState = {
     email: string;
     roleName: string;
   } | null;
+  invitation?: AccountLinkResult | null;
 };
 
 export const EMPTY_USER_FORM_VALUES: UserFormValues = {
@@ -97,6 +98,18 @@ export const INITIAL_USER_PROJECT_FORM_STATE: UserProjectFormState = {
   status: "idle",
   message: null,
   fieldErrors: {},
+};
+
+export type AccessLinkState = {
+  status: "idle" | "success" | "error";
+  message: string | null;
+  result: AccountLinkResult | null;
+};
+
+export const INITIAL_ACCESS_LINK_STATE: AccessLinkState = {
+  status: "idle",
+  message: null,
+  result: null,
 };
 
 export type RowActionState = {
