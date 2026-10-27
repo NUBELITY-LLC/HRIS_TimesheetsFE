@@ -1,5 +1,6 @@
 import "server-only";
 
+import { clientContextHeaders } from "./client-context";
 import { API_BASE_URL } from "./config";
 import { getSessionToken } from "@/lib/auth/session";
 
@@ -12,15 +13,21 @@ export function isExportFormat(value: string): value is ExportFormat {
 
 const PASSTHROUGH_HEADERS = ["content-type", "content-disposition"];
 
-export async function proxyDownload(path: string): Promise<Response> {
+export async function proxyDownload(
+  path: string,
+  { timeoutMs = 30_000 }: { timeoutMs?: number } = {},
+): Promise<Response> {
   const token = await getSessionToken();
 
   let upstream: Response;
   try {
     upstream = await fetch(`${API_BASE_URL}${path}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: {
+        ...(await clientContextHeaders()),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       cache: "no-store",
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch {
     return new Response("Unavailable", { status: 502 });
