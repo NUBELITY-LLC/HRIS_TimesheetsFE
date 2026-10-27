@@ -167,6 +167,10 @@ export function canDeleteUsers(actor: Viewer): boolean {
   return actor.role.code === ROLE_ADMIN;
 }
 
+export function canViewAudit(actor: Viewer): boolean {
+  return actor.role.code === ROLE_ADMIN;
+}
+
 export function canManageUsers(actor: Viewer): boolean {
   return hasPermission(actor, PERMISSION_USERS_MANAGE);
 }

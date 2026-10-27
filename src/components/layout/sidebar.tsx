@@ -13,6 +13,7 @@ import {
   ClockIcon,
   DashboardIcon,
   HistoryIcon,
+  LockIcon,
   LogoutIcon,
   SettingsIcon,
   UsersIcon,
@@ -25,6 +26,7 @@ import {
   canManageUsers,
   canReviewTimesheets,
   canSubmitTimesheets,
+  canViewAudit,
   canViewHoursReports,
 } from "@/lib/users/roles";
 import type { AuthenticatedUser } from "@/lib/api/types";
@@ -43,6 +45,7 @@ type NavItem = {
     | "holidays"
     | "payrollRules"
     | "users"
+    | "audit"
     | "account";
   href: string;
   icon: typeof DashboardIcon;
@@ -134,6 +137,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: UsersIcon,
     available: true,
     visibleFor: canManageUsers,
+  },
+  {
+    key: "audit",
+    href: "/audit",
+    icon: LockIcon,
+    available: true,
+    visibleFor: canViewAudit,
   },
   { key: "account", href: "/settings", icon: SettingsIcon, available: true },
 ];

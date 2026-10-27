@@ -1,5 +1,6 @@
 import "server-only";
 
+import { clientContextHeaders } from "./client-context";
 import { API_BASE_URL } from "./config";
 import { readPagination, type ApiErrorPayload, type Pagination } from "./types";
 
@@ -46,7 +47,10 @@ export async function apiRequest<T>(
   const timeoutMs =
     options.timeoutMs ?? (multipart ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS);
 
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = {
+    ...(await clientContextHeaders()),
+    Accept: "application/json",
+  };
   if (body !== undefined && !multipart)
     headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
