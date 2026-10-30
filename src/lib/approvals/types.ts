@@ -129,7 +129,6 @@ export type ApprovalDetail = {
   onBehalf: boolean;
   canDecide: boolean;
   canApproveOnBehalf: boolean;
-  canSeeActivities: boolean;
   submissionCode: string | null;
   timesheetStatus: TimesheetStatus;
   currentSeq: number | null;

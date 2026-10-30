@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-
+import { evidenceDownload } from "@/lib/api/download";
 import { requireUser } from "@/lib/auth/session";
 import { fetchTimesheetEvidenceLink } from "@/lib/approvals/queries";
 
@@ -12,14 +11,10 @@ export async function GET(
   await requireUser();
 
   const { approvalId, attachmentId } = await params;
-  const url = await fetchTimesheetEvidenceLink(
+  const evidence = await fetchTimesheetEvidenceLink(
     Number(approvalId),
     Number(attachmentId),
   );
 
-  if (!url) {
-    return new Response("Not found", { status: 404 });
-  }
-
-  redirect(url);
+  return evidenceDownload(evidence);
 }

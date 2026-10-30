@@ -155,8 +155,7 @@ export function TimesheetEvidence({
                     ? `/timesheets/${timesheetId}/evidence/${attachment.id}`
                     : undefined
                 }
-                target="_blank"
-                rel="noreferrer"
+                download
                 className="flex min-w-0 items-center gap-2 text-sm text-brand-600 hover:text-brand-700"
               >
                 <DownloadIcon className="size-4 shrink-0" />
