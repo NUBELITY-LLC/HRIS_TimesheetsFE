@@ -45,3 +45,43 @@ export async function proxyDownload(
 
   return new Response(upstream.body, { status: 200, headers });
 }
+
+export type EvidenceFile = { url: string; fileName: string; mimeType: string };
+
+function attachmentDisposition(fileName: string): string {
+  const fallback = fileName.replace(/[^\x20-\x7E]|["\\]/g, "_");
+  const encoded = encodeURIComponent(fileName).replace(
+    /['()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
+
+export async function evidenceDownload(
+  evidence: EvidenceFile | null,
+  { timeoutMs = 30_000 }: { timeoutMs?: number } = {},
+): Promise<Response> {
+  if (!evidence) return new Response("Not found", { status: 404 });
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(evidence.url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch {
+    return new Response("Unavailable", { status: 502 });
+  }
+
+  if (!upstream.ok) return new Response("Not found", { status: 404 });
+
+  return new Response(upstream.body, {
+    status: 200,
+    headers: {
+      "Content-Type": evidence.mimeType,
+      "Content-Disposition": attachmentDisposition(evidence.fileName),
+      "Cache-Control": "no-store",
+    },
+  });
+}

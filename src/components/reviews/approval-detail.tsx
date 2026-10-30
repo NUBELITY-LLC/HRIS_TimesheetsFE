@@ -18,6 +18,7 @@ import { PayBreakdown } from "@/components/payroll/pay-breakdown";
 import { getDictionary, getLocale } from "@/i18n/server";
 import type { Locale } from "@/i18n/config";
 import type { ApprovalDetail } from "@/lib/approvals/types";
+import { getCurrentUser } from "@/lib/auth/session";
 import { formatMoney } from "@/lib/format/money";
 import {
   approvalChipState,
@@ -35,6 +36,7 @@ import {
 } from "@/lib/timesheets/week";
 import { ExportLinks } from "@/components/timesheets/export-links";
 import { formatHourlyRates, hourlyRatesOf } from "@/lib/payroll/rate-spans";
+import { ROLE_FINANCE } from "@/lib/users/roles";
 
 const CHIP_STYLES: Record<string, string> = {
   approved: "border-success-200 bg-success-50 text-success-800",
@@ -58,6 +60,8 @@ export async function ApprovalDetailView({
 }) {
   const t = await getDictionary();
   const locale = await getLocale();
+  const user = await getCurrentUser();
+  const isFinance = user?.role.code === ROLE_FINANCE;
 
   const currentStep = approval.steps.find(
     (step) => step.seq === approval.currentSeq,
@@ -234,81 +238,7 @@ export async function ApprovalDetailView({
             <PayBreakdown pay={approval.pay} currency={approval.currency} />
           ) : null}
 
-          {approval.canSeeActivities ? (
-            <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
-              <h2 className="border-b border-line bg-surface-muted px-5 py-3.5 text-sm font-semibold text-ink">
-                {t.reviews.detail.dailyTitle}
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-line text-left">
-                      <th className="px-5 py-3 font-semibold text-ink">
-                        {t.reviews.columns.day}
-                      </th>
-                      <th className="px-5 py-3 font-semibold text-ink">
-                        {t.reviews.columns.activity}
-                      </th>
-                      <th className="px-5 py-3 text-right font-semibold text-ink">
-                        {t.reviews.columns.hours}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line">
-                    {approval.days.map((day) => (
-                      <tr key={day.date} className="align-top">
-                        <td className="px-5 py-3 font-medium whitespace-nowrap text-ink">
-                          {dayLabel(day.date, locale)}
-                        </td>
-                        <td className="px-5 py-3 text-ink-soft">
-                          {day.activities.length === 0 ? (
-                            <span className="text-ink-muted">
-                              {t.reviews.noActivity}
-                            </span>
-                          ) : (
-                            <ul className="space-y-1">
-                              {day.activities.map((activity) => (
-                                <li
-                                  key={activity.lineNo}
-                                  className="flex gap-2"
-                                >
-                                  <span className="text-ink-muted tabular-nums">
-                                    {formatMinutes(activity.minutes)}
-                                  </span>
-                                  <span>{activity.activity}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                          {day.note ? (
-                            <p className="mt-1 text-xs text-ink-muted">
-                              {day.note}
-                            </p>
-                          ) : null}
-                        </td>
-                        <td className="px-5 py-3 text-right font-semibold text-ink tabular-nums">
-                          {formatMinutes(day.minutes)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-line bg-surface-muted">
-                      <td
-                        colSpan={2}
-                        className="px-5 py-3 text-right text-sm font-semibold text-ink"
-                      >
-                        {t.reviews.totalHours}
-                      </td>
-                      <td className="px-5 py-3 text-right text-sm font-semibold text-brand-600 tabular-nums">
-                        {formatMinutes(approval.totalMinutes)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </section>
-          ) : (
+          {isFinance ? (
             <section className="overflow-hidden rounded-xl border border-line bg-navy-900 text-white shadow-sm">
               <div className="flex flex-wrap items-end justify-between gap-6 px-6 py-5">
                 <div>
@@ -343,7 +273,81 @@ export async function ApprovalDetailView({
                 </dl>
               </div>
             </section>
-          )}
+          ) : null}
+
+          <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+            <h2 className="border-b border-line bg-surface-muted px-5 py-3.5 text-sm font-semibold text-ink">
+              {t.reviews.detail.dailyTitle}
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-line text-left">
+                    <th className="px-5 py-3 font-semibold text-ink">
+                      {t.reviews.columns.day}
+                    </th>
+                    <th className="px-5 py-3 font-semibold text-ink">
+                      {t.reviews.columns.activity}
+                    </th>
+                    <th className="px-5 py-3 text-right font-semibold text-ink">
+                      {t.reviews.columns.hours}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {approval.days.map((day) => (
+                    <tr key={day.date} className="align-top">
+                      <td className="px-5 py-3 font-medium whitespace-nowrap text-ink">
+                        {dayLabel(day.date, locale)}
+                      </td>
+                      <td className="px-5 py-3 text-ink-soft">
+                        {day.activities.length === 0 ? (
+                          <span className="text-ink-muted">
+                            {t.reviews.noActivity}
+                          </span>
+                        ) : (
+                          <ul className="space-y-1">
+                            {day.activities.map((activity) => (
+                              <li
+                                key={activity.lineNo}
+                                className="flex gap-2"
+                              >
+                                <span className="text-ink-muted tabular-nums">
+                                  {formatMinutes(activity.minutes)}
+                                </span>
+                                <span>{activity.activity}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {day.note ? (
+                          <p className="mt-1 text-xs text-ink-muted">
+                            {day.note}
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className="px-5 py-3 text-right font-semibold text-ink tabular-nums">
+                        {formatMinutes(day.minutes)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-line bg-surface-muted">
+                    <td
+                      colSpan={2}
+                      className="px-5 py-3 text-right text-sm font-semibold text-ink"
+                    >
+                      {t.reviews.totalHours}
+                    </td>
+                    <td className="px-5 py-3 text-right text-sm font-semibold text-brand-600 tabular-nums">
+                      {formatMinutes(approval.totalMinutes)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
         </div>
 
         <div className="space-y-5">
@@ -397,30 +401,28 @@ export async function ApprovalDetailView({
             )}
           </section>
 
-          {approval.canSeeActivities ? (
-            <section className="rounded-xl border border-line bg-surface p-5 shadow-sm">
-              <h2 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
-                <PaperclipIcon className="size-4" />
-                {t.reviews.detail.consultantEvidenceTitle}
-              </h2>
-              {approval.timesheetAttachments.length === 0 ? (
-                <p className="mt-2 text-sm text-ink-muted">
-                  {t.reviews.detail.consultantEvidenceEmpty}
-                </p>
-              ) : (
-                <ul className="mt-3 space-y-2">
-                  {approval.timesheetAttachments.map((attachment) => (
-                    <li key={attachment.id}>
-                      <EvidenceLink
-                        href={`/evidence/${approval.approvalId}/timesheet/${attachment.id}`}
-                        attachment={attachment}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ) : null}
+          <section className="rounded-xl border border-line bg-surface p-5 shadow-sm">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+              <PaperclipIcon className="size-4" />
+              {t.reviews.detail.consultantEvidenceTitle}
+            </h2>
+            {approval.timesheetAttachments.length === 0 ? (
+              <p className="mt-2 text-sm text-ink-muted">
+                {t.reviews.detail.consultantEvidenceEmpty}
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {approval.timesheetAttachments.map((attachment) => (
+                  <li key={attachment.id}>
+                    <EvidenceLink
+                      href={`/evidence/${approval.approvalId}/timesheet/${attachment.id}`}
+                      attachment={attachment}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       </div>
     </div>

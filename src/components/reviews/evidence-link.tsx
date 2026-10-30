@@ -17,8 +17,7 @@ export async function EvidenceLink({
   return (
     <a
       href={href}
-      target="_blank"
-      rel="noreferrer"
+      download
       className="flex items-start gap-2 rounded-lg border border-line p-2.5 transition-colors hover:bg-surface-muted"
     >
       <DownloadIcon className="mt-0.5 size-4 shrink-0 text-ink-muted" />
