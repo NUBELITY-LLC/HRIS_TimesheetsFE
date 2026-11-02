@@ -2,6 +2,7 @@ import "server-only";
 
 import { apiRequest } from "@/lib/api/client";
 import { fetchAllPages } from "@/lib/api/all-pages";
+import type { EvidenceFile } from "@/lib/api/download";
 import type { Pagination } from "@/lib/api/types";
 import { getSessionToken } from "@/lib/auth/session";
 import type {
@@ -122,15 +123,14 @@ export async function fetchApprovalDetail(
 export async function fetchEvidenceLink(
   approvalId: number,
   attachmentId: number,
-): Promise<string | null> {
+): Promise<EvidenceFile | null> {
   const token = await getSessionToken();
-  const result = await apiRequest<{
-    evidence: { url: string; fileName: string; mimeType: string };
-  }>(`/approvals/${approvalId}/attachments/${attachmentId}`, { token });
+  const result = await apiRequest<{ evidence: EvidenceFile }>(
+    `/approvals/${approvalId}/attachments/${attachmentId}`,
+    { token },
+  );
 
-  if (!result.ok) return null;
-
-  return result.data.evidence.url;
+  return result.ok ? result.data.evidence : null;
 }
 
 export type DecisionHistoryResult =
@@ -195,12 +195,12 @@ export async function fetchAllDecisionHistory(): Promise<
 export async function fetchTimesheetEvidenceLink(
   approvalId: number,
   attachmentId: number,
-): Promise<string | null> {
+): Promise<EvidenceFile | null> {
   const token = await getSessionToken();
-  const result = await apiRequest<{ evidence: { url: string } }>(
+  const result = await apiRequest<{ evidence: EvidenceFile }>(
     `/approvals/${approvalId}/timesheet-attachments/${attachmentId}`,
     { token },
   );
 
-  return result.ok ? result.data.evidence.url : null;
+  return result.ok ? result.data.evidence : null;
 }

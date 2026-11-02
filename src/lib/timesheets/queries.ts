@@ -2,6 +2,7 @@ import "server-only";
 
 import { apiRequest } from "@/lib/api/client";
 import { fetchAllPages } from "@/lib/api/all-pages";
+import type { EvidenceFile } from "@/lib/api/download";
 import type { Pagination } from "@/lib/api/types";
 import { getSessionToken } from "@/lib/auth/session";
 import type {
@@ -218,12 +219,12 @@ export async function fetchAllTimesheetHistory(
 export async function fetchOwnEvidenceLink(
   timesheetId: number,
   attachmentId: number,
-): Promise<string | null> {
+): Promise<EvidenceFile | null> {
   const token = await getSessionToken();
-  const result = await apiRequest<{ evidence: { url: string } }>(
+  const result = await apiRequest<{ evidence: EvidenceFile }>(
     `/timesheets/${timesheetId}/attachments/${attachmentId}`,
     { token },
   );
 
-  return result.ok ? result.data.evidence.url : null;
+  return result.ok ? result.data.evidence : null;
 }
