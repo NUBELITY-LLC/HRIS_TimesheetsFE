@@ -1,6 +1,6 @@
 export type AccountLinkPurpose = "INVITE" | "RESET";
 
-export type SetPasswordField = "password" | "confirmPassword";
+export type SetPasswordField = "password" | "confirmPassword" | "acceptPolicies";
 
 export type SetPasswordFormState = {
   message: string | null;

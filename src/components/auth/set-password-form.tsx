@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import Link from "next/link";
+import { useActionState, useId } from "react";
 
 import { PasswordField } from "@/components/ui/password-field";
 import { AlertIcon, SpinnerIcon } from "@/components/icons";
@@ -27,6 +28,8 @@ export function SetPasswordForm({
     completeAccountLinkAction,
     INITIAL_SET_PASSWORD_STATE,
   );
+  const policiesId = useId();
+  const policiesError = state.fieldErrors.acceptPolicies;
 
   return (
     <form onSubmit={submitKeepingValues(formAction)} className="space-y-5" noValidate>
@@ -66,6 +69,44 @@ export function SetPasswordForm({
         error={state.fieldErrors.confirmPassword}
         disabled={isPending}
       />
+
+      {purpose === "INVITE" ? (
+        <div className="space-y-1.5">
+          <div
+            className={`flex items-start gap-3 rounded-lg border p-3.5 ${
+              policiesError ? "border-danger-200 bg-danger-50" : "border-line"
+            }`}
+          >
+            <input
+              id={policiesId}
+              name="acceptPolicies"
+              type="checkbox"
+              required
+              disabled={isPending}
+              aria-invalid={Boolean(policiesError)}
+              aria-describedby={policiesError ? `${policiesId}-error` : undefined}
+              className="mt-0.5 size-4 shrink-0 rounded border-line text-brand-600"
+            />
+            <label htmlFor={policiesId} className="text-sm text-ink-soft">
+              {t.accountLink.policies.prefix}
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener"
+                className="font-medium text-brand-600 underline-offset-2 hover:text-brand-700 hover:underline"
+              >
+                {t.accountLink.policies.link}
+              </Link>
+              {t.accountLink.policies.suffix}
+            </label>
+          </div>
+          {policiesError ? (
+            <p id={`${policiesId}-error`} className="text-xs text-danger-600">
+              {policiesError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <button
         type="submit"

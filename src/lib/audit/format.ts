@@ -17,6 +17,7 @@ const TONES: Record<string, AuditTone> = {
   REOPENED: "success",
   PERMISSION_GRANTED: "success",
   INVITE_ACCEPTED: "success",
+  POLICY_ACCEPTED: "success",
   EMAIL_SENT: "success",
   EVIDENCE_UPLOADED: "success",
   SIGNED_IN: "success",
