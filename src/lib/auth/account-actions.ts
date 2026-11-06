@@ -7,6 +7,7 @@ import { translateFieldMessage } from "@/lib/api/messages";
 import { readValidationIssues, type LoginResult } from "@/lib/api/types";
 import { isLocale } from "@/i18n/config";
 import { getDictionary, storeLocale } from "@/i18n/server";
+import { PRIVACY_POLICY_VERSION } from "@/lib/legal/policy-version";
 import { createSession } from "./session";
 import { passwordPolicyError } from "./password-policy";
 import {
@@ -31,6 +32,7 @@ export async function completeAccountLinkAction(
   const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  const acceptPolicies = formData.get("acceptPolicies") === "on";
 
   const fieldErrors: SetPasswordFormState["fieldErrors"] = {};
   const policyError = passwordPolicyError(password, t);
@@ -40,13 +42,23 @@ export async function completeAccountLinkAction(
     fieldErrors.confirmPassword = t.accountLink.mismatch;
   }
 
+  if (purpose === "INVITE" && !acceptPolicies) {
+    fieldErrors.acceptPolicies = t.accountLink.policies.required;
+  }
+
   if (Object.keys(fieldErrors).length > 0) {
     return { message: t.accountLink.reviewFields, code: "BAD_REQUEST", fieldErrors };
   }
 
   const result = await apiRequest<LoginResult>(
     ACCOUNT_LINK_ENDPOINTS[purpose].complete(token),
-    { method: "POST", body: { password } },
+    {
+      method: "POST",
+      body:
+        purpose === "INVITE"
+          ? { password, acceptPolicies, policyVersion: PRIVACY_POLICY_VERSION }
+          : { password },
+    },
   );
 
   if (!result.ok) {
@@ -57,11 +69,21 @@ export async function completeAccountLinkAction(
       return { message: copy.invalidBody, code, fieldErrors: {} };
     }
 
+    if (code === "POLICY_OUTDATED") {
+      return {
+        message: null,
+        code,
+        fieldErrors: { acceptPolicies: t.accountLink.policies.outdated },
+      };
+    }
+
     if (code === "BAD_REQUEST") {
       const issues: SetPasswordFormState["fieldErrors"] = {};
       for (const issue of readValidationIssues(details)) {
         if (issue.path === "password") {
           issues.password = translateFieldMessage(issue.message, t);
+        } else if (issue.path === "acceptPolicies") {
+          issues.acceptPolicies = t.accountLink.policies.required;
         }
       }
       return { message: t.accountLink.reviewFields, code, fieldErrors: issues };

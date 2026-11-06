@@ -104,6 +104,9 @@ function detailItems(
     ]);
   }
 
+  const policyVersion = textValue(meta.policyVersion);
+  if (policyVersion) items.push([e.policyVersion, policyVersion]);
+
   const expiresAt = textValue(meta.expiresAt);
   if (expiresAt && entry.category !== "WORKFLOW") {
     items.push([

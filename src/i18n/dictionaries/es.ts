@@ -165,6 +165,14 @@ export const es = {
     newLabel: "Contraseña",
     confirmLabel: "Confirma la contraseña",
     mismatch: "Las dos contraseñas deben coincidir.",
+    policies: {
+      prefix: "He leído y acepto la ",
+      link: "Política de privacidad y seguridad",
+      suffix: " de Nubelity.",
+      required: "Para activar tu cuenta debes aceptar la política de privacidad y seguridad.",
+      outdated:
+        "La política de privacidad y seguridad se actualizó. Recarga la página, revísala y vuelve a aceptarla.",
+    },
     reviewFields: "Revisa los campos marcados.",
     expires: (date: string) => `Este enlace vence el ${date}.`,
     backToLogin: "Ir a iniciar sesión",
@@ -175,6 +183,12 @@ export const es = {
         "No pudimos contactar al servidor. Inténtalo de nuevo en un momento.",
       fallback: "No se pudo guardar la contraseña. Inténtalo de nuevo.",
     },
+  },
+  privacyPolicy: {
+    title: "Política de privacidad y seguridad",
+    updated: (date: string) => `Última actualización: ${date}`,
+    languageNote: "Este documento está disponible en inglés." as string | null,
+    backToTop: "Volver al inicio",
   },
   dashboard: {
     eyebrow: "Resumen",
@@ -1633,6 +1647,7 @@ export const es = {
       amount: "Monto",
       lockedUntil: "Bloqueada hasta",
       validUntil: "Vigente hasta",
+      policyVersion: "Versión de la política",
       ip: "Dirección IP",
       browser: "Navegador",
       operation: "Folio de operación",
@@ -1723,6 +1738,7 @@ export const es = {
       PASSWORD_CHANGED: "Cambio de contraseña",
       INVITE_SENT: "Invitación enviada",
       INVITE_ACCEPTED: "Invitación aceptada",
+      POLICY_ACCEPTED: "Aceptación de la política de privacidad y seguridad",
       RESET_REQUESTED: "Solicitud para restablecer contraseña",
       PASSWORD_RESET: "Contraseña restablecida",
     },

@@ -166,6 +166,14 @@ export const en: Dictionary = {
     newLabel: "Password",
     confirmLabel: "Confirm password",
     mismatch: "Both passwords must match.",
+    policies: {
+      prefix: "I have read and accept Nubelity's ",
+      link: "Privacy and Security Policy",
+      suffix: ".",
+      required: "You must accept the privacy and security policy to activate your account.",
+      outdated:
+        "The privacy and security policy has been updated. Reload the page, review it and accept it again.",
+    },
     reviewFields: "Please review the highlighted fields.",
     expires: (date: string) => `This link expires on ${date}.`,
     backToLogin: "Go to sign in",
@@ -176,6 +184,12 @@ export const en: Dictionary = {
         "We could not reach the server. Please try again in a moment.",
       fallback: "The password could not be saved. Please try again.",
     },
+  },
+  privacyPolicy: {
+    title: "Privacy and Security Policy",
+    updated: (date: string) => `Last updated: ${date}`,
+    languageNote: null,
+    backToTop: "Back to top",
   },
   dashboard: {
     eyebrow: "Overview",
@@ -1623,6 +1637,7 @@ export const en: Dictionary = {
       amount: "Amount",
       lockedUntil: "Locked until",
       validUntil: "Valid until",
+      policyVersion: "Policy version",
       ip: "IP address",
       browser: "Browser",
       operation: "Operation number",
@@ -1713,6 +1728,7 @@ export const en: Dictionary = {
       PASSWORD_CHANGED: "Password changed",
       INVITE_SENT: "Invitation sent",
       INVITE_ACCEPTED: "Invitation accepted",
+      POLICY_ACCEPTED: "Privacy and security policy accepted",
       RESET_REQUESTED: "Password reset requested",
       PASSWORD_RESET: "Password reset",
     },
