@@ -4,6 +4,7 @@ export const NOTIFICATION_KINDS = [
   "REJECTED",
   "REMINDER",
   "TASK_ASSIGNED",
+  "FEEDBACK_RECEIVED",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];

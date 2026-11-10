@@ -104,6 +104,18 @@ function detailItems(
     ]);
   }
 
+  const exportKind = textValue(meta.export);
+  if (exportKind) items.push([e.exportKind, e.exportKinds[exportKind] ?? exportKind]);
+
+  const operation = textValue(meta.operation);
+  if (operation) items.push([e.bulkOperation, e.operations[operation] ?? operation]);
+
+  const records = numberValue(meta.records);
+  if (records !== null) items.push([e.records, records.toLocaleString(locale === "en" ? "en-US" : "es-MX")]);
+
+  const format = textValue(meta.format);
+  if (format) items.push([e.format, format.toUpperCase()]);
+
   const policyVersion = textValue(meta.policyVersion);
   if (policyVersion) items.push([e.policyVersion, policyVersion]);
 

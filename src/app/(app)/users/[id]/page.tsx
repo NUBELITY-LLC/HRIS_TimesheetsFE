@@ -17,6 +17,7 @@ import {
   canManageUsers,
   manageableRoles,
   roleName,
+  selfEditablePermissionCodes,
 } from "@/lib/users/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -52,6 +53,7 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
   }
 
   const isSelf = user.id === actor.id;
+  const selfEditable = isSelf ? selfEditablePermissionCodes(actor) : [];
   const roles = manageableRoles(actor.role.code, t);
   const showProjects = canHaveProject(user.role.code);
   const assignments = showProjects ? await fetchUserProjects(user.id) : [];
@@ -91,7 +93,8 @@ export default async function EditUserPage({ params }: PageProps<"/users/[id]">)
             userId={user.id}
             roles={roles}
             canChangeRole={!isSelf && canGrantRole(actor.role.code, user.role.code)}
-            canChangePermissions={!isSelf}
+            canChangePermissions={!isSelf || selfEditable.length > 0}
+            editablePermissions={isSelf ? selfEditable : undefined}
             canChangeStatus={!isSelf}
             defaultValues={{
               fullName: user.fullName,

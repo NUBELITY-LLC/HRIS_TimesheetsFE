@@ -7,6 +7,8 @@ export const AUDIT_CATEGORIES = [
   "USERS",
   "ACCESS",
   "PAYROLL",
+  "FEEDBACK",
+  "DATA",
 ] as const;
 
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
@@ -65,6 +67,14 @@ export const AUDIT_ACTION_GROUPS = {
     "PERMISSION_GRANTED",
     "PERMISSION_REVOKED",
   ],
+  feedback: [
+    "FEEDBACK_STATUS_CHANGED",
+    "FEEDBACK_NOTE_ADDED",
+    "FEEDBACK_REPLY_SENT",
+    "FEEDBACK_VIEWED",
+    "FEEDBACK_EVIDENCE_DOWNLOADED",
+  ],
+  data: ["DATA_EXPORTED", "BULK_CHANGE"],
 } as const;
 
 export type AuditActionGroup = keyof typeof AUDIT_ACTION_GROUPS;
