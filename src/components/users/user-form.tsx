@@ -89,6 +89,7 @@ type UserFormProps = {
   userId?: number;
   canChangeRole?: boolean;
   canChangePermissions?: boolean;
+  editablePermissions?: string[];
   canChangeStatus?: boolean;
 };
 
@@ -99,6 +100,7 @@ type PermissionFieldsProps = {
   initialPermissions: string[];
   error?: string;
   canChange: boolean;
+  editableCodes?: string[];
   isPending: boolean;
 };
 
@@ -109,6 +111,7 @@ function PermissionFields({
   initialPermissions,
   error,
   canChange,
+  editableCodes,
   isPending,
 }: PermissionFieldsProps) {
   const t = useDictionary();
@@ -148,9 +151,11 @@ function PermissionFields({
 
   const hint = fixed
     ? t.users.form.permissionsFixedHint
-    : canChange
-      ? t.users.form.permissionsHint
-      : t.users.form.permissionsLockedHint;
+    : canChange && editableCodes
+      ? t.users.form.permissionsSelfHint
+      : canChange
+        ? t.users.form.permissionsHint
+        : t.users.form.permissionsLockedHint;
 
   return (
     <fieldset className="space-y-3 rounded-lg border border-line p-4">
@@ -172,7 +177,10 @@ function PermissionFields({
         {PERMISSION_CODES.map((code) => {
           const checked = permissions.includes(code);
           const disabled =
-            isPending || !editable || !grantable.includes(code);
+            isPending ||
+            !editable ||
+            !grantable.includes(code) ||
+            (editableCodes !== undefined && !editableCodes.includes(code));
 
           return (
             <li key={code}>
@@ -216,6 +224,7 @@ type RoleFieldsProps = {
   projects: ProjectView[];
   canChangeRole: boolean;
   canChangePermissions: boolean;
+  editablePermissions?: string[];
   isPending: boolean;
   isCreate: boolean;
 };
@@ -229,6 +238,7 @@ function RoleFields({
   projects,
   canChangeRole,
   canChangePermissions,
+  editablePermissions,
   isPending,
   isCreate,
 }: RoleFieldsProps) {
@@ -314,6 +324,7 @@ function RoleFields({
         initialPermissions={values.permissions}
         error={fieldErrors.permissions}
         canChange={canChangePermissions}
+        editableCodes={editablePermissions}
         isPending={isPending}
       />
 
@@ -488,6 +499,7 @@ export function UserForm({
   userId,
   canChangeRole = true,
   canChangePermissions = true,
+  editablePermissions,
   canChangeStatus = true,
 }: UserFormProps) {
   const t = useDictionary();
@@ -646,6 +658,7 @@ export function UserForm({
           projects={projects}
           canChangeRole={canChangeRole}
           canChangePermissions={canChangePermissions}
+          editablePermissions={editablePermissions}
           isPending={isPending}
           isCreate={isCreate}
         />

@@ -13,6 +13,7 @@ export type ApiRequestOptions = {
   body?: unknown;
   token?: string | null;
   timeoutMs?: number;
+  anonymous?: boolean;
 };
 
 export const CLIENT_ERROR_CODES = {
@@ -41,14 +42,14 @@ export async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {},
 ): Promise<ApiResult<T>> {
-  const { method = "GET", body, token } = options;
+  const { method = "GET", body, token, anonymous = false } = options;
 
   const multipart = body instanceof FormData;
   const timeoutMs =
     options.timeoutMs ?? (multipart ? UPLOAD_TIMEOUT_MS : DEFAULT_TIMEOUT_MS);
 
   const headers: Record<string, string> = {
-    ...(await clientContextHeaders()),
+    ...(anonymous ? {} : await clientContextHeaders()),
     Accept: "application/json",
   };
   if (body !== undefined && !multipart)

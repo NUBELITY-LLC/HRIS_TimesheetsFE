@@ -76,6 +76,7 @@ export const PERMISSION_CATALOG_MANAGE = "CATALOG_MANAGE";
 export const PERMISSION_USERS_MANAGE = "USERS_MANAGE";
 export const PERMISSION_REPORTS_VIEW = "REPORTS_VIEW";
 export const PERMISSION_PAYROLL_MANAGE = "PAYROLL_MANAGE";
+export const PERMISSION_FEEDBACK_REVIEW = "FEEDBACK_REVIEW";
 
 export type PermissionCode =
   | "TIMESHEETS_SUBMIT"
@@ -83,7 +84,8 @@ export type PermissionCode =
   | "CATALOG_MANAGE"
   | "USERS_MANAGE"
   | "REPORTS_VIEW"
-  | "PAYROLL_MANAGE";
+  | "PAYROLL_MANAGE"
+  | "FEEDBACK_REVIEW";
 
 export const PERMISSION_CODES: PermissionCode[] = [
   PERMISSION_TIMESHEETS_SUBMIT,
@@ -92,6 +94,7 @@ export const PERMISSION_CODES: PermissionCode[] = [
   PERMISSION_USERS_MANAGE,
   PERMISSION_REPORTS_VIEW,
   PERMISSION_PAYROLL_MANAGE,
+  PERMISSION_FEEDBACK_REVIEW,
 ] as PermissionCode[];
 
 const DEFAULT_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
@@ -101,6 +104,7 @@ const DEFAULT_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
     "USERS_MANAGE",
     "REPORTS_VIEW",
     "PAYROLL_MANAGE",
+    "FEEDBACK_REVIEW",
   ],
   MANAGER: [
     "TIMESHEETS_SUBMIT",
@@ -159,8 +163,28 @@ export function grantablePermissionCodes(
     (code) =>
       hasPermission(actor, code) ||
       defaults.includes(code) ||
-      current.includes(code),
+      current.includes(code) ||
+      (actor.role.code === ROLE_MANAGER && code === PERMISSION_FEEDBACK_REVIEW),
   );
+}
+
+export function selfEditablePermissionCodes(actor: Viewer): PermissionCode[] {
+  return actor.role.code === ROLE_MANAGER ? [PERMISSION_FEEDBACK_REVIEW] : [];
+}
+
+const FEEDBACK_SUBMITTER_ROLES: string[] = [
+  ROLE_CONSULTANT,
+  ROLE_EMPLOYEE,
+  ROLE_MANAGER,
+  ROLE_FINANCE,
+];
+
+export function canSubmitFeedback(actor: Viewer): boolean {
+  return FEEDBACK_SUBMITTER_ROLES.includes(actor.role.code);
+}
+
+export function canReviewFeedback(actor: Viewer): boolean {
+  return hasPermission(actor, PERMISSION_FEEDBACK_REVIEW);
 }
 
 export function canDeleteUsers(actor: Viewer): boolean {

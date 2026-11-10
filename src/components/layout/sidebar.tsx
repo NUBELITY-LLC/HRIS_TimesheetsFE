@@ -15,6 +15,8 @@ import {
   HistoryIcon,
   LockIcon,
   LogoutIcon,
+  MailIcon,
+  SendIcon,
   SettingsIcon,
   UsersIcon,
 } from "@/components/icons";
@@ -24,7 +26,9 @@ import {
   canManageCatalog,
   canManagePayroll,
   canManageUsers,
+  canReviewFeedback,
   canReviewTimesheets,
+  canSubmitFeedback,
   canSubmitTimesheets,
   canViewAudit,
   canViewHoursReports,
@@ -46,6 +50,8 @@ type NavItem = {
     | "payrollRules"
     | "users"
     | "audit"
+    | "feedback"
+    | "feedbackInbox"
     | "account";
   href: string;
   icon: typeof DashboardIcon;
@@ -145,6 +151,20 @@ const NAV_ITEMS: NavItem[] = [
     available: true,
     visibleFor: canViewAudit,
   },
+  {
+    key: "feedback",
+    href: "/feedback",
+    icon: SendIcon,
+    available: true,
+    visibleFor: canSubmitFeedback,
+  },
+  {
+    key: "feedbackInbox",
+    href: "/feedback/inbox",
+    icon: MailIcon,
+    available: true,
+    visibleFor: canReviewFeedback,
+  },
   { key: "account", href: "/settings", icon: SettingsIcon, available: true },
 ];
 
@@ -157,7 +177,13 @@ function initials(fullName: string): string {
     .join("");
 }
 
-export function Sidebar({ user }: { user: AuthenticatedUser }) {
+export function Sidebar({
+  user,
+  feedbackCount = 0,
+}: {
+  user: AuthenticatedUser;
+  feedbackCount?: number;
+}) {
   const pathname = usePathname();
   const t = useDictionary();
 
@@ -176,11 +202,23 @@ export function Sidebar({ user }: { user: AuthenticatedUser }) {
           {navItems.map(({ key, href, icon: Icon, available }) => {
             const label = t.nav[key];
             const isActive =
-              pathname === href || pathname.startsWith(`${href}/`);
+              pathname === href ||
+              (pathname.startsWith(`${href}/`) &&
+                !navItems.some(
+                  (other) =>
+                    other.href.length > href.length &&
+                    (pathname === other.href || pathname.startsWith(`${other.href}/`)),
+                ));
+            const badge = key === "feedbackInbox" && feedbackCount > 0 ? feedbackCount : null;
             const content = (
               <>
                 <Icon className="size-[18px]" />
                 {label}
+                {badge ? (
+                  <span className="ml-auto min-w-5 rounded-full bg-brand-600 px-1.5 py-0.5 text-center text-[11px] font-semibold text-white tabular-nums">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                ) : null}
               </>
             );
 

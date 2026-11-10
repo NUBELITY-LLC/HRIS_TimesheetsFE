@@ -38,6 +38,8 @@ const TONES: Record<string, AuditTone> = {
   SIGN_IN_FAILED: "warn",
   PASSWORD_CHANGED: "warn",
   PASSWORD_RESET: "warn",
+  DATA_EXPORTED: "warn",
+  BULK_CHANGE: "warn",
 };
 
 export function actionTone(action: string): AuditTone {
