@@ -47,6 +47,10 @@ function ClientFields({
   const [userId, setUserId] = useState(values.userId);
   const [clientName, setClientName] = useState(values.clientName);
   const [contactEmail, setContactEmail] = useState(values.contactEmail);
+  const [companyId, setCompanyId] = useState(values.companyId);
+  const allowedDomains =
+    companies.find((company) => String(company.id) === companyId)
+      ?.allowedEmailDomains ?? [];
 
   const ids = {
     companyId: useId(),
@@ -80,7 +84,8 @@ function ClientFields({
         <select
           id={ids.companyId}
           name="companyId"
-          defaultValue={values.companyId}
+          value={companyId}
+          onChange={(event) => setCompanyId(event.target.value)}
           className={inputClass(Boolean(fieldErrors.companyId))}
         >
           <option value="">{t.catalog.form.companyPlaceholder}</option>
@@ -177,6 +182,10 @@ function ClientFields({
         />
         {fieldErrors.contactEmail ? (
           <p className="text-xs text-danger-600">{fieldErrors.contactEmail}</p>
+        ) : allowedDomains.length ? (
+          <p className="text-xs text-ink-muted">
+            {t.catalog.form.contactEmailDomainsHint(allowedDomains)}
+          </p>
         ) : !linkedToUser ? (
           <p className="text-xs text-ink-muted">
             {t.catalog.form.contactEmailHint}

@@ -815,6 +815,12 @@ export const es = {
       tradeNamePlaceholder: "Como se conoce a la empresa",
       rfc: "RFC",
       rfcHint: "Opcional. 12 caracteres para persona moral, 13 para física.",
+      allowedEmailDomains: "Dominios de correo permitidos",
+      allowedEmailDomainsPlaceholder: "empresa.com",
+      allowedEmailDomainsHint:
+        "Opcional. Uno por línea.",
+      contactEmailDomainsHint: (domains: string[]) =>
+        `Solo correos de ${domains.join(", ")}.`,
       companyLabel: "Empresa",
       companyPlaceholder: "Selecciona una empresa",
       save: "Guardar cambios",
@@ -1072,6 +1078,19 @@ export const es = {
       tradeNameRequired: "Escribe el nombre comercial.",
       rfcLength:
         "El RFC debe tener 12 caracteres (persona moral) o 13 (persona física).",
+      emailDomainInvalid: (domains: string[]) =>
+        domains.length === 1
+          ? `"${domains[0]}" no es un dominio válido. Usa un formato como empresa.com.`
+          : `Estos dominios no son válidos: ${domains.join(", ")}. Usa un formato como empresa.com.`,
+      emailDomainsMax: (max: number) => `Puedes registrar hasta ${max} dominios.`,
+      emailDomainNotAllowed: (domains: string[]) =>
+        domains.length === 1
+          ? `El correo debe ser del dominio ${domains[0]}.`
+          : `El correo debe ser de alguno de estos dominios: ${domains.join(", ")}.`,
+      consultantsOutsideDomains: (users: string[]) =>
+        `Estos colaboradores están asignados a proyectos de esta empresa y tienen un correo fuera de esos dominios: ${users.join(", ")}. Actualiza su correo o da de baja su asignación antes de guardar.`,
+      clientsOutsideDomains: (clients: string[]) =>
+        `Estos directores de proyecto tienen un correo fuera de esos dominios: ${clients.join(", ")}. Actualiza su correo o desactívalos antes de guardar.`,
       companyRequired: "Selecciona una empresa.",
       personRequired: "Selecciona al colaborador.",
       assignmentStart: "Indica la fecha de inicio de la asignación.",

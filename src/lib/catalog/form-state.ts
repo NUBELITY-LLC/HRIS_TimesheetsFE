@@ -5,10 +5,12 @@ export type CompanyFormValues = {
   legalName: string;
   tradeName: string;
   rfc: string;
+  allowedEmailDomains: string;
   isActive: boolean;
 };
 
-export type CompanyFormField = "legalName" | "tradeName" | "rfc";
+export type CompanyFormField =
+  "legalName" | "tradeName" | "rfc" | "allowedEmailDomains";
 
 export type CompanyFormState = {
   status: "idle" | "success" | "error";
@@ -22,6 +24,7 @@ export const EMPTY_COMPANY_FORM_VALUES: CompanyFormValues = {
   legalName: "",
   tradeName: "",
   rfc: "",
+  allowedEmailDomains: "",
   isActive: true,
 };
 
