@@ -8,6 +8,7 @@ export type CompanyView = {
   tradeName: string;
   rfc: string | null;
   isActive: boolean;
+  allowedEmailDomains: string[];
 };
 
 export type ClientView = {

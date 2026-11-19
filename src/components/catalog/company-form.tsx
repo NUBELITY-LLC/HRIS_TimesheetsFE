@@ -47,6 +47,7 @@ export function CompanyForm({
     legalName: useId(),
     tradeName: useId(),
     rfc: useId(),
+    allowedEmailDomains: useId(),
     isActive: useId(),
   };
   const { fieldErrors, values } = state;
@@ -163,6 +164,34 @@ export function CompanyForm({
             <p className="text-xs text-danger-600">{fieldErrors.rfc}</p>
           ) : (
             <p className="text-xs text-ink-muted">{t.catalog.form.rfcHint}</p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor={ids.allowedEmailDomains}
+            className="block text-sm font-medium text-ink-soft"
+          >
+            {t.catalog.form.allowedEmailDomains}
+          </label>
+          <textarea
+            id={ids.allowedEmailDomains}
+            name="allowedEmailDomains"
+            rows={3}
+            defaultValue={values.allowedEmailDomains}
+            placeholder={t.catalog.form.allowedEmailDomainsPlaceholder}
+            autoCapitalize="none"
+            spellCheck={false}
+            className={`${inputClass(Boolean(fieldErrors.allowedEmailDomains))} lowercase`}
+          />
+          {fieldErrors.allowedEmailDomains ? (
+            <p className="text-xs text-danger-600">
+              {fieldErrors.allowedEmailDomains}
+            </p>
+          ) : (
+            <p className="text-xs text-ink-muted">
+              {t.catalog.form.allowedEmailDomainsHint}
+            </p>
           )}
         </div>
 

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getDictionary } from "@/i18n/server";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { apiRequest, type ApiResult } from "@/lib/api/client";
+import { emailDomainErrorCopy } from "@/lib/api/email-domains";
 import { readValidationIssues } from "@/lib/api/types";
 import { getSessionToken, requireUser } from "@/lib/auth/session";
 import { readRateTerms } from "@/lib/rates/rates";
@@ -47,7 +48,26 @@ import {
   type ProjectView,
 } from "./types";
 
-const COMPANY_FIELDS: CompanyFormField[] = ["legalName", "tradeName", "rfc"];
+const COMPANY_FIELDS: CompanyFormField[] = [
+  "legalName",
+  "tradeName",
+  "rfc",
+  "allowedEmailDomains",
+];
+const EMAIL_DOMAINS_MAX = 20;
+const EMAIL_DOMAIN_PATTERN =
+  /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+
+function parseEmailDomains(raw: string): string[] {
+  return [
+    ...new Set(
+      raw
+        .split(/[\s,;]+/)
+        .map((domain) => domain.trim().toLowerCase().replace(/^@+/, ""))
+        .filter(Boolean),
+    ),
+  ];
+}
 const CLIENT_FIELDS: ClientFormField[] = [
   "companyId",
   "userId",
@@ -98,7 +118,9 @@ function fieldErrorsFrom<Field extends string>(
   const errors: Partial<Record<Field, string>> = {};
 
   for (const issue of readValidationIssues(details)) {
-    const field = fields.find((name) => issue.path === name);
+    const field = fields.find(
+      (name) => issue.path === name || issue.path.startsWith(`${name}.`),
+    );
     if (field) errors[field] = issue.message;
   }
 
@@ -124,6 +146,7 @@ function toErrorState<Field extends string, Values>(
   t: Dictionary,
 ): SaveOutcome<Field, Values> {
   const message =
+    emailDomainErrorCopy(result.error.details, t) ??
     errorCopy(result.error.code, t) ??
     result.error.message ??
     t.catalog.errors.fallback;
@@ -151,8 +174,10 @@ export async function saveCompanyAction(
     legalName: text(formData, "legalName"),
     tradeName: text(formData, "tradeName"),
     rfc: text(formData, "rfc").toUpperCase(),
+    allowedEmailDomains: text(formData, "allowedEmailDomains"),
     isActive: formData.get("isActive") !== null,
   };
+  const allowedEmailDomains = parseEmailDomains(values.allowedEmailDomains);
 
   if (!canManageCatalog(actor)) {
     return {
@@ -172,6 +197,16 @@ export async function saveCompanyAction(
   if (values.rfc && values.rfc.length !== 12 && values.rfc.length !== 13) {
     fieldErrors.rfc = t.catalog.errors.rfcLength;
   }
+  const invalidDomains = allowedEmailDomains.filter(
+    (domain) => !EMAIL_DOMAIN_PATTERN.test(domain),
+  );
+  if (invalidDomains.length) {
+    fieldErrors.allowedEmailDomains =
+      t.catalog.errors.emailDomainInvalid(invalidDomains);
+  } else if (allowedEmailDomains.length > EMAIL_DOMAINS_MAX) {
+    fieldErrors.allowedEmailDomains =
+      t.catalog.errors.emailDomainsMax(EMAIL_DOMAINS_MAX);
+  }
 
   if (Object.keys(fieldErrors).length) {
     return {
@@ -189,6 +224,7 @@ export async function saveCompanyAction(
     legalName: values.legalName,
     tradeName: values.tradeName,
     rfc: values.rfc || null,
+    allowedEmailDomains,
     isActive: values.isActive,
   };
 
@@ -227,6 +263,7 @@ export async function saveCompanyAction(
       legalName: company.legalName,
       tradeName: company.tradeName,
       rfc: company.rfc ?? "",
+      allowedEmailDomains: company.allowedEmailDomains.join("\n"),
       isActive: company.isActive,
     },
     savedName: company.tradeName,
@@ -934,6 +971,7 @@ export async function assignProjectMemberAction(
     return {
       status: "error",
       message:
+        emailDomainErrorCopy(result.error.details, t) ??
         errorCopy(result.error.code, t) ??
         result.error.message ??
         t.catalog.errors.fallback,
@@ -1032,6 +1070,7 @@ export async function updateProjectAssignmentAction(
     return {
       status: "error",
       message:
+        emailDomainErrorCopy(result.error.details, t) ??
         errorCopy(result.error.code, t) ??
         result.error.message ??
         t.catalog.errors.fallback,

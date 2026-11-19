@@ -72,6 +72,7 @@ export default async function EditCompanyPage({
               legalName: company.legalName,
               tradeName: company.tradeName,
               rfc: company.rfc ?? "",
+              allowedEmailDomains: company.allowedEmailDomains.join("\n"),
               isActive: company.isActive,
             }}
           />

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { apiRequest, type ApiResult } from "@/lib/api/client";
+import { emailDomainErrorCopy } from "@/lib/api/email-domains";
 import { translateFieldMessage } from "@/lib/api/messages";
 import {
   readValidationIssues,
@@ -183,9 +184,16 @@ function toErrorState(
     }
   }
 
+  const domainCopy = emailDomainErrorCopy(details, t);
+  if (domainCopy) fieldErrors.email = domainCopy;
+
   const hasFieldErrors = Object.keys(fieldErrors).length > 0;
   let formMessage =
-    conflictCopy ?? errorCopy(code, t) ?? message ?? t.users.errors.fallback;
+    domainCopy ??
+    conflictCopy ??
+    errorCopy(code, t) ??
+    message ??
+    t.users.errors.fallback;
 
   if (code === "ROLE_NOT_ALLOWED") {
     formMessage += allowedRolesHint(details, actorRoleCode, t);
@@ -569,6 +577,7 @@ export async function assignUserProjectAction(
     return {
       status: "error",
       message:
+        emailDomainErrorCopy(result.error.details, t) ??
         errorCopy(result.error.code, t) ??
         result.error.message ??
         t.users.errors.fallback,
@@ -729,6 +738,7 @@ export async function updateUserAssignmentAction(
     return {
       status: "error",
       message:
+        emailDomainErrorCopy(result.error.details, t) ??
         errorCopy(result.error.code, t) ??
         result.error.message ??
         t.users.errors.fallback,

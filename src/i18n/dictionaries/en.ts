@@ -811,6 +811,12 @@ export const en: Dictionary = {
       tradeNamePlaceholder: "How the company is known",
       rfc: "RFC",
       rfcHint: "Optional. 12 characters for companies, 13 for individuals.",
+      allowedEmailDomains: "Allowed email domains",
+      allowedEmailDomainsPlaceholder: "company.com",
+      allowedEmailDomainsHint:
+        "Optional. One per line.",
+      contactEmailDomainsHint: (domains: string[]) =>
+        `Only emails from ${domains.join(", ")}.`,
       companyLabel: "Company",
       companyPlaceholder: "Select a company",
       save: "Save changes",
@@ -1068,6 +1074,19 @@ export const en: Dictionary = {
       legalNameRequired: "Enter the legal name.",
       tradeNameRequired: "Enter the trade name.",
       rfcLength: "The RFC must be 12 characters (company) or 13 (individual).",
+      emailDomainInvalid: (domains: string[]) =>
+        domains.length === 1
+          ? `"${domains[0]}" is not a valid domain. Use a format like company.com.`
+          : `These domains are not valid: ${domains.join(", ")}. Use a format like company.com.`,
+      emailDomainsMax: (max: number) => `You can add up to ${max} domains.`,
+      emailDomainNotAllowed: (domains: string[]) =>
+        domains.length === 1
+          ? `The email must belong to ${domains[0]}.`
+          : `The email must belong to one of these domains: ${domains.join(", ")}.`,
+      consultantsOutsideDomains: (users: string[]) =>
+        `These collaborators are assigned to this company's projects and have an email outside those domains: ${users.join(", ")}. Update their email or end their assignment before saving.`,
+      clientsOutsideDomains: (clients: string[]) =>
+        `These Project Directors have an email outside those domains: ${clients.join(", ")}. Update their email or deactivate them before saving.`,
       companyRequired: "Select a company.",
       personRequired: "Select the team member.",
       assignmentStart: "Enter the assignment start date.",
