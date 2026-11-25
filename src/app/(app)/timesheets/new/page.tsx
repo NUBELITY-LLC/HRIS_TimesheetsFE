@@ -101,6 +101,7 @@ export default async function TimesheetsPage({
     fetchDrafts(),
   ]);
   const timesheet = week.ok ? week.timesheet : null;
+  const holidays = week.ok ? week.holidays : [];
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -135,6 +136,7 @@ export default async function TimesheetsPage({
         weekStart={weekStart}
         currentWeekStart={currentWeekStart}
         timesheet={timesheet}
+        holidays={holidays}
         statusPanel={
           timesheet ? <WeekStatusPanel timesheet={timesheet} /> : null
         }

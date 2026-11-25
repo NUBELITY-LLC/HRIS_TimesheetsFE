@@ -104,7 +104,13 @@ export type TimesheetDay = {
   date: string;
   minutes: number;
   note: string | null;
+  holidayWorked: boolean;
   activities: TimesheetActivity[];
+};
+
+export type WeekHoliday = {
+  date: string;
+  name: string;
 };
 
 export type Timesheet = {

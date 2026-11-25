@@ -7,7 +7,12 @@ export const CONTRACT_TYPES = ["CONTRACTOR", "PAYROLL"] as const;
 export type ContractType = (typeof CONTRACT_TYPES)[number];
 
 export type PayBucket =
-  "REGULAR" | "SUNDAY" | "OVERTIME" | "OVERTIME_TRIPLE" | "HOLIDAY";
+  | "REGULAR"
+  | "SUNDAY"
+  | "OVERTIME"
+  | "OVERTIME_TRIPLE"
+  | "HOLIDAY"
+  | "HOLIDAY_REST";
 
 export type PayTerms = {
   contractType: ContractType;

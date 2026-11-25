@@ -32,5 +32,6 @@ export const INITIAL_DRAFT_ACTION_STATE: DraftActionState = {
 
 export type DraftDayPayload = {
   date: string;
+  holidayWorked?: boolean;
   activities: { minutes: number; activity: string }[];
 };

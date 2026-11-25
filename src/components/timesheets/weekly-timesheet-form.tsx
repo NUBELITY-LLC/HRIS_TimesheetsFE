@@ -37,6 +37,7 @@ import {
 } from "@/lib/timesheets/form-state";
 import {
   DAY_MAX_MINUTES,
+  HOLIDAY_REST_MINUTES,
   TASK_MAX_MINUTES,
   TASK_MIN_MINUTES,
   TASK_MINUTE_OPTIONS,
@@ -48,6 +49,7 @@ import type {
   TaskEntry,
   Timesheet,
   WeekEntries,
+  WeekHoliday,
 } from "@/lib/timesheets/types";
 import {
   formatDayAndMonth,
@@ -80,19 +82,42 @@ export type WeeklyTimesheetFormProps = {
   weekStart: string;
   currentWeekStart: string;
   timesheet: Timesheet | null;
+  holidays?: WeekHoliday[];
   statusPanel?: React.ReactNode;
 };
+
+function isPaidHoliday(holiday: WeekHoliday): boolean {
+  return !isWeekend(new Date(`${holiday.date}T00:00:00.000Z`));
+}
+
+function seedHolidayWorked(
+  holidays: WeekHoliday[],
+  timesheet: Timesheet | null,
+): Record<string, boolean> {
+  return Object.fromEntries(
+    holidays.filter(isPaidHoliday).map((holiday) => [
+      holiday.date,
+      Boolean(
+        timesheet?.days?.find((day) => day.date === holiday.date)
+          ?.holidayWorked,
+      ),
+    ]),
+  );
+}
 
 function seedEntries(
   weekStart: string,
   timesheet: Timesheet | null,
+  holidayWorked: Record<string, boolean>,
 ): WeekEntries {
   const entries: WeekEntries = {};
 
   for (const date of weekDates(weekStart)) {
     const iso = toISODate(date);
     const saved = timesheet?.days?.find((day) => day.date === iso);
-    const rows = (saved?.activities ?? []).map((activity, index) => ({
+    const restDay = iso in holidayWorked && !holidayWorked[iso];
+    const activities = restDay ? [] : (saved?.activities ?? []);
+    const rows = activities.map((activity, index) => ({
       id: `${iso}#${index}`,
       minutes: activity.minutes,
       activity: activity.activity,
@@ -146,6 +171,7 @@ export function WeeklyTimesheetForm({
   weekStart,
   currentWeekStart,
   timesheet,
+  holidays = [],
   statusPanel,
 }: WeeklyTimesheetFormProps) {
   const t = useDictionary();
@@ -159,8 +185,11 @@ export function WeeklyTimesheetForm({
   const feedback = useFeedbackSlot();
   const [isNavigating, startNavigation] = useTransition();
   const { confirm, dialog } = useConfirm();
+  const [holidayWorked, setHolidayWorked] = useState<Record<string, boolean>>(
+    () => seedHolidayWorked(holidays, timesheet),
+  );
   const [entries, setEntries] = useState<WeekEntries>(() =>
-    seedEntries(weekStart, timesheet),
+    seedEntries(weekStart, timesheet, holidayWorked),
   );
   const [errors, setErrors] = useState<FormErrors>(NO_ERRORS);
   const [dirty, setDirty] = useState(false);
@@ -203,22 +232,28 @@ export function WeeklyTimesheetForm({
     projectEndDate ?? "",
   );
 
-  const days = useMemo(
-    () =>
-      weekDates(weekStart).map((date) => {
-        const iso = toISODate(date);
-        const rows = entries[iso] ?? [];
+  const days = weekDates(weekStart).map((date) => {
+    const iso = toISODate(date);
+    const rows = entries[iso] ?? [];
+    const found = holidays.find((item) => item.date === iso) ?? null;
+    const holiday = found && isPaidHoliday(found) ? found : null;
+    const afterEnd = Boolean(projectEndDate && iso > projectEndDate);
+    const restDay = Boolean(holiday && !afterEnd && !holidayWorked[iso]);
+    const logged = rows.reduce((total, row) => total + (row.minutes ?? 0), 0);
 
-        return {
-          date,
-          iso,
-          rows,
-          weekend: isWeekend(date),
-          minutes: rows.reduce((total, row) => total + (row.minutes ?? 0), 0),
-        };
-      }),
-    [weekStart, entries],
-  );
+    return {
+      date,
+      iso,
+      rows,
+      holiday,
+      restDay,
+      weekend: isWeekend(date),
+      minutes:
+        restDay || (holiday && !afterEnd && logged === 0)
+          ? HOLIDAY_REST_MINUTES
+          : logged,
+    };
+  });
 
   function isAfterProjectEnd(iso: string): boolean {
     return Boolean(projectEndDate && iso > projectEndDate);
@@ -229,12 +264,20 @@ export function WeeklyTimesheetForm({
   const payload: DraftDayPayload[] = days.flatMap((day) => {
     if (isAfterProjectEnd(day.iso)) return [];
 
+    if (day.restDay) {
+      return [{ date: day.iso, holidayWorked: false, activities: [] }];
+    }
+
     const activities = day.rows
       .filter((row) => row.minutes !== null)
       .map((row) => ({
         minutes: row.minutes as number,
         activity: row.activity.trim(),
       }));
+
+    if (day.holiday) {
+      return [{ date: day.iso, holidayWorked: true, activities }];
+    }
 
     return activities.length ? [{ date: day.iso, activities }] : [];
   });
@@ -346,11 +389,21 @@ export function WeeklyTimesheetForm({
     setDirty(true);
   }
 
+  function toggleHolidayWorked(iso: string, worked: boolean) {
+    setHolidayWorked((prev) => ({ ...prev, [iso]: worked }));
+    setEntries((prev) => ({ ...prev, [iso]: [createRow(iso)] }));
+    setErrors(NO_ERRORS);
+    setDirty(true);
+  }
+
   function validate(intent: "draft" | "submit"): FormErrors {
     const next: FormErrors = { days: {}, rows: {} };
     let filledRows = 0;
 
     for (const day of days) {
+      if (day.holiday && !isAfterProjectEnd(day.iso)) filledRows += 1;
+      if (day.restDay) continue;
+
       for (const row of day.rows) {
         const activity = row.activity.trim();
         if (row.minutes === null && !activity) continue;
@@ -694,7 +747,43 @@ export function WeeklyTimesheetForm({
                 </div>
 
                 <div className="space-y-2">
-                  {day.rows.map((row) => {
+                  {day.holiday && !afterProjectEnd ? (
+                    <label className="flex w-fit items-center gap-2 text-sm font-medium text-ink-soft">
+                      <input
+                        type="checkbox"
+                        checked={!day.restDay}
+                        disabled={dayLocked || busy}
+                        onChange={(event) =>
+                          toggleHolidayWorked(day.iso, event.target.checked)
+                        }
+                        className="size-4 rounded border-line text-brand-600 focus:ring-brand-100"
+                      />
+                      {t.timesheets.holidayWorked}
+                    </label>
+                  ) : null}
+
+                  {day.restDay ? (
+                    <div className="flex items-center gap-2">
+                      <span className="w-24 shrink-0 rounded-lg border border-line bg-surface-muted px-2 py-2 text-sm text-ink-muted tabular-nums">
+                        {formatMinutes(HOLIDAY_REST_MINUTES)}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate rounded-lg border border-line bg-surface-muted px-3 py-2 text-sm text-ink-muted">
+                        {t.timesheets.holidayLabel}
+                        {day.holiday ? ` · ${day.holiday.name}` : ""}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {day.holiday &&
+                  !day.restDay &&
+                  !afterProjectEnd &&
+                  editable ? (
+                    <p className="text-xs text-ink-muted">
+                      {t.timesheets.holidayWorkedHint}
+                    </p>
+                  ) : null}
+
+                  {(day.restDay ? [] : day.rows).map((row) => {
                     const rowError = errors.rows[row.id];
 
                     return (
@@ -768,7 +857,7 @@ export function WeeklyTimesheetForm({
                     </p>
                   ) : null}
 
-                  {editable && !afterProjectEnd ? (
+                  {editable && !afterProjectEnd && !day.restDay ? (
                     <button
                       type="button"
                       disabled={busy}
