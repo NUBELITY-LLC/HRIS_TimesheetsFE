@@ -302,7 +302,7 @@ export const es = {
     addTask: "Agregar tarea",
     holidayLabel: "Día feriado",
     holidayWorked: "Laboré este día",
-    holidayWorkedHint: "Registra las horas que trabajaste este día.",
+    holidayWorkedHint: "Registra las horas que trabajaste, además del día feriado.",
     removeTask: "Quitar tarea",
     totalHours: "Total de horas",
     noAccessTitle: "No puedes registrar horas",

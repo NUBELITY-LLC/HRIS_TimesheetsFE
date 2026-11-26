@@ -98,6 +98,7 @@ export type TimesheetActivity = {
   lineNo: number;
   minutes: number;
   activity: string;
+  holidayRest?: boolean;
 };
 
 export type TimesheetDay = {

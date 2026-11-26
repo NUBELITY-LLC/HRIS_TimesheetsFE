@@ -303,7 +303,7 @@ export const en: Dictionary = {
     addTask: "Add task",
     holidayLabel: "Holiday",
     holidayWorked: "I worked this day",
-    holidayWorkedHint: "Log the hours you worked on this day.",
+    holidayWorkedHint: "Log the hours you worked, in addition to the holiday.",
     removeTask: "Remove task",
     totalHours: "Total hours",
     noAccessTitle: "You cannot log hours",

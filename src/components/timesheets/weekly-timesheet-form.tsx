@@ -116,7 +116,9 @@ function seedEntries(
     const iso = toISODate(date);
     const saved = timesheet?.days?.find((day) => day.date === iso);
     const restDay = iso in holidayWorked && !holidayWorked[iso];
-    const activities = restDay ? [] : (saved?.activities ?? []);
+    const activities = restDay
+      ? []
+      : (saved?.activities ?? []).filter((activity) => !activity.holidayRest);
     const rows = activities.map((activity, index) => ({
       id: `${iso}#${index}`,
       minutes: activity.minutes,
@@ -249,8 +251,8 @@ export function WeeklyTimesheetForm({
       restDay,
       weekend: isWeekend(date),
       minutes:
-        restDay || (holiday && !afterEnd && logged === 0)
-          ? HOLIDAY_REST_MINUTES
+        holiday && !afterEnd
+          ? HOLIDAY_REST_MINUTES + (restDay ? 0 : logged)
           : logged,
     };
   });
@@ -748,6 +750,18 @@ export function WeeklyTimesheetForm({
 
                 <div className="space-y-2">
                   {day.holiday && !afterProjectEnd ? (
+                    <div className="flex items-center gap-2">
+                      <span className="w-24 shrink-0 rounded-lg border border-line bg-surface-muted px-2 py-2 text-sm text-ink-muted tabular-nums">
+                        {formatMinutes(HOLIDAY_REST_MINUTES)}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate rounded-lg border border-line bg-surface-muted px-3 py-2 text-sm text-ink-muted">
+                        {t.timesheets.holidayLabel}
+                        {day.holiday ? ` · ${day.holiday.name}` : ""}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {day.holiday && !afterProjectEnd ? (
                     <label className="flex w-fit items-center gap-2 text-sm font-medium text-ink-soft">
                       <input
                         type="checkbox"
@@ -760,18 +774,6 @@ export function WeeklyTimesheetForm({
                       />
                       {t.timesheets.holidayWorked}
                     </label>
-                  ) : null}
-
-                  {day.restDay ? (
-                    <div className="flex items-center gap-2">
-                      <span className="w-24 shrink-0 rounded-lg border border-line bg-surface-muted px-2 py-2 text-sm text-ink-muted tabular-nums">
-                        {formatMinutes(HOLIDAY_REST_MINUTES)}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate rounded-lg border border-line bg-surface-muted px-3 py-2 text-sm text-ink-muted">
-                        {t.timesheets.holidayLabel}
-                        {day.holiday ? ` · ${day.holiday.name}` : ""}
-                      </span>
-                    </div>
                   ) : null}
 
                   {day.holiday &&
