@@ -59,6 +59,16 @@ function parseDays(raw: string): DraftDayPayload[] {
       return [{ minutes, activity }];
     });
 
+    if (typeof day.holidayWorked === "boolean") {
+      return [
+        {
+          date: day.date,
+          holidayWorked: day.holidayWorked,
+          activities: day.holidayWorked ? rows : [],
+        },
+      ];
+    }
+
     return rows.length ? [{ date: day.date, activities: rows }] : [];
   });
 }

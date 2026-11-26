@@ -2,6 +2,7 @@ export const TASK_STEP_MINUTES = 15;
 export const TASK_MIN_MINUTES = 15;
 export const TASK_MAX_MINUTES = 8 * 60;
 export const DAY_MAX_MINUTES = 24 * 60;
+export const HOLIDAY_REST_MINUTES = 8 * 60;
 
 export const TASK_MINUTE_OPTIONS: number[] = Array.from(
   { length: TASK_MAX_MINUTES / TASK_STEP_MINUTES },

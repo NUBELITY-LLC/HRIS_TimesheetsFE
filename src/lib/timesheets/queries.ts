@@ -12,6 +12,7 @@ import type {
   TeamTimesheet,
   Timesheet,
   TimesheetStatus,
+  WeekHoliday,
 } from "./types";
 
 export const EMPTY_DASHBOARD_SUMMARY: DashboardSummary = {
@@ -31,7 +32,8 @@ export type AssignmentsResult =
   { ok: true; assignments: Assignment[] } | { ok: false; message: string };
 
 export type WeekResult =
-  { ok: true; timesheet: Timesheet | null } | { ok: false; message: string };
+  | { ok: true; timesheet: Timesheet | null; holidays: WeekHoliday[] }
+  | { ok: false; message: string };
 
 export async function fetchAssignments(): Promise<AssignmentsResult> {
   const token = await getSessionToken();
@@ -54,13 +56,17 @@ export async function fetchWeek(
     assignmentId: String(assignmentId),
     weekStart,
   });
-  const result = await apiRequest<{ timesheet: Timesheet | null }>(
-    `/timesheets/week?${params.toString()}`,
-    { token },
-  );
+  const result = await apiRequest<{
+    timesheet: Timesheet | null;
+    holidays?: WeekHoliday[];
+  }>(`/timesheets/week?${params.toString()}`, { token });
 
   return result.ok
-    ? { ok: true, timesheet: result.data.timesheet }
+    ? {
+        ok: true,
+        timesheet: result.data.timesheet,
+        holidays: result.data.holidays ?? [],
+      }
     : { ok: false, message: result.error.message };
 }
 
