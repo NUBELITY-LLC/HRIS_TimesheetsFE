@@ -33,49 +33,75 @@ function ActivityRows({
   noneLabel: string;
   emptyLabel: string;
 }) {
-  const showSubmission = day.entries.length > 1;
+  const grouped = day.entries.length > 1;
 
   return day.entries.map((entry) => {
     const activities = entry.activities ?? [];
     const key = `${day.date}-${entry.timesheetId}`;
 
-    if (activities.length === 0) {
-      return (
-        <tr key={key} className="bg-surface-muted/50">
-          <td />
-          <td colSpan={6} className="px-5 py-2 text-xs text-ink-muted">
-            {showSubmission
-              ? `${entry.submissionCode ?? noneLabel} · ${emptyLabel}`
-              : emptyLabel}
-          </td>
-        </tr>
-      );
-    }
-
-    return activities.map((activity) => (
-      <tr
-        key={`${key}-${activity.lineNo}`}
-        className="bg-surface-muted/50 text-xs"
-      >
+    const header = grouped ? (
+      <tr key={`${key}-group`} className="bg-surface-muted/50 text-xs">
         <td />
-        <td colSpan={2} className="px-5 py-2 text-ink-soft">
-          <span className="flex items-start gap-2">
-            <span
-              aria-hidden="true"
-              className="mt-1.5 size-1 shrink-0 rounded-full bg-ink-muted"
-            />
-            <span className="whitespace-pre-line">{activity.activity}</span>
+        <td colSpan={2} className="px-5 pt-3 pb-1.5">
+          <span className="font-semibold text-ink">
+            {entry.company?.name ?? noneLabel}
+          </span>
+          <span className="text-ink-muted">
+            {" · "}
+            {entry.project?.name ?? noneLabel}
           </span>
         </td>
-        <td className="px-5 py-2 text-ink-muted">
-          {showSubmission ? (entry.submissionCode ?? noneLabel) : null}
+        <td className="px-5 pt-3 pb-1.5 text-ink-muted">
+          {entry.submissionCode ?? noneLabel}
         </td>
-        <td className="px-5 py-2 text-right text-ink-soft tabular-nums">
-          {formatMinutes(activity.minutes)}
+        <td className="px-5 pt-3 pb-1.5 text-right font-semibold text-ink-soft tabular-nums">
+          {formatMinutes(entry.minutes)}
         </td>
         <td colSpan={2} />
       </tr>
-    ));
+    ) : null;
+
+    const rows =
+      activities.length === 0
+        ? [
+            <tr key={`${key}-empty`} className="bg-surface-muted/50">
+              <td />
+              <td
+                colSpan={6}
+                className={`px-5 py-2 text-xs text-ink-muted ${grouped ? "pl-9" : ""}`}
+              >
+                {emptyLabel}
+              </td>
+            </tr>,
+          ]
+        : activities.map((activity) => (
+            <tr
+              key={`${key}-${activity.lineNo}`}
+              className="bg-surface-muted/50 text-xs"
+            >
+              <td />
+              <td
+                colSpan={3}
+                className={`px-5 py-2 text-ink-soft ${grouped ? "pl-9" : ""}`}
+              >
+                <span className="flex items-start gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="mt-1.5 size-1 shrink-0 rounded-full bg-ink-muted"
+                  />
+                  <span className="whitespace-pre-line">
+                    {activity.activity}
+                  </span>
+                </span>
+              </td>
+              <td className="px-5 py-2 text-right text-ink-soft tabular-nums">
+                {formatMinutes(activity.minutes)}
+              </td>
+              <td colSpan={2} />
+            </tr>
+          ));
+
+    return header ? [header, ...rows] : rows;
   });
 }
 
