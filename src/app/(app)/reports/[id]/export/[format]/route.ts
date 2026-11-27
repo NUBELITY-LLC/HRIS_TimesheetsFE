@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/auth/session";
 import { isExportFormat, proxyDownload } from "@/lib/api/download";
 import { canViewHoursReports } from "@/lib/users/roles";
 
-const FORWARDED = ["from", "to", "companyId", "projectId"];
+const FORWARDED = ["from", "to", "companyId", "projectId", "activities"];
 
 export async function GET(
   request: Request,

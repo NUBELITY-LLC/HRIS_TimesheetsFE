@@ -589,6 +589,8 @@ export const en: Dictionary = {
       amount: "Amount",
       mixedCurrencies: "This range has more than one currency.",
       dailyTitle: "Daily breakdown",
+      showActivities: "Show activities",
+      noActivities: "No activities recorded",
       columns: {
         day: "Day",
         project: "Company / Project",
