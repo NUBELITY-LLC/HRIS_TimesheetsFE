@@ -588,6 +588,8 @@ export const es = {
       amount: "Importe",
       mixedCurrencies: "Hay más de una moneda en este rango.",
       dailyTitle: "Detalle por día",
+      showActivities: "Mostrar actividades",
+      noActivities: "Sin actividades registradas",
       columns: {
         day: "Día",
         project: "Empresa / Proyecto",

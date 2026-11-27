@@ -12,6 +12,14 @@ export type ReportPerson = {
   roleName: string;
 };
 
+export type ReportActivity = {
+  lineNo: number;
+  minutes: number;
+  hours: number;
+  activity: string;
+  holidayRest: boolean;
+};
+
 export type ReportEntry = {
   timesheetId: number;
   submissionCode: string | null;
@@ -29,6 +37,7 @@ export type ReportEntry = {
   currency: string;
   amount: number;
   lines: PayLine[];
+  activities?: ReportActivity[];
 };
 
 export type ReportDay = {

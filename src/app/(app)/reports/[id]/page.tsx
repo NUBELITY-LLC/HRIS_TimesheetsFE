@@ -6,10 +6,10 @@ import {
   type SummaryCard,
 } from "@/components/dashboard/summary-cards";
 import { AlertIcon, ArrowLeftIcon } from "@/components/icons";
+import { HoursReportExportLinks } from "@/components/reports/hours-report-export-links";
 import { HoursReportTable } from "@/components/reports/hours-report";
 import { PayoutPanel } from "@/components/reports/payout-panel";
 import { ReportRangeFilters } from "@/components/reports/range-filters";
-import { ExportLinks } from "@/components/timesheets/export-links";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/session";
 import {
@@ -180,7 +180,7 @@ export default async function ReportDetailPage({
         </Link>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
           <p className="text-sm text-ink-muted">{d.eyebrow}</p>
-          <ExportLinks
+          <HoursReportExportLinks
             basePath={`/reports/${personId}/export`}
             query={setScopeParams(
               new URLSearchParams({ from: report.from, to: report.to }),
